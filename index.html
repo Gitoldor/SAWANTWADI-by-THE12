@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Sho1re1 Map</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html, body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body{
+  transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s ease;
+  will-change: transform, opacity;
+}
+
+body.page-transition-down{
+  transform: translateY(100vh);
+  opacity:0;
+}
+
+body.page-transition-up{
+  transform: translateY(-100vh);
+  opacity:0;
+}
+
+#map{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:1;
+  background: #000;
+}
+
+.brand-image-container {
+  position: fixed;
+  top: 0px;
+  left: 0;
+  width: 100%;
+  z-index: 99999;
+  --brand-height: 220px;
+  pointer-events: auto;
+}
+
+.brand-image {
+  width: 100%;
+  height: var(--brand-height);
+  object-fit: cover;
+  object-position: center center;
+  cursor: pointer;
+  user-select: none;
+  display: block;
+  transition: opacity .2s ease;
+}
+
+.search-chip-wrapper {
+  position: sticky;
+  left: 0;
+  flex-shrink: 0;
+  z-index: 10;
+  height: 36px;
+  width: 36px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.search-chip-wrapper.expanded {
+  width: 160px;
+  padding: 0 10px;
+}
+
+.search-toggle-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.search-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: #111;
+}
+
+.search-chip-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111;
+  padding-left: 4px;
+  display: none;
+}
+
+.search-chip-wrapper.expanded .search-chip-input {
+  display: block;
+}
+
+.filter-container {
+  position: fixed;
+  bottom: 220px;
+  left: 90px;
+  width: 50%;
+  border-radius: 20px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-container::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: black;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-chip.active {
+  background: #000000;
+  color: #ffffff;
+  border-color: white;
+  box-shadow: 0 8px 20px rgba(0,123,255,0.4);
+}
+
+.map-style-btn,
+.saved-posts-btn {
+  position: fixed;
+  right: 20px;
+  z-index: 99999;
+  width: 58px;
+  height: 58px;
+  border: none;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.saved-posts-btn { bottom: 315px; }
+.map-style-btn { bottom: 245px; }
+
+.saved-posts-btn:active, .map-style-btn:active { transform: scale(0.92); }
+.saved-posts-btn.active { background: #000000; }
+
+.saved-posts-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: #111;
+  transition: fill 0.2s ease;
+}
+
+.saved-posts-btn.active svg { fill: #ffffff; }
+
+.map-icon{
+  width:28px;
+  height:28px;
+  position:relative;
+}
+
+.map-icon::before, .map-icon::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:10px;
+  border:2.5px solid #111;
+}
+
+.map-icon::before{ transform:rotate(-8deg) translateY(-3px); opacity:.5; }
+.map-icon::after{ background:white; }
+
+.carousel{
+  position:fixed;
+  left:0;
+  bottom:0px;
+  width:100%;
+  height:220px;
+  z-index:9999;
+  overflow-x:auto;
+  overflow-y:hidden;
+  display:flex;
+  gap:18px;
+  padding:24px calc(50vw - 100px) 34px;
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:calc(50vw - 100px);
+  -webkit-overflow-scrolling:touch;
+  perspective:1200px;
+  scrollbar-width:none;
+}
+
+.carousel::-webkit-scrollbar{ display:none; }
+
+.card {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 54px;
+  overflow: hidden;
+  flex-shrink: 0;
+  scroll-snap-align: center;
+  cursor: pointer;
+  background: #111;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.10);
+  transform-origin: center center;
+  will-change: transform;
+  transition: box-shadow .22s ease;
+}
+
+.card.active { box-shadow: 0 0 0 2px rgba(255,255,255,.9); }
+
+.card img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  pointer-events: none;
+}
+
+.card-overlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:18px;
+  background:linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.20) 60%, transparent);
+  pointer-events: none;
+}
+
+.card-type{ color:white; font-size:1.75rem; font-weight:800; pointer-events: none; }
+.card-sub{ margin-top:120px; color:rgba(255,255,255,.72); font-size:.92rem; font-weight:500; pointer-events: none; }
+
+.card-save-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  user-select: none;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.card-save-btn:active { transform: scale(0.88); }
+.card-save-btn svg { width: 16px; height: 16px; fill: #ffffff; transition: fill 0.2s ease; }
+.card-save-btn.is-saved { background: rgba(255, 255, 255, 0.95); }
+.card-save-btn.is-saved svg { fill: #000000; }
+
+.custom-marker{
+  width:80px;
+  height:80px;
+  border-radius:26px;
+  overflow:hidden;
+  border:3px solid rgba(255,255,255,.96);
+  background:#111;
+  box-shadow:0 12px 28px rgba(0,0,0,.42);
+  transition:transform .26s ease;
+  position:relative;
+  will-change: transform;
+}
+
+.custom-marker img{ width:100%; height:100%; object-fit:cover; display:block; }
+.custom-marker.active{ transform:scale(1.35); border:4px solid white; z-index:999999; }
+
+.cluster-wrap{ width:120px; height:70px; position:relative; }
+.cluster-card{
+  position:absolute;
+  width:80px;
+  height:80px;
+  border-radius:28px;
+  overflow:hidden;
+  border:2px solid white;
+  background:#222;
+  box-shadow:0 8px 18px rgba(0,0,0,.38);
+}
+.cluster-card img{ width:100%; height:100%; object-fit:cover; }
+.cluster-card:nth-child(1){ left:0; top:0; transform:rotate(-8deg); }
+.cluster-card:nth-child(2){ left:24px; top:2px; transform:rotate(4deg); }
+.cluster-card:nth-child(3){ left:48px; top:4px; transform:rotate(-5deg); }
+
+.cluster-count{
+  position:absolute;
+  top:-10px;
+  left:-8px;
+  background:white;
+  color:black;
+  font-size:.85rem;
+  font-weight:900;
+  padding:6px 10px;
+  border-radius:999px;
+  z-index:99;
+  box-shadow:0 8px 18px rgba(0,0,0,.35);
+}
+
+.leaflet-control-container{ display:none; }
+.leaflet-marker-icon{ background:none !important; border:none !important; }
+
+.swipe-zone{ position:fixed; left:0; width:100%; z-index:1000000; background:transparent; touch-action:none; }
+.swipe-zone-top{ top:0; height:38px; }
+.swipe-zone-bottom{ bottom:0; height:42px; }
+
+/* FULL-PAGE FOLDER SHOWER OVERLAY */
+.folder-page-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000000;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+}
+
+.folder-page-overlay.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.folder-page-header {
+  height: 80px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.folder-page-title { color: #fff; font-size: 1.4rem; font-weight: 800; }
+
+.folder-page-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folder-grid-container {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  align-content: start;
+}
+
+.folder-card {
+  aspect-ratio: 1;
+  background: #121212;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+
+.folder-card:active { transform: scale(0.96); }
+.folder-card.selected { border-color: #ffffff; }
+
+.folder-card-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+  z-index: 1;
+}
+
+.folder-card-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.folder-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.folder-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folder-card-icon svg { width: 18px; height: 18px; fill: #fff; }
+
+.folder-edit-btn {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.folder-edit-btn svg { width: 14px; height: 14px; fill: #fff; }
+
+.folder-card-info { display: flex; flex-direction: column; }
+.folder-card-name { color: #fff; font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-card-count { color: rgba(255, 255, 255, 0.7); font-size: 0.8rem; font-weight: 600; margin-top: 2px; }
+
+.folder-card-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.folder-card.selected .folder-card-check { display: flex; }
+.folder-card-check svg { width: 14px; height: 14px; fill: #000; }
+
+.fab-new-folder {
+  position: fixed;
+  bottom: 32px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2000005;
+  transition: transform 0.2s ease;
+}
+
+.fab-new-folder:active { transform: scale(0.92); }
+.fab-new-folder svg { width: 26px; height: 26px; fill: #000000; }
+
+/* CREATE / EDIT FOLDER PROMPT */
+.prompt-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 2000010;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.prompt-dialog.active { opacity: 1; pointer-events: auto; }
+
+.prompt-box {
+  width: 88%;
+  max-width: 340px;
+  background: #1c1c1e;
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.prompt-box input[type="text"] {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: #000;
+  color: #fff;
+  font-size: 0.9rem;
+  margin: 12px 0;
+  outline: none;
+}
+
+.cover-preview-box {
+  width: 100%;
+  height: 100px;
+  border-radius: 14px;
+  background: #111;
+  border: 1px dashed rgba(255,255,255,0.25);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.cover-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+.cover-preview-box span { color: #888; font-size: 0.8rem; font-weight: 600; }
+
+.prompt-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.prompt-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.prompt-btn.cancel { background: rgba(255,255,255,0.1); color: #fff; }
+.prompt-btn.confirm { background: #fff; color: #000; }
+</style>
+</head>
+<body>
+
+<div class="swipe-zone swipe-zone-top" id="swipeTop"></div>
+<div class="swipe-zone swipe-zone-bottom" id="swipeBottom"></div>
+
+<div class="filter-container" id="filterContainer">
+  <div class="search-chip-wrapper" id="searchChipWrapper">
+    <button class="search-toggle-btn" id="searchBtn">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    </button>
+    <input type="text" class="search-chip-input" id="searchInput" placeholder="Search..." />
+  </div>
+</div>
+
+<div class="brand-image-container">
+  <img src="https://i.supaimg.com/f6b811eb-511e-4182-93ac-f84ab56ea259/68eb40d0-b860-4255-abc9-bdc3989b24fa.png" class="brand-image" id="locationTitle" alt="Sawantwadi Landscape View" />
+</div>
+
+<button class="saved-posts-btn" id="savedFilterBtn" title="Saved Posts">
+  <svg viewBox="0 0 24 24">
+    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+  </svg>
+</button>
+
+<button class="map-style-btn" id="toggleBtn" title="Toggle Map Style">
+  <div class="map-icon"></div>
+</button>
+
+<div id="map"></div>
+<div class="carousel" id="carousel"></div>
+
+<!-- FULL PAGE FOLDER SHOWER OVERLAY -->
+<div class="folder-page-overlay" id="folderPageOverlay">
+  <div class="folder-page-header">
+    <div class="folder-page-title" id="folderPageHeaderTitle">Folders</div>
+    <button class="folder-page-close" id="folderPageCloseBtn">&times;</button>
+  </div>
+  <div class="folder-grid-container" id="folderGrid"></div>
+  <button class="fab-new-folder" id="fabNewFolderBtn" title="Create Folder">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>
+</div>
+
+<!-- CREATE / EDIT FOLDER MODAL -->
+<div class="prompt-dialog" id="createFolderDialog">
+  <div class="prompt-box">
+    <div style="font-weight:700; font-size:1.1rem; color:#fff;" id="modalDialogTitle">Create Custom Folder</div>
+    <input type="text" id="createFolderNameInput" placeholder="Folder Title..." />
+    <input type="text" id="createFolderCoverInput" placeholder="Cover Image URL (Optional)..." />
+    <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin-bottom:6px;">OR upload image file:</div>
+    <input type="file" id="coverFileInput" accept="image/*" style="color:#fff; font-size:0.8rem; margin-bottom:12px;" />
+    
+    <div class="cover-preview-box" id="coverPreviewBox">
+      <span>Cover Preview</span>
+    </div>
+
+    <div class="prompt-actions">
+      <button class="prompt-btn cancel" id="cancelFolderCreation">Cancel</button>
+      <button class="prompt-btn confirm" id="confirmFolderCreation">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script src="update.js"></script>
+<script src="weather.js"></script>
+<script src="mapsearch.js"></script>
+<script src="explore app.js"></script>
+  <script>
+  /* =========================
+INDEXEDDB CONTROLLER (PERSISTENT METADATA & FOLDERS)
+========================= */
+const DB_NAME = 'Sho1re1DB_v4';
+const STORE_PLACES = 'saved_places';
+const STORE_FOLDERS = 'custom_folders';
+let db = null;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const dbInstance = e.target.result;
+      if (!dbInstance.objectStoreNames.contains(STORE_PLACES)) {
+        dbInstance.createObjectStore(STORE_PLACES, { keyPath: 'id' });
+      }
+      if (!dbInstance.objectStoreNames.contains(STORE_FOLDERS)) {
+        dbInstance.createObjectStore(STORE_FOLDERS, { keyPath: 'name' });
+      }
+    };
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      resolve(db);
+    };
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function savePlaceToDB(place, folderArray = ['Default']) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const tx = db.transaction(STORE_PLACES, 'readwrite');
+    const store = tx.objectStore(STORE_PLACES);
+    place.folders = Array.from(new Set(folderArray));
+    store.put(place);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function removePlaceFromDB(id) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const tx = db.transaction(STORE_PLACES, 'readwrite');
+    const store = tx.objectStore(STORE_PLACES);
+    store.delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function getSavedPlacesFromDB() {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const tx = db.transaction(STORE_PLACES, 'readonly');
+    const store = tx.objectStore(STORE_PLACES);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function getFoldersFromDB() {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const tx = db.transaction(STORE_FOLDERS, 'readonly');
+    const store = tx.objectStore(STORE_FOLDERS);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const custom = request.result || [];
+      const hasDefault = custom.some(f => f.name === 'Default');
+      if (!hasDefault) {
+        custom.unshift({ name: 'Default', cover: '' });
+      }
+      resolve(custom);
+    };
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function saveFolderToDB(folderObj, oldName = null) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const tx = db.transaction([STORE_FOLDERS, STORE_PLACES], 'readwrite');
+    const folderStore = tx.objectStore(STORE_FOLDERS);
+    const placeStore = tx.objectStore(STORE_PLACES);
+
+    if (oldName && oldName !== folderObj.name) {
+      folderStore.delete(oldName);
+      // Migrate places with old folder name
+      const placeReq = placeStore.getAll();
+      placeReq.onsuccess = () => {
+        placeReq.result.forEach(p => {
+          if (p.folders && p.folders.includes(oldName)) {
+            p.folders = p.folders.map(f => f === oldName ? folderObj.name : f);
+            placeStore.put(p);
+          }
+        });
+      };
+    }
+
+    folderStore.put(folderObj);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+/* =========================
+ELEMENTS & CACHE
+========================= */
+const carousel = document.getElementById('carousel');
+const toggleBtn = document.getElementById('toggleBtn');
+const savedFilterBtn = document.getElementById('savedFilterBtn');
+const title = document.getElementById('locationTitle');
+const profileBtn = document.getElementById('profileBtn');
+const searchBtn = document.getElementById('searchBtn');
+const searchChipWrapper = document.getElementById('searchChipWrapper');
+const searchInput = document.getElementById('searchInput');
+const filterContainer = document.getElementById('filterContainer');
+
+const folderPageOverlay = document.getElementById('folderPageOverlay');
+const folderPageCloseBtn = document.getElementById('folderPageCloseBtn');
+const folderPageHeaderTitle = document.getElementById('folderPageHeaderTitle');
+const folderGrid = document.getElementById('folderGrid');
+const fabNewFolderBtn = document.getElementById('fabNewFolderBtn');
+
+const createFolderDialog = document.getElementById('createFolderDialog');
+const modalDialogTitle = document.getElementById('modalDialogTitle');
+const createFolderNameInput = document.getElementById('createFolderNameInput');
+const createFolderCoverInput = document.getElementById('createFolderCoverInput');
+const coverFileInput = document.getElementById('coverFileInput');
+const coverPreviewBox = document.getElementById('coverPreviewBox');
+const cancelFolderCreation = document.getElementById('cancelFolderCreation');
+const confirmFolderCreation = document.getElementById('confirmFolderCreation');
+
+let rawPlaces = window.Sho1re1Places || [];
+let savedPlacesMap = new Map(); // id -> { place, folders: [] }
+let showOnlySaved = false;
+let selectedViewFolder = 'ALL'; 
+let targetSavePlace = null;
+let isFolderViewMode = false;
+let editingFolderOldName = null;
+let currentBase64Cover = '';
+
+let activePlaces = [];
+let selectedFilter = 'All';
+let searchQuery = '';
+
+let cardRefs = [];
+let markerMap = new Map();
+let activeIndex = -1;
+
+rawPlaces.forEach((p, idx) => {
+  if (!p.id) p.id = p.link || p.title || `place_${idx}_${p.lat}_${p.lng}`;
+});
+
+/* =========================
+SWIPE ROUTES & TRANSITIONS
+========================= */
+const SWIPE_ROUTES = { top: 'feed.html', bottom: 'explore.html' };
+
+function triggerPageTransition(direction, href){
+  const body = document.body;
+  if(body.classList.contains('page-transition-down') || body.classList.contains('page-transition-up')) return;
+  body.classList.add(direction === 'down' ? 'page-transition-down' : 'page-transition-up');
+  setTimeout(() => { window.location.href = href; }, 360);
+}
+
+function bindEdgeSwipe(zoneEl, direction, href, threshold = 70){
+  let startX = 0, startY = 0, active = false;
+
+  zoneEl.addEventListener('pointerdown', (e) => {
+    active = true;
+    startX = e.clientX;
+    startY = e.clientY;
+  }, { passive: true });
+
+  zoneEl.addEventListener('pointerup', (e) => {
+    if(!active) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    active = false;
+
+    if(direction === 'down' && dy > threshold && Math.abs(dy) > Math.abs(dx)){
+      triggerPageTransition('down', href);
+    } else if(direction === 'up' && dy < -threshold && Math.abs(dy) > Math.abs(dx)){
+      triggerPageTransition('up', href);
+    }
+  });
+
+  zoneEl.addEventListener('pointercancel', () => { active = false; });
+}
+
+bindEdgeSwipe(document.getElementById('swipeTop'), 'down', SWIPE_ROUTES.top, 60);
+bindEdgeSwipe(document.getElementById('swipeBottom'), 'up', SWIPE_ROUTES.bottom, 60);
+
+/* =========================
+MAP INITIALIZATION
+========================= */
+const map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([15.9041, 73.8219], 15);
+const normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 });
+const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+const darkMap = L.tileLayer('https://{s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+
+satelliteMap.addTo(map);
+const modes = [satelliteMap, normalMap, darkMap];
+let currentMode = 0;
+
+toggleBtn.onclick = () => {
+  map.removeLayer(modes[currentMode]);
+  currentMode = (currentMode + 1) % modes.length;
+  modes[currentMode].addTo(map);
+};
+
+/* =========================
+FLOATING SAVE BUTTON (CLICK & LONG-CLICK)
+========================= */
+let savedBtnTimer = null;
+let savedBtnLongPress = false;
+
+savedFilterBtn.addEventListener('pointerdown', () => {
+  savedBtnLongPress = false;
+  savedBtnTimer = setTimeout(() => {
+    savedBtnLongPress = true;
+    openFolderPage(true); // Open folder view page on long press
+  }, 450);
+});
+
+savedFilterBtn.addEventListener('pointerup', () => clearTimeout(savedBtnTimer));
+savedFilterBtn.addEventListener('pointercancel', () => clearTimeout(savedBtnTimer));
+
+savedFilterBtn.onclick = () => {
+  if (savedBtnLongPress) return;
+  
+  // Single click: Toggle viewing Default saved items
+  if (showOnlySaved && selectedViewFolder === 'Default') {
+    showOnlySaved = false;
+    selectedViewFolder = 'ALL';
+    savedFilterBtn.classList.remove('active');
+  } else {
+    showOnlySaved = true;
+    selectedViewFolder = 'Default';
+    savedFilterBtn.classList.add('active');
+  }
+  applyFilters();
+};
+
+/* =========================
+CARD SAVE INTERACTIONS
+========================= */
+function setupCardSave(btn, place) {
+  let timer = null;
+  let isLongPress = false;
+
+  btn.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    isLongPress = false;
+    timer = setTimeout(() => {
+      isLongPress = true;
+      openFolderPage(false, place); // Long-press opens folder page to choose destination folders
+    }, 450);
+  });
+
+  btn.addEventListener('pointerup', (e) => { e.stopPropagation(); clearTimeout(timer); });
+  btn.addEventListener('pointercancel', (e) => { e.stopPropagation(); clearTimeout(timer); });
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isLongPress) return;
+    
+    // Quick click saves/unsaves into Default
+    const existing = savedPlacesMap.get(place.id);
+    if (existing) {
+      removePlaceFromDB(place.id).then(() => {
+        savedPlacesMap.delete(place.id);
+        btn.classList.remove('is-saved');
+        if (showOnlySaved) applyFilters();
+      });
+    } else {
+      savePlaceToDB(place, ['Default']).then(() => {
+        savedPlacesMap.set(place.id, { place, folders: ['Default'] });
+        btn.classList.add('is-saved');
+      });
+    }
+  });
+}
+
+/* =========================
+FULL-PAGE FOLDER OVERLAY LOGIC
+========================= */
+function openFolderPage(viewMode, place = null) {
+  isFolderViewMode = viewMode;
+  targetSavePlace = place;
+  folderPageHeaderTitle.textContent = viewMode ? "Select Folder to View" : "Save to Folders";
+  renderFolderGrid();
+  folderPageOverlay.classList.add('active');
+}
+
+function closeFolderPage() {
+  folderPageOverlay.classList.remove('active');
+  targetSavePlace = null;
+}
+
+folderPageCloseBtn.onclick = closeFolderPage;
+
+function renderFolderGrid() {
+  getFoldersFromDB().then(folders => {
+    folderGrid.innerHTML = '';
+    
+    if (isFolderViewMode) {
+      const allSavedCount = savedPlacesMap.size;
+      const isSelected = selectedViewFolder === 'ALL';
+      const allCard = createFolderCardHTML({ name: "All Saved", cover: "" }, allSavedCount, isSelected, true);
+      allCard.onclick = () => {
+        selectedViewFolder = 'ALL';
+        showOnlySaved = true;
+        savedFilterBtn.classList.add('active');
+        applyFilters();
+        closeFolderPage();
+      };
+      folderGrid.appendChild(allCard);
+    }
+
+    folders.forEach(folderObj => {
+      let count = 0;
+      let isSelected = false;
+
+      savedPlacesMap.forEach(item => {
+        if (item.folders && item.folders.includes(folderObj.name)) count++;
+      });
+
+      if (isFolderViewMode) {
+        isSelected = selectedViewFolder === folderObj.name;
+      } else if (targetSavePlace && savedPlacesMap.has(targetSavePlace.id)) {
+        const item = savedPlacesMap.get(targetSavePlace.id);
+        isSelected = item.folders.includes(folderObj.name);
+      }
+
+      const card = createFolderCardHTML(folderObj, count, isSelected, false);
+
+      card.onclick = (e) => {
+        if (e.target.closest('.folder-edit-btn')) return;
+
+        if (isFolderViewMode) {
+          selectedViewFolder = folderObj.name;
+          showOnlySaved = true;
+          savedFilterBtn.classList.add('active');
+          applyFilters();
+          closeFolderPage();
+        } else if (targetSavePlace) {
+          let currentFolders = savedPlacesMap.has(targetSavePlace.id) ? 
+            [...savedPlacesMap.get(targetSavePlace.id).folders] : [];
+
+          if (currentFolders.includes(folderObj.name)) {
+            currentFolders = currentFolders.filter(f => f !== folderObj.name);
+          } else {
+            currentFolders.push(folderObj.name);
+          }
+
+          if (currentFolders.length === 0) {
+            removePlaceFromDB(targetSavePlace.id).then(() => {
+              savedPlacesMap.delete(targetSavePlace.id);
+              renderFolderGrid();
+              applyFilters();
+            });
+          } else {
+            savePlaceToDB(targetSavePlace, currentFolders).then(() => {
+              savedPlacesMap.set(targetSavePlace.id, { place: targetSavePlace, folders: currentFolders });
+              renderFolderGrid();
+              applyFilters();
+            });
+          }
+        }
+      };
+
+      folderGrid.appendChild(card);
+    });
+  });
+}
+
+function createFolderCardHTML(folderObj, count, isSelected, isSpecialAll = false) {
+  const card = document.createElement('div');
+  card.className = `folder-card ${isSelected ? 'selected' : ''}`;
+  
+  const coverUrl = folderObj.cover || '';
+  const bgImgHTML = coverUrl ? `<img src="${coverUrl}" class="folder-card-bg" alt="" />` : '';
+
+  card.innerHTML = `
+    ${bgImgHTML}
+    <div class="folder-card-content">
+      <div class="folder-card-top">
+        <div class="folder-card-icon">
+          <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+        </div>
+        ${!isSpecialAll && folderObj.name !== 'Default' ? `
+          <button class="folder-edit-btn" title="Edit Folder">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </button>
+        ` : `<div class="folder-card-check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>`}
+      </div>
+      <div class="folder-card-info">
+        <div class="folder-card-name">${folderObj.name}</div>
+        <div class="folder-card-count">${count} ${count === 1 ? 'item' : 'items'}</div>
+      </div>
+    </div>
+  `;
+
+  const editBtn = card.querySelector('.folder-edit-btn');
+  if (editBtn) {
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      openEditFolderModal(folderObj);
+    };
+  }
+
+  return card;
+}
+
+/* EDIT & CREATE FOLDER MODAL LOGIC */
+fabNewFolderBtn.onclick = () => {
+  editingFolderOldName = null;
+  modalDialogTitle.textContent = "Create Custom Folder";
+  createFolderNameInput.value = '';
+  createFolderCoverInput.value = '';
+  currentBase64Cover = '';
+  coverPreviewBox.innerHTML = '<span>Cover Preview</span>';
+  createFolderDialog.classList.add('active');
+};
+
+function openEditFolderModal(folderObj) {
+  editingFolderOldName = folderObj.name;
+  modalDialogTitle.textContent = "Edit Folder";
+  createFolderNameInput.value = folderObj.name;
+  createFolderCoverInput.value = folderObj.cover || '';
+  currentBase64Cover = folderObj.cover || '';
+
+  if (currentBase64Cover) {
+    coverPreviewBox.innerHTML = `<img src="${currentBase64Cover}" alt="" />`;
+  } else {
+    coverPreviewBox.innerHTML = '<span>Cover Preview</span>';
+  }
+  createFolderDialog.classList.add('active');
+}
+
+coverFileInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      currentBase64Cover = evt.target.result;
+      coverPreviewBox.innerHTML = `<img src="${currentBase64Cover}" alt="" />`;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+createFolderCoverInput.oninput = (e) => {
+  const url = e.target.value.trim();
+  if (url) {
+    currentBase64Cover = url;
+    coverPreviewBox.innerHTML = `<img src="${url}" alt="" />`;
+  }
+};
+
+cancelFolderCreation.onclick = () => createFolderDialog.classList.remove('active');
+
+confirmFolderCreation.onclick = () => {
+  const name = createFolderNameInput.value.trim();
+  if (!name) return;
+
+  const folderObj = {
+    name: name,
+    cover: currentBase64Cover || createFolderCoverInput.value.trim()
+  };
+
+  saveFolderToDB(folderObj, editingFolderOldName).then(() => {
+    createFolderDialog.classList.remove('active');
+    // Refresh saved places map cache in case of folder rename
+    getSavedPlacesFromDB().then(savedItems => {
+      savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
+      renderFolderGrid();
+      applyFilters();
+    });
+  });
+};
+
+/* =========================
+MARKER CLUSTER & FILTERS
+========================= */
+const clusterLayer = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  disableClusteringAtZoom: 17,
+  maxClusterRadius: 90,
+  iconCreateFunction: (cluster) => {
+    const total = cluster.getChildCount();
+    const images = cluster.getAllChildMarkers().slice(0, 3).map(m => `
+      <div class="cluster-card"><img src="${m.options.place.image}" loading="lazy" alt=""></div>
+    `).join('');
+    return L.divIcon({
+      html: `<div class="cluster-wrap"><div class="cluster-count">${total > 9 ? '10+' : total}</div>${images}</div>`,
+      className: '',
+      iconSize: [120, 70]
+    });
+  }
+});
+map.addLayer(clusterLayer);
+
+function setActive(index){
+  if(activeIndex === index) return;
+  if(cardRefs[activeIndex]) cardRefs[activeIndex].classList.remove('active');
+  const oldMarker = markerMap.get(activeIndex);
+  if(oldMarker && oldMarker.getElement()) {
+    const el = oldMarker.getElement().querySelector('.custom-marker');
+    if(el) el.classList.remove('active');
+  }
+
+  activeIndex = index;
+
+  if(cardRefs[index]) cardRefs[index].classList.add('active');
+  const newMarker = markerMap.get(index);
+  if(newMarker && newMarker.getElement()) {
+    const el = newMarker.getElement().querySelector('.custom-marker');
+    if(el) el.classList.add('active');
+  }
+}
+
+function buildFilterChips() {
+  const types = ['All', ...new Set(rawPlaces.map(p => p.type).filter(Boolean))];
+  filterContainer.innerHTML = '';
+  filterContainer.appendChild(searchChipWrapper);
+  
+  types.forEach(type => {
+    const chip = document.createElement('div');
+    chip.className = `filter-chip ${type === selectedFilter ? 'active' : ''}`;
+    chip.textContent = type;
+    chip.onclick = () => {
+      selectedFilter = type;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      applyFilters();
+    };
+    filterContainer.appendChild(chip);
+  });
+}
+
+searchBtn.onclick = () => {
+  searchChipWrapper.classList.toggle('expanded');
+  if (searchChipWrapper.classList.contains('expanded')) {
+    searchInput.focus();
+  } else {
+    searchQuery = '';
+    searchInput.value = '';
+    applyFilters();
+  }
+};
+
+searchInput.oninput = (e) => {
+  searchQuery = e.target.value.toLowerCase().trim();
+  applyFilters();
+};
+
+function applyFilters() {
+  activePlaces = rawPlaces.filter(place => {
+    const savedData = savedPlacesMap.get(place.id);
+
+    if (showOnlySaved) {
+      if (!savedData) return false;
+      if (selectedViewFolder !== 'ALL' && !savedData.folders.includes(selectedViewFolder)) return false;
+    }
+
+    const matchesFilter = selectedFilter === 'All' || place.type === selectedFilter;
+    const matchesSearch = !searchQuery || 
+      (place.type && place.type.toLowerCase().includes(searchQuery)) ||
+      (place.subtype && place.subtype.toLowerCase().includes(searchQuery)) ||
+      (place.title && place.title.toLowerCase().includes(searchQuery));
+    return matchesFilter && matchesSearch;
+  });
+  renderMapAndCarousel();
+}
+
