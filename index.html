@@ -32,6 +32,47 @@ html, body{
 body{
   transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s ease;
   will-change: transform, opacity;
+  position: relative;
+}
+
+/* 50% Left Embed Panel Drawer */
+.left-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 100vh;
+  z-index: 99;
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: #000;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.drawer-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Main App Wrapper Sliding Right */
+.app-wrapper {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: #000;
+}
+
+/* Active Drawer States */
+body.drawer-open .left-drawer {
+  transform: translateX(0);
+}
+
+body.drawer-open .app-wrapper {
+  transform: translateX(50vw);
 }
 
 body.page-transition-down{
@@ -63,13 +104,23 @@ body.page-transition-up{
   pointer-events: auto;
 }
 
-.brand-image {
+.brand-link {
+  display: block;
   width: 100%;
   height: var(--brand-height);
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.brand-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   object-position: center center;
   cursor: pointer;
-  user-select: none;
+  user-select: auto;
+  pointer-events: auto;
   display: block;
   transition: opacity .2s ease;
 }
@@ -148,9 +199,7 @@ body.page-transition-up{
   -webkit-overflow-scrolling: touch;
 }
 
-.filter-container::-webkit-scrollbar {
-  display: none;
-}
+.filter-container::-webkit-scrollbar { display: none; }
 
 .filter-chip {
   flex-shrink: 0;
@@ -280,7 +329,7 @@ body.page-transition-up{
   inset:0;
   display:flex;
   flex-direction:column;
-  justify-content:flex-end;
+  justify-flex-end;
   padding:18px;
   background:linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.20) 60%, transparent);
   pointer-events: none;
@@ -584,65 +633,75 @@ body.page-transition-up{
 .prompt-btn.confirm { background: #fff; color: #000; }
 </style>
 </head>
-<body>
+<body id="appBody">
 
-<div class="swipe-zone swipe-zone-top" id="swipeTop"></div>
-<div class="swipe-zone swipe-zone-bottom" id="swipeBottom"></div>
-
-<div class="filter-container" id="filterContainer">
-  <div class="search-chip-wrapper" id="searchChipWrapper">
-    <button class="search-toggle-btn" id="searchBtn">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-    </button>
-    <input type="text" class="search-chip-input" id="searchInput" placeholder="Search..." />
-  </div>
+<!-- Left Embed Panel Drawer (50% Width) -->
+<div class="left-drawer" id="leftDrawer">
+  <iframe src="menu.html" class="drawer-frame" title="Explore Embed"></iframe>
 </div>
 
-<div class="brand-image-container">
-  <img src="https://i.supaimg.com/f6b811eb-511e-4182-93ac-f84ab56ea259/68eb40d0-b860-4255-abc9-bdc3989b24fa.png" class="brand-image" id="locationTitle" alt="Sawantwadi Landscape View" />
-</div>
+<!-- Sliding Page App Wrapper -->
+<div class="app-wrapper" id="appWrapper">
+  <div class="swipe-zone swipe-zone-top" id="swipeTop"></div>
+  <div class="swipe-zone swipe-zone-bottom" id="swipeBottom"></div>
 
-<button class="saved-posts-btn" id="savedFilterBtn" title="Saved Posts">
-  <svg viewBox="0 0 24 24">
-    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-  </svg>
-</button>
-
-<button class="map-style-btn" id="toggleBtn" title="Toggle Map Style">
-  <div class="map-icon"></div>
-</button>
-
-<div id="map"></div>
-<div class="carousel" id="carousel"></div>
-
-<!-- FULL PAGE FOLDER SHOWER OVERLAY -->
-<div class="folder-page-overlay" id="folderPageOverlay">
-  <div class="folder-page-header">
-    <div class="folder-page-title" id="folderPageHeaderTitle">Folders</div>
-    <button class="folder-page-close" id="folderPageCloseBtn">&times;</button>
-  </div>
-  <div class="folder-grid-container" id="folderGrid"></div>
-  <button class="fab-new-folder" id="fabNewFolderBtn" title="Create Folder">
-    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-  </button>
-</div>
-
-<!-- CREATE / EDIT FOLDER MODAL -->
-<div class="prompt-dialog" id="createFolderDialog">
-  <div class="prompt-box">
-    <div style="font-weight:700; font-size:1.1rem; color:#fff;" id="modalDialogTitle">Create Custom Folder</div>
-    <input type="text" id="createFolderNameInput" placeholder="Folder Title..." />
-    <input type="text" id="createFolderCoverInput" placeholder="Cover Image URL (Optional)..." />
-    <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin-bottom:6px;">OR upload image file:</div>
-    <input type="file" id="coverFileInput" accept="image/*" style="color:#fff; font-size:0.8rem; margin-bottom:12px;" />
-    
-    <div class="cover-preview-box" id="coverPreviewBox">
-      <span>Cover Preview</span>
+  <div class="filter-container" id="filterContainer">
+    <div class="search-chip-wrapper" id="searchChipWrapper">
+      <button class="search-toggle-btn" id="searchBtn">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
+      <input type="text" class="search-chip-input" id="searchInput" placeholder="Search..." />
     </div>
+  </div>
 
-    <div class="prompt-actions">
-      <button class="prompt-btn cancel" id="cancelFolderCreation">Cancel</button>
-      <button class="prompt-btn confirm" id="confirmFolderCreation">Save</button>
+  <div class="brand-image-container">
+    <a href="feed.html" class="brand-link">
+      <img src="https://i.supaimg.com/f6b811eb-511e-4182-93ac-f84ab56ea259/68eb40d0-b860-4255-abc9-bdc3989b24fa.png" class="brand-image" id="locationTitle" alt="Sawantwadi Landscape View" />
+    </a>
+  </div>
+
+  <button class="saved-posts-btn" id="savedFilterBtn" title="Saved Posts">
+    <svg viewBox="0 0 24 24">
+      <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+    </svg>
+  </button>
+
+  <button class="map-style-btn" id="toggleBtn" title="Toggle Map Style">
+    <div class="map-icon"></div>
+  </button>
+
+  <div id="map"></div>
+  <div class="carousel" id="carousel"></div>
+
+  <!-- FULL PAGE FOLDER OVERLAY -->
+  <div class="folder-page-overlay" id="folderPageOverlay">
+    <div class="folder-page-header">
+      <div class="folder-page-title" id="folderPageHeaderTitle">Folders</div>
+      <button class="folder-page-close" id="folderPageCloseBtn">&times;</button>
+    </div>
+    <div class="folder-grid-container" id="folderGrid"></div>
+    <button class="fab-new-folder" id="fabNewFolderBtn" title="Create Folder">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    </button>
+  </div>
+
+  <!-- CREATE / EDIT FOLDER MODAL -->
+  <div class="prompt-dialog" id="createFolderDialog">
+    <div class="prompt-box">
+      <div style="font-weight:700; font-size:1.1rem; color:#fff;" id="modalDialogTitle">Create Custom Folder</div>
+      <input type="text" id="createFolderNameInput" placeholder="Folder Title..." />
+      <input type="text" id="createFolderCoverInput" placeholder="Cover Image URL (Optional)..." />
+      <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin-bottom:6px;">OR upload image file:</div>
+      <input type="file" id="coverFileInput" accept="image/*" style="color:#fff; font-size:0.8rem; margin-bottom:12px;" />
+      
+      <div class="cover-preview-box" id="coverPreviewBox">
+        <span>Cover Preview</span>
+      </div>
+
+      <div class="prompt-actions">
+        <button class="prompt-btn cancel" id="cancelFolderCreation">Cancel</button>
+        <button class="prompt-btn confirm" id="confirmFolderCreation">Save</button>
+      </div>
     </div>
   </div>
 </div>
@@ -652,8 +711,8 @@ body.page-transition-up{
 <script src="weather.js"></script>
 <script src="mapsearch.js"></script>
 <script src="explore app.js"></script>
-  <script>
-  /* =========================
+<script>
+/* =========================
 INDEXEDDB CONTROLLER (PERSISTENT METADATA & FOLDERS)
 ========================= */
 const DB_NAME = 'Sho1re1DB_v4';
@@ -742,7 +801,6 @@ function saveFolderToDB(folderObj, oldName = null) {
 
     if (oldName && oldName !== folderObj.name) {
       folderStore.delete(oldName);
-      // Migrate places with old folder name
       const placeReq = placeStore.getAll();
       placeReq.onsuccess = () => {
         placeReq.result.forEach(p => {
@@ -767,7 +825,6 @@ const carousel = document.getElementById('carousel');
 const toggleBtn = document.getElementById('toggleBtn');
 const savedFilterBtn = document.getElementById('savedFilterBtn');
 const title = document.getElementById('locationTitle');
-const profileBtn = document.getElementById('profileBtn');
 const searchBtn = document.getElementById('searchBtn');
 const searchChipWrapper = document.getElementById('searchChipWrapper');
 const searchInput = document.getElementById('searchInput');
@@ -789,7 +846,7 @@ const cancelFolderCreation = document.getElementById('cancelFolderCreation');
 const confirmFolderCreation = document.getElementById('confirmFolderCreation');
 
 let rawPlaces = window.Sho1re1Places || [];
-let savedPlacesMap = new Map(); // id -> { place, folders: [] }
+let savedPlacesMap = new Map();
 let showOnlySaved = false;
 let selectedViewFolder = 'ALL'; 
 let targetSavePlace = null;
@@ -810,7 +867,7 @@ rawPlaces.forEach((p, idx) => {
 });
 
 /* =========================
-SWIPE ROUTES & TRANSITIONS
+SWIPE ROUTES & LEFT-TO-RIGHT 50% DRAWER TOUCH HANDLERS
 ========================= */
 const SWIPE_ROUTES = { top: 'feed.html', bottom: 'explore.html' };
 
@@ -849,8 +906,34 @@ function bindEdgeSwipe(zoneEl, direction, href, threshold = 70){
 bindEdgeSwipe(document.getElementById('swipeTop'), 'down', SWIPE_ROUTES.top, 60);
 bindEdgeSwipe(document.getElementById('swipeBottom'), 'up', SWIPE_ROUTES.bottom, 60);
 
+/* Horizontal Left-to-Right Swipe Trigger */
+let hStartX = 0, hStartY = 0, hActive = false;
+
+document.addEventListener('pointerdown', (e) => {
+  hStartX = e.clientX;
+  hStartY = e.clientY;
+  hActive = true;
+}, { passive: true });
+
+document.addEventListener('pointerup', (e) => {
+  if(!hActive) return;
+  const dx = e.clientX - hStartX;
+  const dy = e.clientY - hStartY;
+  hActive = false;
+
+  // Swipe Left-to-Right from near left edge (< 80px) to slide open drawer
+  if (dx > 70 && Math.abs(dx) > Math.abs(dy) && hStartX < 80) {
+    document.body.classList.add('drawer-open');
+  } 
+  // Swipe Right-to-Left anywhere to close drawer
+  else if (dx < -70 && Math.abs(dx) > Math.abs(dy) && document.body.classList.contains('drawer-open')) {
+    document.body.classList.remove('drawer-open');
+  }
+});
+
+document.addEventListener('pointercancel', () => { hActive = false; });
 /* =========================
-MAP INITIALIZATION
+MAP INITIALIZATION & UI EVENTS
 ========================= */
 const map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([15.9041, 73.8219], 15);
 const normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 });
@@ -868,6 +951,69 @@ toggleBtn.onclick = () => {
 };
 
 /* =========================
+RENDER MAP & CAROUSEL FUNCTION
+========================= */
+function renderMapAndCarousel() {
+  carousel.innerHTML = '';
+  clusterLayer.clearLayers();
+  cardRefs = [];
+  markerMap.clear();
+  activeIndex = -1;
+
+  if (activePlaces.length === 0) return;
+
+  activePlaces.forEach((place, idx) => {
+    // 1. Create Carousel Card
+    const card = document.createElement('div');
+    card.className = 'card';
+    const isSaved = savedPlacesMap.has(place.id);
+
+    card.innerHTML = `
+      <button class="card-save-btn ${isSaved ? 'is-saved' : ''}">
+        <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+      </button>
+      <img src="${place.image}" loading="lazy" alt="${place.title || ''}" />
+      <div class="card-overlay">
+        <div class="card-type">${place.type || ''}</div>
+        <div class="card-sub">${place.subtype || ''}</div>
+      </div>
+    `;
+
+    const saveBtn = card.querySelector('.card-save-btn');
+    setupCardSave(saveBtn, place);
+
+    card.onclick = (e) => {
+      if (e.target.closest('.card-save-btn')) return;
+      setActive(idx);
+      map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
+    };
+
+    carousel.appendChild(card);
+    cardRefs.push(card);
+
+    // 2. Create Leaflet Marker
+    const customIcon = L.divIcon({
+      html: `<div class="custom-marker"><img src="${place.image}" loading="lazy" alt="" /></div>`,
+      className: '',
+      iconSize: [80, 80],
+      iconAnchor: [40, 40]
+    });
+
+    const marker = L.marker([place.lat, place.lng], { icon: customIcon, place: place });
+    marker.on('click', () => {
+      setActive(idx);
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+
+    clusterLayer.addLayer(marker);
+    markerMap.set(idx, marker);
+  });
+
+  // Activate first place
+  setActive(0);
+}
+
+/* =========================
 FLOATING SAVE BUTTON (CLICK & LONG-CLICK)
 ========================= */
 let savedBtnTimer = null;
@@ -877,7 +1023,7 @@ savedFilterBtn.addEventListener('pointerdown', () => {
   savedBtnLongPress = false;
   savedBtnTimer = setTimeout(() => {
     savedBtnLongPress = true;
-    openFolderPage(true); // Open folder view page on long press
+    openFolderPage(true);
   }, 450);
 });
 
@@ -887,7 +1033,6 @@ savedFilterBtn.addEventListener('pointercancel', () => clearTimeout(savedBtnTime
 savedFilterBtn.onclick = () => {
   if (savedBtnLongPress) return;
   
-  // Single click: Toggle viewing Default saved items
   if (showOnlySaved && selectedViewFolder === 'Default') {
     showOnlySaved = false;
     selectedViewFolder = 'ALL';
@@ -912,7 +1057,7 @@ function setupCardSave(btn, place) {
     isLongPress = false;
     timer = setTimeout(() => {
       isLongPress = true;
-      openFolderPage(false, place); // Long-press opens folder page to choose destination folders
+      openFolderPage(false, place);
     }, 450);
   });
 
@@ -923,7 +1068,6 @@ function setupCardSave(btn, place) {
     e.stopPropagation();
     if (isLongPress) return;
     
-    // Quick click saves/unsaves into Default
     const existing = savedPlacesMap.get(place.id);
     if (existing) {
       removePlaceFromDB(place.id).then(() => {
@@ -1130,7 +1274,6 @@ confirmFolderCreation.onclick = () => {
 
   saveFolderToDB(folderObj, editingFolderOldName).then(() => {
     createFolderDialog.classList.remove('active');
-    // Refresh saved places map cache in case of folder rename
     getSavedPlacesFromDB().then(savedItems => {
       savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
       renderFolderGrid();
@@ -1139,7 +1282,7 @@ confirmFolderCreation.onclick = () => {
   });
 };
 
-/*     =========================
+/* =========================
 MARKER CLUSTER & FILTERS
 ========================= */
 const clusterLayer = L.markerClusterGroup({
@@ -1234,173 +1377,14 @@ function applyFilters() {
   renderMapAndCarousel();
 }
 
-function renderMapAndCarousel() {
-  clusterLayer.clearLayers();
-  carousel.innerHTML = '';
-  cardRefs = [];
-  markerMap.clear();
-  activeIndex = -1;
-
-  const fragment = document.createDocumentFragment();
-
-  activePlaces.forEach((place, index) => {
-    const markerHtml = `<div class="custom-marker"><img src="${place.image}" loading="lazy" alt=""></div>`;
-    const marker = L.marker([place.lat, place.lng], {
-      icon: L.divIcon({ html: markerHtml, className:'', iconSize:[76,76] }),
-      place
-    });
-
-    clusterLayer.addLayer(marker);
-    markerMap.set(index, marker);
-
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.index = index;
-    
-    const isSaved = savedPlacesMap.has(place.id);
-    card.innerHTML = `
-      <button class="card-save-btn ${isSaved ? 'is-saved' : ''}" data-index="${index}" title="Save item">
-        <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-      </button>
-      <img src="${place.image}" loading="lazy" alt="">
-      <div class="card-overlay">
-        <div class="card-type">${place.type}</div>
-        <div class="card-sub">${place.subtype}</div>
-      </div>
-    `;
-
-    const saveBtn = card.querySelector('.card-save-btn');
-    setupCardSave(saveBtn, place);
-    
-    fragment.appendChild(card);
-    cardRefs.push(card);
-
-    marker.on('click', () => {
-      setActive(index);
-      card.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
-    });
-
-    marker.on('dblclick', () => { window.location.href = place.link; });
-  });
-
-  carousel.appendChild(fragment);
-
-  if (activePlaces.length > 0) {
-    setActive(0);
-    applyCarouselArc();
-  }
-}
-
-/* =========================
-HARDWARE-ACCELERATED ARC TRANSFORMS
-========================= */
-function applyCarouselArc(){
-  if (!cardRefs.length) return;
-  const center = carousel.scrollLeft + carousel.clientWidth / 2;
-
-  let nearestIndex = 0;
-  let nearestDistance = Infinity;
-
-  for (let index = 0; index < cardRefs.length; index++) {
-    const card = cardRefs[index];
-    const cardCenter = card.offsetLeft + 100;
-    const distance = cardCenter - center;
-    const normalized = distance / 218;
-    const abs = Math.abs(normalized);
-
-    const scale = Math.max(0.84, Math.min(1.06, 1.06 - abs * 0.1));
-    const y = Math.max(-6, Math.min(22, abs * 18 - 6));
-    const rotate = Math.max(-12, Math.min(12, normalized * 10));
-    const opacity = Math.max(0.6, Math.min(1, 1 - abs * 0.2));
-
-    card.style.transform = `translate3d(0, ${y}px, 0) scale(${scale}) rotate(${rotate}deg)`;
-    card.style.opacity = opacity;
-
-    if(Math.abs(distance) < nearestDistance){
-      nearestDistance = Math.abs(distance);
-      nearestIndex = index;
-    }
-  }
-
-  if(activeIndex !== nearestIndex){
-    setActive(nearestIndex);
-  }
-}
-
-/* =========================
-EVENTS & INITIALIZATION
-========================= */
-let cardTimer = null;
-
-carousel.addEventListener('click', (e) => {
-  if (e.target.closest('.card-save-btn')) return;
-  const card = e.target.closest('.card');
-  if(!card) return;
-
-  const index = parseInt(card.dataset.index, 10);
-  const place = activePlaces[index];
-
-  if(cardTimer) return;
-  cardTimer = setTimeout(() => {
-    cardTimer = null;
-    setActive(index);
-    map.flyTo([place.lat, place.lng], 17, { duration: 1 });
-    card.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
-  }, 220);
-});
-
-carousel.addEventListener('dblclick', (e) => {
-  if (e.target.closest('.card-save-btn')) return;
-  const card = e.target.closest('.card');
-  if(!card) return;
-
-  clearTimeout(cardTimer);
-  cardTimer = null;
-  window.location.href = activePlaces[parseInt(card.dataset.index, 10)].link;
-});
-
-let rafPending = false;
-carousel.addEventListener('scroll', () => {
-  if(rafPending) return;
-  rafPending = true;
-  requestAnimationFrame(() => {
-    rafPending = false;
-    applyCarouselArc();
-  });
-}, { passive: true });
-
-window.addEventListener('resize', () => {
-  requestAnimationFrame(applyCarouselArc);
-}, { passive: true });
-
+// Startup execution
 initDB().then(() => {
-  getSavedPlacesFromDB().then((savedItems) => {
+  getSavedPlacesFromDB().then(savedItems => {
     savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
     buildFilterChips();
     applyFilters();
   });
-}).catch(err => {
-  console.error("IndexedDB Error:", err);
-  buildFilterChips();
-  applyFilters();
 });
-
-let titleTimer = null;
-title.addEventListener('click', () => {
-  if(titleTimer) { clearTimeout(titleTimer); titleTimer = null; return; }
-  titleTimer = setTimeout(() => { window.location.href = 'feed.html'; titleTimer = null; }, 240);
-});
-
-title.addEventListener('dblclick', () => {
-  clearTimeout(titleTimer);
-  titleTimer = null;
-  window.location.href = 'explore.html';
-});
-
-if (profileBtn) {
-  profileBtn.onclick = () => { window.location.href = 'profile.html'; };
-}
 </script>
 </body>
 </html>
-sex

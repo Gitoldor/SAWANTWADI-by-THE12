@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swipe to YouTube</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+}
+
+/* Bottom card */
+.swipe-card {
+    position: fixed;
+    left: 15px;
+    right: 15px;
+    bottom: 20px;
+
+    height: 90px;
+    border-radius: 24px;
+
+    background: #111;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+
+    box-shadow: 0 10px 35px rgba(0,0,0,.25);
+
+    touch-action: none;
+    user-select: none;
+
+    transition: transform .25s ease;
+}
+
+/* Card content */
+.card-content {
+    flex: 1;
+}
+
+.card-label {
+    font-size: 11px;
+    opacity: .55;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Swipe indicator */
+.swipe-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+
+    background: white;
+    color: #111;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 22px;
+    margin-left: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="swipe-card" id="card">
+
+    <div class="card-content">
+        <div class="card-label">Swipe up to search</div>
+
+        <div class="card-title" id="title">
+            Royal Enfield Guerrilla 450
+        </div>
+    </div>
+
+    <div class="swipe-icon">
+        ↑
+    </div>
+
+</div>
+
+<script>
+
+const card = document.getElementById("card");
+const title = document.getElementById("title");
+
+let startY = 0;
+let currentY = 0;
+let dragging = false;
+
+card.addEventListener("touchstart", (e) => {
+
+    startY = e.touches[0].clientY;
+    dragging = true;
+
+    card.style.transition = "none";
+
+});
+
+card.addEventListener("touchmove", (e) => {
+
+    if (!dragging) return;
+
+    currentY = e.touches[0].clientY;
+
+    let distance = currentY - startY;
+
+    // Only allow upward movement
+    if (distance < 0) {
+
+        // Limit how far card can move
+        distance = Math.max(distance, -160);
+
+        card.style.transform =
+            `translateY(${distance}px)`;
+    }
+
+});
+
+card.addEventListener("touchend", () => {
+
+    if (!dragging) return;
+
+    dragging = false;
+
+    const distance = currentY - startY;
+
+    card.style.transition = "transform .25s ease";
+
+    // Swipe threshold
+    if (distance < -80) {
+
+        const search = encodeURIComponent(
+            title.textContent.trim()
+        );
+
+        // Open YouTube search
+        window.location.href =
+            "https://www.youtube.com/results?search_query=" + search;
+
+    } else {
+
+        // Return card to original position
+        card.style.transform = "translateY(0)";
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
