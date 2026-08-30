@@ -99,12 +99,12 @@
     gap: 16px;
   }
 
-  /* Folder Cards (Light Theme) */
+  /* Folder Cards */
   .folder-card {
     aspect-ratio: 1;
     background: #f4f4f6;
     border: 1px solid #e2e2e8;
-    border-radius: 44px;
+    border-radius: 36px;
     overflow: hidden;
     position: relative;
     display: flex;
@@ -125,7 +125,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.45;
+    opacity: 0.55;
     z-index: 1;
   }
 
@@ -135,6 +135,12 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .folder-card-top {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
   }
 
@@ -156,6 +162,28 @@
     fill: #111111;
   }
 
+  .edit-folder-btn {
+    background: rgba(255, 255, 255, 0.85);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  .edit-folder-btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: #111111;
+    fill: none;
+    stroke-width: 2;
+  }
+
   .folder-card-info {
     display: flex;
     flex-direction: column;
@@ -171,13 +199,13 @@
   }
 
   .folder-card-count {
-    color: #666666;
+    color: #555555;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
     margin-top: 2px;
   }
 
-  /* Full Image Card Inside Folder (2x2, Light Shadow, Clear Dark Overlay gradient) */
+  /* Full Image Card Inside Folder */
   .place-card-full {
     aspect-ratio: 1;
     border-radius: 24px;
@@ -247,6 +275,120 @@
     margin-top: 60px;
     grid-column: span 2;
   }
+
+  /* EDIT / CREATE FOLDER MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  .modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 340px;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .modal-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+
+  .modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #e2e2e8;
+    background: #f8f8fa;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .modal-input:focus {
+    border-color: #111111;
+  }
+
+  /* FILE UPLOAD FIELD STYLING */
+  .file-upload-box {
+    border: 2px dashed #d0d0d8;
+    border-radius: 14px;
+    height: 100px;
+    background: #f8f8fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+  }
+
+  .file-upload-box:hover {
+    border-color: #111111;
+  }
+
+  .file-upload-box input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file-upload-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #666666;
+    pointer-events: none;
+  }
+
+  .file-upload-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .modal-btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .modal-btn-cancel {
+    background: #f0f0f2;
+    color: #444;
+  }
+
+  .modal-btn-save {
+    background: #111111;
+    color: #ffffff;
+  }
 </style>
 </head>
 <body>
@@ -259,7 +401,7 @@
       </button>
       <h1 class="main-title" id="pageTitle">Saved</h1>
     </div>
-    <button class="action-btn" id="actionBtn" onclick="createNewFolder()">+ New</button>
+    <button class="action-btn" id="actionBtn" onclick="openFolderModal()">+ New</button>
   </div>
 
   <!-- View 1: 2x2 Grid of Folders -->
@@ -267,6 +409,26 @@
 
   <!-- View 2: 2x2 Grid of Full-Image Posts -->
   <div class="grid-container" id="postsFeed" style="display: none;"></div>
+
+  <!-- Edit / Create Modal -->
+  <div class="modal-overlay" id="folderModal">
+    <div class="modal-card">
+      <div class="modal-title" id="modalHeading">Create Folder</div>
+      <input type="text" id="modalFolderName" class="modal-input" placeholder="Folder Title" />
+      
+      <!-- Upload Cover Box -->
+      <div class="file-upload-box" id="uploadBox">
+        <span class="file-upload-label" id="uploadText">+ Upload Cover Image</span>
+        <img id="uploadPreview" class="file-upload-preview" alt="Preview" />
+        <input type="file" id="coverFileInput" accept="image/*" onchange="handleImageSelection(event)" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeFolderModal()">Cancel</button>
+        <button class="modal-btn modal-btn-save" onclick="saveFolderModal()">Save</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   /* MATCHING MAP DB CONFIG */
@@ -277,6 +439,8 @@
 
   let allSavedPlaces = [];
   let allFolders = [];
+  let currentEditingFolder = null;
+  let activeCoverBase64 = '';
 
   // Open IndexedDB Connection
   function initDB() {
@@ -345,8 +509,13 @@
       card.innerHTML = `
         ${bgImgHTML}
         <div class="folder-card-content">
-          <div class="folder-card-icon">
-            <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          <div class="folder-card-top">
+            <div class="folder-card-icon">
+              <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            </div>
+            <button class="edit-folder-btn" onclick="event.stopPropagation(); openFolderModal('${folderObj.name}')">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
           </div>
           <div class="folder-card-info">
             <div class="folder-card-name">${folderObj.name}</div>
@@ -391,6 +560,85 @@
     });
   }
 
+  // Handle Local File Selection & Convert to Base64
+  function handleImageSelection(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      activeCoverBase64 = e.target.result;
+      const preview = document.getElementById('uploadPreview');
+      preview.src = activeCoverBase64;
+      preview.style.display = 'block';
+      document.getElementById('uploadText').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Modal Functions for Creating/Editing Folders
+  function openFolderModal(folderName = null) {
+    currentEditingFolder = folderName;
+    const modal = document.getElementById('folderModal');
+    const heading = document.getElementById('modalHeading');
+    const nameInput = document.getElementById('modalFolderName');
+    const preview = document.getElementById('uploadPreview');
+    const uploadText = document.getElementById('uploadText');
+
+    document.getElementById('coverFileInput').value = '';
+
+    if (folderName) {
+      const folderObj = allFolders.find(f => f.name === folderName);
+      heading.innerText = 'Edit Folder';
+      nameInput.value = folderObj ? folderObj.name : folderName;
+      activeCoverBase64 = folderObj ? (folderObj.cover || '') : '';
+    } else {
+      heading.innerText = 'New Folder';
+      nameInput.value = '';
+      activeCoverBase64 = '';
+    }
+
+    if (activeCoverBase64) {
+      preview.src = activeCoverBase64;
+      preview.style.display = 'block';
+      uploadText.style.display = 'none';
+    } else {
+      preview.style.display = 'none';
+      uploadText.style.display = 'block';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closeFolderModal() {
+    document.getElementById('folderModal').style.display = 'none';
+  }
+
+  function saveFolderModal() {
+    const nameInput = document.getElementById('modalFolderName').value.trim();
+
+    if (!nameInput) return;
+
+    if (db) {
+      const tx = db.transaction(STORE_FOLDERS, 'readwrite');
+      const store = tx.objectStore(STORE_FOLDERS);
+
+      if (currentEditingFolder && currentEditingFolder !== nameInput) {
+        store.delete(currentEditingFolder);
+      }
+
+      store.put({
+        name: nameInput,
+        cover: activeCoverBase64
+      });
+
+      tx.oncomplete = () => {
+        closeFolderModal();
+        loadDataFromDB();
+      };
+    }
+  }
+
   // Smart back navigation handler
   function handleBackNavigation() {
     const postsFeed = document.getElementById('postsFeed');
@@ -408,27 +656,6 @@
     document.getElementById('actionBtn').style.display = 'block';
     document.getElementById('pageTitle').innerText = 'Saved';
     loadDataFromDB();
-  }
-
-  // Create New Folder into IndexedDB
-  function createNewFolder() {
-    const folderName = prompt('Enter folder name:');
-    if (!folderName) return;
-
-    const newFolderObj = {
-      name: folderName.trim(),
-      cover: ''
-    };
-
-    if (db) {
-      const tx = db.transaction(STORE_FOLDERS, 'readwrite');
-      const store = tx.objectStore(STORE_FOLDERS);
-      store.put(newFolderObj);
-
-      tx.oncomplete = () => {
-        loadDataFromDB();
-      };
-    }
   }
 
   // Initialize DB on page load
