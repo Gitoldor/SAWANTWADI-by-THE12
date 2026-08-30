@@ -1,6 +1,6 @@
 {
-  "name": "My App",
-  "short_name": "MyApp",
+  "name": "Sawantwadi",
+  "short_name": "Sawantwadi",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
