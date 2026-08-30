@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Saved Collections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    width: 100%;
+    height: 100vh;
+    background: #ffffff;
+    color: #111111;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px 16px 40px;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Header Bar */
+  .header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .back-btn svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: #111111;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .main-title {
+    font-size: 1.85rem;
+    font-weight: 900;
+    letter-spacing: -0.6px;
+    color: #111111;
+    line-height: 1.1;
+  }
+
+  .action-btn {
+    background: #111111;
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+
+  .action-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* 2x2 GRID CONTAINERS */
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Folder Cards (Light Theme) */
+  .folder-card {
+    aspect-ratio: 1;
+    background: #f4f4f6;
+    border: 1px solid #e2e2e8;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.2s ease;
+  }
+
+  .folder-card:active {
+    transform: scale(0.96);
+  }
+
+  .folder-card-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.45;
+    z-index: 1;
+  }
+
+  .folder-card-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .folder-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .folder-card-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: #111111;
+  }
+
+  .folder-card-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .folder-card-name {
+    color: #111111;
+    font-weight: 800;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .folder-card-count {
+    color: #666666;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* Full Image Card Inside Folder (2x2, Light Shadow, Clear Dark Overlay gradient) */
+  .place-card-full {
+    aspect-ratio: 1;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    background: #f4f4f6;
+    border: 1px solid #e2e2e8;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+
+  .place-card-full:active {
+    transform: scale(0.96);
+  }
+
+  .place-card-full img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .place-card-full::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.1) 65%, transparent 100%);
+    z-index: 1;
+  }
+
+  .place-overlay-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .place-title-overlay {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+    word-break: break-word;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  .place-type-overlay {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #888888;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-top: 60px;
+    grid-column: span 2;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <div class="header-bar">
+    <div class="nav-left">
+      <button class="back-btn" id="backBtn" onclick="handleBackNavigation()">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h1 class="main-title" id="pageTitle">Saved</h1>
+    </div>
+    <button class="action-btn" id="actionBtn" onclick="createNewFolder()">+ New</button>
+  </div>
+
+  <!-- View 1: 2x2 Grid of Folders -->
+  <div class="grid-container" id="foldersGrid"></div>
+
+  <!-- View 2: 2x2 Grid of Full-Image Posts -->
+  <div class="grid-container" id="postsFeed" style="display: none;"></div>
+
+<script>
+  /* MATCHING MAP DB CONFIG */
+  const DB_NAME = 'Sho1re1DB_v4';
+  const STORE_PLACES = 'saved_places';
+  const STORE_FOLDERS = 'custom_folders';
+  let db = null;
+
+  let allSavedPlaces = [];
+  let allFolders = [];
+
+  // Open IndexedDB Connection
+  function initDB() {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = (e) => {
+      const dbInstance = e.target.result;
+      if (!dbInstance.objectStoreNames.contains(STORE_PLACES)) {
+        dbInstance.createObjectStore(STORE_PLACES, { keyPath: 'id' });
+      }
+      if (!dbInstance.objectStoreNames.contains(STORE_FOLDERS)) {
+        dbInstance.createObjectStore(STORE_FOLDERS, { keyPath: 'name' });
+      }
+    };
+
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      loadDataFromDB();
+    };
+
+    request.onerror = (e) => {
+      console.error("Database connection error:", e.target.error);
+    };
+  }
+
+  // Load Saved Places & Custom Folders
+  function loadDataFromDB() {
+    if (!db) return;
+
+    const tx = db.transaction([STORE_PLACES, STORE_FOLDERS], 'readonly');
+    const placeStore = tx.objectStore(STORE_PLACES);
+    const folderStore = tx.objectStore(STORE_FOLDERS);
+
+    const placesReq = placeStore.getAll();
+    const foldersReq = folderStore.getAll();
+
+    tx.oncomplete = () => {
+      allSavedPlaces = placesReq.result || [];
+      allFolders = foldersReq.result || [];
+
+      if (!allFolders.some(f => f.name === 'Default')) {
+        allFolders.unshift({ name: 'Default', cover: '' });
+      }
+
+      renderFolderGrid();
+    };
+  }
+
+  // Render 2x2 Folder Grid
+  function renderFolderGrid() {
+    const grid = document.getElementById('foldersGrid');
+    grid.innerHTML = '';
+
+    allFolders.forEach(folderObj => {
+      const matchingItems = allSavedPlaces.filter(place => 
+        place.folders && place.folders.includes(folderObj.name)
+      );
+
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.onclick = () => openFolder(folderObj.name, matchingItems);
+
+      const coverUrl = folderObj.cover || (matchingItems[0] ? matchingItems[0].image : '');
+      const bgImgHTML = coverUrl ? `<img src="${coverUrl}" class="folder-card-bg" alt="" />` : '';
+
+      card.innerHTML = `
+        ${bgImgHTML}
+        <div class="folder-card-content">
+          <div class="folder-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          </div>
+          <div class="folder-card-info">
+            <div class="folder-card-name">${folderObj.name}</div>
+            <div class="folder-card-count">${matchingItems.length} ${matchingItems.length === 1 ? 'item' : 'items'}</div>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // Open Selected Folder & Render 2x2 Full Image Posts
+  function openFolder(folderName, items) {
+    document.getElementById('foldersGrid').style.display = 'none';
+    document.getElementById('postsFeed').style.display = 'grid';
+    document.getElementById('actionBtn').style.display = 'none';
+    document.getElementById('pageTitle').innerText = folderName;
+
+    const feed = document.getElementById('postsFeed');
+    feed.innerHTML = '';
+
+    if (items.length === 0) {
+      feed.innerHTML = '<div class="empty-state">No saved items in this folder.</div>';
+      return;
+    }
+
+    items.forEach(place => {
+      const card = document.createElement('div');
+      card.className = 'place-card-full';
+      
+      const imgHTML = place.image ? `<img src="${place.image}" alt="${place.title || 'Place'}" />` : '';
+      const typeHTML = place.type ? `<div class="place-type-overlay">${place.type}</div>` : '';
+
+      card.innerHTML = `
+        ${imgHTML}
+        <div class="place-overlay-info">
+          <div class="place-title-overlay">${place.title || place.id || 'Saved Place'}</div>
+          ${typeHTML}
+        </div>
+      `;
+      feed.appendChild(card);
+    });
+  }
+
+  // Smart back navigation handler
+  function handleBackNavigation() {
+    const postsFeed = document.getElementById('postsFeed');
+    if (postsFeed.style.display === 'grid') {
+      showFolderGrid();
+    } else {
+      window.location.href = 'index.html';
+    }
+  }
+
+  // Return to 2x2 Folder View
+  function showFolderGrid() {
+    document.getElementById('postsFeed').style.display = 'none';
+    document.getElementById('foldersGrid').style.display = 'grid';
+    document.getElementById('actionBtn').style.display = 'block';
+    document.getElementById('pageTitle').innerText = 'Saved';
+    loadDataFromDB();
+  }
+
+  // Create New Folder into IndexedDB
+  function createNewFolder() {
+    const folderName = prompt('Enter folder name:');
+    if (!folderName) return;
+
+    const newFolderObj = {
+      name: folderName.trim(),
+      cover: ''
+    };
+
+    if (db) {
+      const tx = db.transaction(STORE_FOLDERS, 'readwrite');
+      const store = tx.objectStore(STORE_FOLDERS);
+      store.put(newFolderObj);
+
+      tx.oncomplete = () => {
+        loadDataFromDB();
+      };
+    }
+  }
+
+  // Initialize DB on page load
+  window.addEventListener('DOMContentLoaded', initDB);
+</script>
+
+</body>
+</html>
