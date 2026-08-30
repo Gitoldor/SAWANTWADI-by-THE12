@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Updates</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  background: #fff;
+}
+
+body {
+  min-height: 100vh;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  color: #111;
+}
+
+/* =========================
+   CENTER EVERYTHING
+========================= */
+
+.container {
+  width: 100%;
+  max-width: 430px;
+
+  text-align: center;
+
+  margin: auto;
+}
+
+/* =========================
+   ICON
+========================= */
+
+.icon-wrapper {
+  position: relative;
+
+  width: 88px;
+  height: 88px;
+
+  margin: 0 auto 25px;
+}
+
+.update-icon {
+  width: 88px;
+  height: 88px;
+
+  border: 1.5px solid #111;
+  border-radius: 24px;
+
+  background: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-icon svg {
+  width: 46px;
+  height: 46px;
+}
+
+/* =========================
+   THINKING ICON
+========================= */
+
+.thinking {
+  position: absolute;
+
+  top: -21px;
+  left: -23px;
+
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #fff;
+  border-radius: 50%;
+
+  font-size: 36px;
+
+  z-index: 5;
+
+  user-select: none;
+
+  animation: thinking 2.4s ease-in-out infinite;
+}
+
+@keyframes thinking {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-4px) rotate(3deg);
+  }
+}
+
+/* =========================
+   TEXT
+========================= */
+
+h1 {
+  font-size: 30px;
+  font-weight: 700;
+
+  letter-spacing: -0.8px;
+
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  max-width: 350px;
+
+  margin: 0 auto;
+
+  color: #666;
+
+  font-size: 15px;
+
+  line-height: 1.65;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.status {
+  display: inline-flex;
+
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 27px;
+
+  padding: 9px 15px;
+
+  border: 1px solid #e5e5e5;
+  border-radius: 999px;
+
+  background: #fafafa;
+
+  color: #555;
+
+  font-size: 13px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #999;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 400px) {
+
+  .icon-wrapper {
+    width: 78px;
+    height: 78px;
+  }
+
+  .update-icon {
+    width: 78px;
+    height: 78px;
+    border-radius: 21px;
+  }
+
+  .update-icon svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .thinking {
+    width: 43px;
+    height: 43px;
+
+    top: -18px;
+    left: -20px;
+
+    font-size: 32px;
+  }
+
+  h1 {
+    font-size: 27px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- Updates icon -->
+  <div class="icon-wrapper">
+
+    <!-- Thinking character -->
+    <div class="thinking">🤔</div>
+
+    <!-- News-style Updates icon -->
+    <div class="update-icon">
+
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round">
+
+        <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
+
+        <path d="M8 7h8"/>
+        <path d="M8 11h8"/>
+        <path d="M8 15h5"/>
+        <path d="M17 15h1"/>
+
+      </svg>
+
+    </div>
+
+  </div>
+
+  <h1>Updates</h1>
+
+  <p class="subtitle">
+    This feature isn't available yet.
+    New features, additions and other updates
+    will appear here in upcoming updates.
+  </p>
+
+  <div class="status">
+    <span class="dot"></span>
+    Coming soon
+  </div>
+
+</div>
+
+
+<!-- =========================================
+     BREAK OUT OF IFRAME / EMBED
+========================================= -->
+
+<script>
+(function () {
+
+  /* Check whether this page is inside an iframe */
+  if (window.self !== window.top) {
+
+    /*
+      Replace the iframe with this page
+      in the top-level browser window.
+    */
+    window.top.location.href = window.location.href;
+
+  }
+
+})();
+</script>
+
+</body>
+</html>
