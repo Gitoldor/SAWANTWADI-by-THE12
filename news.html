@@ -42,6 +42,48 @@ body {
 }
 
 /* =========================
+   BACK BUTTON
+========================= */
+
+.back-button {
+  position: fixed;
+
+  top: 18px;
+  left: 18px;
+
+  width: 42px;
+  height: 42px;
+
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+
+  background: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #111;
+
+  text-decoration: none;
+
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+
+  transition: transform 0.15s ease,
+              background 0.15s ease;
+}
+
+.back-button:active {
+  transform: scale(0.92);
+  background: #f5f5f5;
+}
+
+.back-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+/* =========================
    CENTER EVERYTHING
 ========================= */
 
@@ -189,6 +231,16 @@ h1 {
 
 @media (max-width: 400px) {
 
+  .back-button {
+    top: 14px;
+    left: 14px;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 13px;
+  }
+
   .icon-wrapper {
     width: 78px;
     height: 78px;
@@ -197,6 +249,7 @@ h1 {
   .update-icon {
     width: 78px;
     height: 78px;
+
     border-radius: 21px;
   }
 
@@ -228,15 +281,37 @@ h1 {
 
 <body>
 
+<!-- =========================
+     BACK TO INDEX
+========================= -->
+
+<a href="index.html" class="back-button" aria-label="Back to home">
+
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round">
+
+    <path d="M19 12H5"/>
+    <path d="M12 19l-7-7 7-7"/>
+
+  </svg>
+
+</a>
+
+
 <div class="container">
 
   <!-- Updates icon -->
   <div class="icon-wrapper">
 
-    <!-- Thinking character -->
-    <div class="thinking">🤔</div>
+    <div class="thinking">
+      🤔
+    </div>
 
-    <!-- News-style Updates icon -->
     <div class="update-icon">
 
       <svg
@@ -260,7 +335,9 @@ h1 {
 
   </div>
 
+
   <h1>Updates</h1>
+
 
   <p class="subtitle">
     This feature isn't available yet.
@@ -268,34 +345,16 @@ h1 {
     will appear here in upcoming updates.
   </p>
 
+
   <div class="status">
+
     <span class="dot"></span>
+
     Coming soon
+
   </div>
 
 </div>
-
-
-<!-- =========================================
-     BREAK OUT OF IFRAME / EMBED
-========================================= -->
-
-<script>
-(function () {
-
-  /* Check whether this page is inside an iframe */
-  if (window.self !== window.top) {
-
-    /*
-      Replace the iframe with this page
-      in the top-level browser window.
-    */
-    window.top.location.href = window.location.href;
-
-  }
-
-})();
-</script>
 
 </body>
 </html>
