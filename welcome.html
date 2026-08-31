@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Welcome to Sawantwadi</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+:root{
+  --white:#ffffff;
+  --paper:#fbfaf7;
+  --text:#29251f;
+  --muted:#77736c;
+
+  /* Sawantwadi-inspired accents */
+  --earth:#a76642;
+  --earth-soft:#f3e7de;
+
+  --leaf:#5d765f;
+  --leaf-soft:#e8eee8;
+
+  --lake:#668c92;
+  --lake-soft:#e7f0f0;
+
+  --gold:#b58a43;
+  --gold-soft:#f5eedf;
+
+  --line:#ebe8e2;
+}
+
+body{
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  background:var(--paper);
+  color:var(--text);
+  overflow-x:hidden;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+button{
+  font:inherit;
+}
+
+
+/* =================================
+   TOP NAV
+================================= */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+
+  height:70px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 22px;
+
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(16px);
+
+  border-bottom:1px solid var(--line);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.brand-mark{
+  width:36px;
+  height:36px;
+
+  border-radius:12px;
+
+  background:var(--earth-soft);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  color:var(--earth);
+}
+
+.brand-mark svg{
+  width:19px;
+  height:19px;
+}
+
+.brand-name{
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.7px;
+}
+
+.brand-sub{
+  display:block;
+  margin-top:3px;
+
+  color:#999;
+  font-size:8px;
+  letter-spacing:1.8px;
+  font-weight:700;
+}
+
+.menu{
+  width:40px;
+  height:40px;
+
+  border:1px solid var(--line);
+  border-radius:50%;
+
+  background:#fff;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.menu svg{
+  width:18px;
+  height:18px;
+}
+
+
+/* =================================
+   HERO
+================================= */
+
+.hero{
+  background:#fff;
+}
+
+.hero-image-wrap{
+  width:100%;
+
+  /*
+    Keeps the image large and natural
+    without stretching it.
+  */
+  height:min(58svh,620px);
+
+  background:#eee;
+
+  overflow:hidden;
+}
+
+.hero-image{
+  width:100%;
+  height:100%;
+
+  display:block;
+
+  object-fit:cover;
+  object-position:center;
+}
+
+.hero-content{
+  max-width:1120px;
+  margin:auto;
+
+  padding:40px 22px 55px;
+}
+
+.welcome-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+
+  padding:8px 11px;
+
+  border-radius:999px;
+
+  background:var(--earth-soft);
+  color:var(--earth);
+
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+}
+
+.welcome-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--earth);
+}
+
+.hero h1{
+  margin-top:18px;
+
+  font-size:clamp(48px,10vw,94px);
+
+  line-height:.9;
+
+  letter-spacing:-5px;
+
+  font-weight:900;
+}
+
+.hero h1 span{
+  display:block;
+
+  color:var(--earth);
+
+  font-weight:500;
+
+  letter-spacing:-3px;
+}
+
+.hero-text{
+  max-width:650px;
+
+  margin-top:21px;
+
+  color:var(--muted);
+
+  font-size:14px;
+
+  line-height:1.8;
+}
+
+.hero-button{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+
+  margin-top:24px;
+
+  padding:14px 18px;
+
+  border-radius:14px;
+
+  background:var(--text);
+  color:#fff;
+
+  font-size:12px;
+  font-weight:850;
+
+  box-shadow:0 8px 20px rgba(41,37,31,.12);
+
+  transition:.2s ease;
+}
+
+.hero-button:hover{
+  transform:translateY(-2px);
+}
+
+.hero-button svg{
+  width:15px;
+  height:15px;
+}
+
+
+/* =================================
+   LOCAL INTRO
+================================= */
+
+.intro{
+  max-width:1120px;
+  margin:auto;
+
+  padding:85px 22px;
+}
+
+.section-label{
+  color:#999;
+
+  font-size:9px;
+  font-weight:900;
+
+  letter-spacing:2.5px;
+
+  text-transform:uppercase;
+}
+
+.intro h2{
+  max-width:900px;
+
+  margin-top:15px;
+
+  font-size:clamp(36px,7vw,68px);
+
+  line-height:1;
+
+  letter-spacing:-3.5px;
+}
+
+.intro h2 span{
+  color:var(--lake);
+}
+
+.intro p{
+  max-width:650px;
+
+  margin-top:19px;
+
+  color:var(--muted);
+
+  font-size:14px;
+  line-height:1.8;
+}
+
+
+/* =================================
+   LOCAL CARDS
+================================= */
+
+.explore{
+  max-width:1120px;
+  margin:auto;
+
+  padding:0 22px 90px;
+}
+
+.cards{
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:12px;
+}
+
+.card{
+  min-height:260px;
+
+  padding:22px;
+
+  background:#fff;
+
+  border:1px solid var(--line);
+
+  border-radius:25px;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+
+  box-shadow:
+    0 15px 35px rgba(41,37,31,.07);
+}
+
+.icon{
+  width:46px;
+  height:46px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:14px;
+}
+
+.icon svg{
+  width:21px;
+  height:21px;
+}
+
+
+/* Different local colours */
+
+.card:nth-child(1) .icon{
+  background:var(--lake-soft);
+  color:var(--lake);
+}
+
+.card:nth-child(2) .icon{
+  background:var(--earth-soft);
+  color:var(--earth);
+}
+
+.card:nth-child(3) .icon{
+  background:var(--leaf-soft);
+  color:var(--leaf);
+}
+
+.card:nth-child(4) .icon{
+  background:var(--gold-soft);
+  color:var(--gold);
+}
+
+.card:nth-child(5) .icon{
+  background:var(--earth-soft);
+  color:var(--earth);
+}
+
+.card:nth-child(6) .icon{
+  background:var(--lake-soft);
+  color:var(--lake);
+}
+
+.card-info{
+  margin-top:30px;
+}
+
+.card-number{
+  color:#aaa;
+
+  font-size:9px;
+  font-weight:800;
+
+  letter-spacing:1px;
+}
+
+.card h3{
+  margin-top:7px;
+
+  font-size:21px;
+
+  letter-spacing:-.8px;
+}
+
+.card p{
+  margin-top:8px;
+
+  color:#777;
+
+  font-size:12px;
+
+  line-height:1.65;
+}
+
+
+/* =================================
+   MAP
+================================= */
+
+.map{
+  position:relative;
+
+  max-width:1120px;
+  min-height:500px;
+
+  margin:0 auto 90px;
+
+  overflow:hidden;
+
+  border-radius:30px;
+
+  background:#eef1eb;
+
+  border:1px solid #e0e5dc;
+}
+
+.map-pattern{
+  position:absolute;
+  inset:0;
+
+  opacity:.7;
+
+  background-image:
+    linear-gradient(
+      35deg,
+      transparent 48%,
+      rgba(93,118,95,.16) 49%,
+      transparent 50%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 48%,
+      rgba(102,140,146,.14) 49%,
+      transparent 50%
+    ),
+    linear-gradient(
+      rgba(93,118,95,.09) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(93,118,95,.09) 1px,
+      transparent 1px
+    );
+
+  background-size:
+    130px 130px,
+    170px 170px,
+    42px 42px,
+    42px 42px;
+}
+
+.map-water{
+  position:absolute;
+
+  width:230px;
+  height:90px;
+
+  right:8%;
+  top:17%;
+
+  border-radius:50%;
+
+  background:#dceced;
+
+  transform:rotate(-15deg);
+}
+
+.map-label{
+  position:absolute;
+
+  color:#687268;
+
+  font-size:10px;
+  font-weight:800;
+
+  letter-spacing:.5px;
+}
+
+.map-label.rajwada{
+  left:17%;
+  top:30%;
+}
+
+.map-label.talav{
+  right:14%;
+  top:38%;
+}
+
+.pin{
+  position:absolute;
+
+  left:50%;
+  top:42%;
+
+  transform:translate(-50%,-50%);
+
+  width:56px;
+  height:56px;
+
+  border-radius:50%;
+
+  background:var(--earth);
+
+  color:#fff;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  box-shadow:
+    0 0 0 11px rgba(167,102,66,.12),
+    0 10px 25px rgba(0,0,0,.12);
+}
+
+.pin svg{
+  width:23px;
+  height:23px;
+}
+
+.map-content{
+  position:absolute;
+  inset:0;
+
+  padding:32px;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+
+  background:
+    linear-gradient(
+      transparent 35%,
+      rgba(255,255,255,.94) 83%
+    );
+}
+
+.map-content h2{
+  max-width:800px;
+
+  margin-top:10px;
+
+  font-size:clamp(38px,7vw,70px);
+
+  line-height:.92;
+
+  letter-spacing:-4px;
+}
+
+.map-content h2 span{
+  color:var(--earth);
+}
+
+.map-content p{
+  max-width:570px;
+
+  margin-top:13px;
+
+  color:#696b66;
+
+  font-size:13px;
+
+  line-height:1.75;
+}
+
+
+/* =================================
+   COMMUNITY
+================================= */
+
+.community{
+  background:#fff;
+
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+.community-inner{
+  max-width:1120px;
+  margin:auto;
+
+  padding:80px 22px;
+}
+
+.community-title{
+  max-width:850px;
+
+  margin-top:14px;
+
+  font-size:clamp(35px,6vw,62px);
+
+  line-height:1;
+
+  letter-spacing:-3px;
+}
+
+.community-title span{
+  color:var(--leaf);
+}
+
+.community-text{
+  max-width:650px;
+
+  margin-top:18px;
+
+  color:var(--muted);
+
+  font-size:13px;
+
+  line-height:1.8;
+}
+
+
+/* =================================
+   LOCAL MESSAGE
+================================= */
+
+.message{
+  max-width:1120px;
+  margin:auto;
+
+  padding:80px 22px;
+}
+
+.message-box{
+  padding:32px;
+
+  border-radius:27px;
+
+  background:var(--gold-soft);
+
+  border:1px solid #eadfc9;
+}
+
+.message-box h2{
+  font-size:30px;
+
+  letter-spacing:-1.5px;
+}
+
+.message-box p{
+  max-width:650px;
+
+  margin-top:10px;
+
+  color:#716956;
+
+  font-size:13px;
+
+  line-height:1.75;
+}
+
+
+/* =================================
+   FOOTER
+================================= */
+
+footer{
+  max-width:1120px;
+  margin:auto;
+
+  padding:30px 22px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:20px;
+
+  color:#999;
+
+  font-size:9px;
+
+  letter-spacing:1px;
+}
+
+footer strong{
+  color:var(--text);
+}
+
+
+/* =================================
+   MOBILE
+================================= */
+
+@media(max-width:750px){
+
+  .topbar{
+    height:64px;
+    padding:0 16px;
+  }
+
+  .hero-image-wrap{
+    height:50svh;
+    min-height:320px;
+    max-height:500px;
+  }
+
+  .hero-content{
+    padding:34px 17px 48px;
+  }
+
+  .hero h1{
+    letter-spacing:-3.5px;
+  }
+
+  .hero h1 span{
+    letter-spacing:-2px;
+  }
+
+  .intro{
+    padding:70px 17px;
+  }
+
+  .explore{
+    padding:0 17px 70px;
+  }
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+
+  .card{
+    min-height:215px;
+  }
+
+  .map{
+    min-height:450px;
+    margin:0 10px 70px;
+    border-radius:24px;
+  }
+
+  .map-content{
+    padding:25px;
+  }
+
+  .community-inner{
+    padding:70px 17px;
+  }
+
+  .message{
+    padding:70px 17px;
+  }
+
+  .message-box{
+    padding:25px;
+  }
+
+  footer{
+    padding:26px 17px;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+}
+
+@media(max-width:380px){
+
+  .hero-image-wrap{
+    height:46svh;
+  }
+
+  .hero h1{
+    font-size:45px;
+  }
+
+}
+</style>
+</head>
+
+
+<body>
+
+
+<!-- ================================
+     NAV
+================================ -->
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <div class="brand-mark">
+
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 3c4 3 6 6 6 10a6 6 0 0 1-12 0c0-4 2-7 6-10Z"/>
+        <path d="M9 14c1 1 2 2 3 2s2-1 3-2"/>
+      </svg>
+
+    </div>
+
+    <div>
+
+      <div class="brand-name">
+        SAWANTWADI DIGITAL
+      </div>
+
+      <span class="brand-sub">
+        AAPLA SAWANTWADI
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <div class="menu">
+
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+    >
+      <path d="M4 7h16"/>
+      <path d="M4 12h16"/>
+      <path d="M4 17h16"/>
+    </svg>
+
+  </div>
+
+</header>
+
+
+<!-- ================================
+     HERO
+================================ -->
+
+<section class="hero">
+
+  <div class="hero-image-wrap">
+
+    <img
+      class="hero-image"
+      src="https://i.ibb.co/Mxxgy42n/SAWANT-WADI-20260830-162115-0000.png"
+      alt="Sawantwadi"
+    >
+
+  </div>
+
+
+  <div class="hero-content">
+
+    <div class="welcome-pill">
+
+      <span class="welcome-dot"></span>
+
+      Welcome to Sawantwadi
+
+    </div>
+
+
+    <h1>
+
+      Aapla
+      <span>Sawantwadi.</span>
+
+    </h1>
+
+
+    <p class="hero-text">
+
+      Our town, our people, our places and our stories.
+      Sawantwadi Digital brings a little bit of everything
+      we love about Sawantwadi into one friendly place online.
+
+    </p>
+
+
+    <a href="index.html" class="hero-button">
+
+      Explore Sawantwadi
+
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14"/>
+        <path d="m13 6 6 6-6 6"/>
+      </svg>
+
+    </a>
+
+  </div>
+
+</section>
+
+
+<!-- ================================
+     INTRO
+================================ -->
+
+<section class="intro">
+
+  <div class="section-label">
+    AAPLA TOWN
+  </div>
+
+  <h2>
+
+    The Sawantwadi
+    <span>we know and love.</span>
+
+  </h2>
+
+  <p>
+
+    From Rajwada and Moti Talav to the shops,
+    schools, streets, people and little moments
+    that make this place feel like home.
+
+  </p>
+
+</section>
+
+
+<!-- ================================
+     FEATURES
+================================ -->
+
+<section class="explore">
+
+  <div class="cards">
+
+
+    <!-- PLACES -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+          <circle cx="12" cy="10" r="2.5"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          01 • PLACES
+        </div>
+
+        <h3>
+          Explore Our Town
+        </h3>
+
+        <p>
+          Discover places, landmarks, local spots
+          and corners worth visiting.
+        </p>
+
+      </div>
+
+    </article>
+
+
+    <!-- PEOPLE -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="8" r="3"/>
+          <path d="M3 20c.5-3.5 2.5-5 6-5s5.5 1.5 6 5"/>
+          <path d="M16 11c2.5.2 4 1.7 4.5 4"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          02 • PEOPLE
+        </div>
+
+        <h3>
+          Our People
+        </h3>
+
+        <p>
+          Meet local students, creators, achievers
+          and people doing something special.
+        </p>
+
+      </div>
+
+    </article>
+
+
+    <!-- SHOPS -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 10h16"/>
+          <path d="M5 10v9"/>
+          <path d="M19 10v9"/>
+          <path d="M3 19h18"/>
+          <path d="m4 10 2-5h12l2 5"/>
+          <path d="M8 14h3v5H8z"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          03 • LOCAL
+        </div>
+
+        <h3>
+          Local Businesses
+        </h3>
+
+        <p>
+          Find shops, services, products and
+          familiar local businesses.
+        </p>
+
+      </div>
+
+    </article>
+
+
+    <!-- EVENTS -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M8 3v4"/>
+          <path d="M16 3v4"/>
+          <path d="M3 10h18"/>
+          <path d="M8 14h3"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          04 • HAPPENING
+        </div>
+
+        <h3>
+          What's Happening
+        </h3>
+
+        <p>
+          Events, activities and things happening
+          around Sawantwadi.
+        </p>
+
+      </div>
+
+    </article>
+
+
+    <!-- HALL OF FAME -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M8 21h8"/>
+          <path d="M12 17v4"/>
+          <path d="M7 4h10v6c0 3-2.2 5-5 5s-5-2-5-5V4Z"/>
+          <path d="M7 7H4c0 3 1.5 5 4 5"/>
+          <path d="M17 7h3c0 3-1.5 5-4 5"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          05 • COMMUNITY
+        </div>
+
+        <h3>
+          Hall of Fame
+        </h3>
+
+        <p>
+          Celebrate achievements, memories and
+          people from our town.
+        </p>
+
+      </div>
+
+    </article>
+
+
+    <!-- MOMENTS -->
+
+    <article class="card">
+
+      <div class="icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <circle cx="8.5" cy="10" r="1.5"/>
+          <path d="m4 17 5-5 3 3 2-2 6 5"/>
+        </svg>
+
+      </div>
+
+      <div class="card-info">
+
+        <div class="card-number">
+          06 • MEMORIES
+        </div>
+
+        <h3>
+          Sawantwadi Moments
+        </h3>
+
+        <p>
+          Photos, memories and everyday moments
+          from around our town.
+        </p>
+
+      </div>
+
+    </article>
+
+  </div>
+
+</section>
+
+
+<!-- ================================
+     MAP
+================================ -->
+
+<section class="map">
+
+  <div class="map-pattern"></div>
+
+  <div class="map-water"></div>
+
+  <div class="map-label rajwada">
+    RAJWADA
+  </div>
+
+  <div class="map-label talav">
+    MOTI TALAV
+  </div>
+
+
+  <div class="pin">
+
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+      <circle cx="12" cy="10" r="2.5"/>
+    </svg>
+
+  </div>
+
+
+  <div class="map-content">
+
+    <div class="section-label">
+      OUR DIGITAL MAP
+    </div>
+
+    <h2>
+
+      <span>Your Sawantwadi,</span><br>
+      all in one place.
+
+    </h2>
+
+    <p>
+
+      The places you already know,
+      and the ones you are yet to discover.
+      All connected through one simple digital map.
+
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- ================================
+     COMMUNITY
+================================ -->
+
+<section class="community">
+
+  <div class="community-inner">
+
+    <div class="section-label">
+      FOR OUR COMMUNITY
+    </div>
+
+    <h2 class="community-title">
+
+      Your shop.
+      Your work.
+      Your memories.
+      <span>Your Sawantwadi.</span>
+
+    </h2>
+
+    <p class="community-text">
+
+      Sawantwadi Digital isn't just for businesses.
+      It's a place for students, creators, families,
+      events, achievements and anyone who wants
+      to be part of our town's digital story.
+
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- ================================
+     LOCAL MESSAGE
+================================ -->
+
+<section class="message">
+
+  <div class="message-box">
+
+    <h2>
+      Made for Sawantwadi. 🤍
+    </h2>
+
+    <p>
+
+      Slowly, one place, one person and one story
+      at a time, we're building a digital version
+      of the town we call home.
+
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- ================================
+     FOOTER
+================================ -->
+
+<footer>
+
+  <div>
+    <strong>SAWANTWADI DIGITAL</strong>
+  </div>
+
+  <div>
+    AAPLA SAWANTWADI • 2026
+  </div>
+
+</footer>
+
+
+</body>
+</html>
