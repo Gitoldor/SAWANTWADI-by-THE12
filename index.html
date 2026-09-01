@@ -334,7 +334,7 @@ body.page-transition-up{
   inset:0;
   display:flex;
   flex-direction:column;
-  justify-flex-end;
+  justify-content: flex-end;
   padding:18px;
   background:linear-gradient(to top, rgba(0,0,0,.00), rgba(0,0,0,.00) 0%, transparent);
   pointer-events: none;
@@ -379,9 +379,10 @@ body.page-transition-up{
   transition:transform .26s ease;
   position:relative;
   will-change: transform;
+  cursor: pointer;
 }
 
-.custom-marker img{ width:100%; height:100%; object-fit:cover; display:block; }
+.custom-marker img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
 .custom-marker.active{ transform:scale(1.35); border:4px solid white; z-index:999999; }
 
 .cluster-wrap{ width:120px; height:70px; position:relative; }
@@ -653,7 +654,7 @@ body.page-transition-up{
   <div class="filter-container" id="filterContainer">
     <div class="search-chip-wrapper" id="searchChipWrapper">
       <button class="search-toggle-btn" id="searchBtn">
-        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 11.99 14 9.5 14z"/></svg>
       </button>
       <input type="text" class="search-chip-input" id="searchInput" placeholder="Search..." />
     </div>
@@ -926,21 +927,20 @@ document.addEventListener('pointerup', (e) => {
   const dy = e.clientY - hStartY;
   hActive = false;
 
-  // Swipe Left-to-Right from near left edge (< 80px) to slide open drawer
   if (dx > 70 && Math.abs(dx) > Math.abs(dy) && hStartX < 80) {
     document.body.classList.add('drawer-open');
   } 
-  // Swipe Right-to-Left anywhere to close drawer
   else if (dx < -70 && Math.abs(dx) > Math.abs(dy) && document.body.classList.contains('drawer-open')) {
     document.body.classList.remove('drawer-open');
   }
 });
 
 document.addEventListener('pointercancel', () => { hActive = false; });
+
 /* =========================
 MAP INITIALIZATION & UI EVENTS
 ========================= */
-const map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([15.9041, 73.8219], 15);
+const map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true, doubleClickZoom: false }).setView([15.9041, 73.8219], 15);
 const normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 });
 const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 const darkMap = L.tileLayer('https://{s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
@@ -954,6 +954,13 @@ toggleBtn.onclick = () => {
   currentMode = (currentMode + 1) % modes.length;
   modes[currentMode].addTo(map);
 };
+
+/* Helper for navigating to place link */
+function openPlaceLink(place) {
+  if (place && place.link) {
+    window.location.href = place.link;
+  }
+}
 
 /* =========================
 RENDER MAP & CAROUSEL FUNCTION
@@ -993,6 +1000,12 @@ function renderMapAndCarousel() {
       map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
     };
 
+    // Double-click Carousel Card navigation
+    card.ondblclick = (e) => {
+      if (e.target.closest('.card-save-btn')) return;
+      openPlaceLink(place);
+    };
+
     carousel.appendChild(card);
     cardRefs.push(card);
 
@@ -1005,9 +1018,16 @@ function renderMapAndCarousel() {
     });
 
     const marker = L.marker([place.lat, place.lng], { icon: customIcon, place: place });
+    
     marker.on('click', () => {
       setActive(idx);
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+
+    // Double-click Map Marker navigation
+    marker.on('dblclick', (e) => {
+      if (L.DomEvent) L.DomEvent.stopPropagation(e);
+      openPlaceLink(place);
     });
 
     clusterLayer.addLayer(marker);
@@ -1017,7 +1037,8 @@ function renderMapAndCarousel() {
   // Activate first place
   setActive(0);
 }
-
+</script>
+<script>
 /* =========================
 FLOATING SAVE BUTTON (CLICK & LONG-CLICK)
 ========================= */

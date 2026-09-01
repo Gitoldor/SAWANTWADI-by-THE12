@@ -430,6 +430,9 @@
     </div>
   </div>
 
+<!-- Ensure app.js is loaded so appPostsList is available -->
+<script src="app.js"></script>
+
 <script>
   /* MATCHING MAP DB CONFIG */
   const DB_NAME = 'Sho1re1DB_v4';
@@ -478,8 +481,34 @@
     const foldersReq = folderStore.getAll();
 
     tx.oncomplete = () => {
-      allSavedPlaces = placesReq.result || [];
+      const rawPlaces = placesReq.result || [];
       allFolders = foldersReq.result || [];
+
+      // Scan app.js post list: Verify by both ID and Title/Name
+      allSavedPlaces = rawPlaces.filter(place => {
+        if (typeof appPostsList !== 'undefined') {
+          if (Array.isArray(appPostsList)) {
+            return appPostsList.some(post => 
+              (post.id && post.id === place.id) || 
+              (post.title && place.title && post.title.toLowerCase() === place.title.toLowerCase()) ||
+              (post.name && place.name && post.name.toLowerCase() === place.name.toLowerCase()) ||
+              (post.name && place.title && post.name.toLowerCase() === place.title.toLowerCase())
+            );
+          }
+          
+          // Object lookup fallback
+          if (typeof appPostsList === 'object' && appPostsList !== null) {
+            if (place.id && Object.prototype.hasOwnProperty.call(appPostsList, place.id)) {
+              return true;
+            }
+            return Object.values(appPostsList).some(post => 
+              (post.title && place.title && post.title.toLowerCase() === place.title.toLowerCase()) ||
+              (post.name && place.name && post.name.toLowerCase() === place.name.toLowerCase())
+            );
+          }
+        }
+        return true; // Fallback if appPostsList is missing
+      });
 
       if (!allFolders.some(f => f.name === 'Default')) {
         allFolders.unshift({ name: 'Default', cover: '' });
@@ -546,13 +575,13 @@
       const card = document.createElement('div');
       card.className = 'place-card-full';
       
-      const imgHTML = place.image ? `<img src="${place.image}" alt="${place.title || 'Place'}" />` : '';
+      const imgHTML = place.image ? `<img src="${place.image}" alt="${place.title || place.name || 'Place'}" />` : '';
       const typeHTML = place.type ? `<div class="place-type-overlay">${place.type}</div>` : '';
 
       card.innerHTML = `
         ${imgHTML}
         <div class="place-overlay-info">
-          <div class="place-title-overlay">${place.title || place.id || 'Saved Place'}</div>
+          <div class="place-title-overlay">${place.title || place.name || place.id || 'Saved Place'}</div>
           ${typeHTML}
         </div>
       `;
