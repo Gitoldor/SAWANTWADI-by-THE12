@@ -1,7 +1,16 @@
 const fs = require("fs");
 
-const file = "posts.json";
-const posts = JSON.parse(fs.readFileSync(file, "utf8"));
+const file = "posts.js";
+const code = fs.readFileSync(file, "utf8");
+
+const start = code.indexOf("[");
+const end = code.lastIndexOf("]");
+
+if (start === -1 || end === -1) {
+  throw new Error("Posts array not found");
+}
+
+const posts = eval(code.slice(start, end + 1));
 
 const now = Date.now();
 
@@ -11,9 +20,13 @@ const remaining = posts.filter(post => {
   return new Date(post.endTime).getTime() > now;
 });
 
-fs.writeFileSync(
-  file,
-  JSON.stringify(remaining, null, 2) + "\n"
-);
+const output =
+  "window.Sho1re1Places = " +
+  JSON.stringify(remaining, null, 2) +
+  ";\n";
 
-console.log(`Deleted ${posts.length - remaining.length} expired posts.`);
+fs.writeFileSync(file, output);
+
+console.log(
+  `Removed ${posts.length - remaining.length} expired posts.`
+);
