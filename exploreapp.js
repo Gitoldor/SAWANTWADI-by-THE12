@@ -33,7 +33,7 @@
       map: { title: "Map View", url: "map.html", desc: "Live Tracking" },
       explore: { title: "Explore", url: "nofeature.html", desc: "Discover Content" },
       leftPlaceholder: { title: "Tab 1", url: "#", desc: "Placeholder" },
-      media: { title: "Media", url: "nofeature.html", desc: "Audio & Visuals" },
+      media: { title: "Media", url: "https://gitoldor.github.io/67/index.html", desc: "Audio & Visuals" },
       inbox: { title: "Inbox", url: "nofeature.html", desc: "Messages & Alerts" },
       rightPlaceholder1: { title: "Tab 2", url: "#", desc: "Placeholder" },
       rightPlaceholder2: { title: "Tab 3", url: "#", desc: "Placeholder" }
