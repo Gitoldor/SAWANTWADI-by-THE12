@@ -30,18 +30,6 @@ window.Sho1re1Places = [
     plan: "FREE"
   },
   {
-    id: 2,
-    title: "welcome",
-    topic: "Scenic Drives",
-    type: "",
-    subtype: "",
-    lat: 15.9941,
-    lng: 73.8219,
-    image: "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    link: "welcome.html",
-    plan: "PRO"
-  },
-  {
     id: 3,
     title: "welcome",
     topic: "Scenic Drives",
