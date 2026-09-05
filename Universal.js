@@ -1,100 +1,125 @@
 /* ============================================================
-   UNIVERSAL.JS
-   SAWANTWADI MAP POST SHARING
+   SHO1RE1 UNIVERSAL POST SHARING
+   Works with the existing map/card system.
+   Does NOT replace the existing UI.
    ============================================================ */
 
 (function () {
+  "use strict";
 
   const SHARE_CLASS = "universal-share-btn";
+  const EXIT_ID = "universal-exit-shared";
 
   /* ------------------------------------------------------------
-     GET CURRENT POSTS
+     STYLES
      ------------------------------------------------------------ */
 
-  function getPosts() {
-
-    try {
-      if (
-        typeof activePlaces !== "undefined" &&
-        Array.isArray(activePlaces)
-      ) {
-        return activePlaces;
-      }
-    } catch (e) {}
-
-    if (
-      Array.isArray(window.Sho1re1VisiblePlaces)
-    ) {
-      return window.Sho1re1VisiblePlaces;
-    }
-
-    return [];
-  }
-
-
-  /* ------------------------------------------------------------
-     SHARE BUTTON CSS
-     ------------------------------------------------------------ */
-
-  function addCSS() {
-
-    if (document.getElementById("UniversalShareCSS")) {
-      return;
-    }
+  function addStyles() {
+    if (document.getElementById("universal-share-styles")) return;
 
     const style = document.createElement("style");
-
-    style.id = "UniversalShareCSS";
+    style.id = "universal-share-styles";
 
     style.textContent = `
-      .universal-share-btn {
+      .${SHARE_CLASS} {
         position: absolute !important;
-        top: 12px !important;
-        right: 12px !important;
+        top: 10px !important;
+        right: 10px !important;
 
-        width: 44px !important;
-        height: 44px !important;
-
-        min-width: 44px !important;
-        min-height: 44px !important;
-
-        padding: 0 !important;
-        margin: 0 !important;
-
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        width: 38px !important;
+        height: 38px !important;
 
         border: 0 !important;
         border-radius: 50% !important;
 
         background: rgba(0,0,0,.72) !important;
-        color: white !important;
+        color: #fff !important;
 
-        z-index: 9999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        z-index: 99999 !important;
 
         cursor: pointer !important;
-
-        box-shadow:
-          0 4px 15px rgba(0,0,0,.35) !important;
-
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-
         pointer-events: auto !important;
+
+        box-shadow: 0 4px 14px rgba(0,0,0,.35) !important;
+
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
       }
 
-      .universal-share-btn svg {
-        width: 20px !important;
-        height: 20px !important;
-
-        display: block !important;
-
+      .${SHARE_CLASS} svg {
+        width: 19px !important;
+        height: 19px !important;
+        fill: none !important;
+        stroke: currentColor !important;
+        stroke-width: 2 !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
         pointer-events: none !important;
       }
 
-      .universal-share-btn:active {
-        transform: scale(.92);
+      #${EXIT_ID} {
+        position: fixed !important;
+        left: 14px !important;
+        top: 14px !important;
+
+        z-index: 999999 !important;
+
+        border: 0 !important;
+        border-radius: 999px !important;
+
+        padding: 11px 16px !important;
+
+        background: rgba(0,0,0,.82) !important;
+        color: #fff !important;
+
+        font-family: Inter, sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+
+        box-shadow: 0 5px 20px rgba(0,0,0,.35) !important;
+
+        cursor: pointer !important;
+
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+
+      #universal-share-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        transform: translateX(-50%) translateY(20px);
+
+        z-index: 1000000;
+
+        background: rgba(0,0,0,.88);
+        color: #fff;
+
+        padding: 10px 16px;
+        border-radius: 999px;
+
+        font-family: Inter, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+
+        opacity: 0;
+        pointer-events: none;
+
+        transition:
+          opacity .2s ease,
+          transform .2s ease;
+      }
+
+      #universal-share-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
     `;
 
@@ -103,366 +128,257 @@
 
 
   /* ------------------------------------------------------------
-     CREATE BUTTON
+     TOAST
      ------------------------------------------------------------ */
 
-  function makeShareButton(post) {
+  function toast(message) {
+    let el = document.getElementById("universal-share-toast");
 
-    const button =
-      document.createElement("button");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "universal-share-toast";
+      document.body.appendChild(el);
+    }
 
-    button.type = "button";
+    el.textContent = message;
 
-    button.className =
-      SHARE_CLASS;
+    requestAnimationFrame(() => {
+      el.classList.add("show");
+    });
 
-    button.setAttribute(
-      "aria-label",
-      "Share post"
-    );
+    clearTimeout(el._timer);
 
-    button.title = "Share";
+    el._timer = setTimeout(() => {
+      el.classList.remove("show");
+    }, 1800);
+  }
 
-    button.innerHTML = `
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
+
+  /* ------------------------------------------------------------
+     SHARE ICON
+     ------------------------------------------------------------ */
+
+  function shareIcon() {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="18" cy="5" r="3"></circle>
         <circle cx="6" cy="12" r="3"></circle>
         <circle cx="18" cy="19" r="3"></circle>
-
-        <line
-          x1="8.6"
-          y1="13.5"
-          x2="15.4"
-          y2="17.5"
-        ></line>
-
-        <line
-          x1="15.4"
-          y1="6.5"
-          x2="8.6"
-          y2="10.5"
-        ></line>
+        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+        <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
       </svg>
     `;
-
-
-    button.addEventListener(
-      "click",
-      async function (event) {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const url =
-          new URL(
-            window.location.href
-          );
-
-        url.search = "";
-
-        url.searchParams.set(
-          "post",
-          String(post.id)
-        );
-
-        const shareURL =
-          url.toString();
-
-
-        /* Native phone share */
-
-        if (
-          navigator.share
-        ) {
-
-          try {
-
-            await navigator.share({
-
-              title:
-                post.title ||
-                "Sawantwadi Post",
-
-              text:
-                post.title ||
-                "Check out this post",
-
-              url:
-                shareURL
-
-            });
-
-            return;
-
-          } catch (error) {
-
-            if (
-              error &&
-              error.name === "AbortError"
-            ) {
-              return;
-            }
-
-          }
-
-        }
-
-
-        /* Clipboard fallback */
-
-        try {
-
-          await navigator.clipboard.writeText(
-            shareURL
-          );
-
-          showToast(
-            "Post link copied"
-          );
-
-        } catch (error) {
-
-          window.prompt(
-            "Copy this post link:",
-            shareURL
-          );
-
-        }
-
-      }
-    );
-
-
-    return button;
   }
 
 
   /* ------------------------------------------------------------
-     ADD BUTTONS TO CARDS
+     FIND POST DATA FOR A CARD
      ------------------------------------------------------------ */
 
-  function scanCards() {
+  function getPostForCard(card) {
 
-    const carousel =
-      document.getElementById(
-        "carousel"
-      );
+    if (!card) return null;
 
-    if (!carousel) {
-      return;
-    }
-
-
-    const cards =
-      carousel.querySelectorAll(
-        ".card"
-      );
-
-    if (!cards.length) {
-      return;
-    }
-
-
-    const posts =
-      getPosts();
-
-    if (!posts.length) {
-      return;
-    }
-
-
-    cards.forEach(
-      function (card, index) {
-
-        const post =
-          posts[index];
-
-        if (!post) {
-          return;
-        }
-
-
-        /* Already added */
-
-        if (
-          card.querySelector(
-            "." + SHARE_CLASS
-          )
-        ) {
-          return;
-        }
-
-
-        /*
-         * Make card a positioning
-         * container.
-         */
-
-        const position =
-          getComputedStyle(
-            card
-          ).position;
-
-        if (
-          position === "static"
-        ) {
-
-          card.style.position =
-            "relative";
-
-        }
-
-
-        const button =
-          makeShareButton(
-            post
-          );
-
-
-        card.appendChild(
-          button
-        );
-
-      }
+    const cards = Array.from(
+      document.querySelectorAll("#carousel .card")
     );
 
-  }
+    const index = cards.indexOf(card);
 
+    if (index < 0) return null;
 
-  /* ------------------------------------------------------------
-     SHARED POST
-     ------------------------------------------------------------ */
-
-  function openSharedPost() {
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    const id =
-      params.get("post");
-
-    if (!id) {
-      return;
-    }
-
-
-    const posts =
-      getPosts();
-
-
-    let index = -1;
-    let post = null;
-
-
-    for (
-      let i = 0;
-      i < posts.length;
-      i++
-    ) {
-
+    try {
       if (
-        String(posts[i].id) ===
-        String(id)
+        typeof activePlaces !== "undefined" &&
+        Array.isArray(activePlaces) &&
+        activePlaces[index]
       ) {
-
-        index = i;
-        post = posts[i];
-
-        break;
-
+        return activePlaces[index];
       }
+    } catch (e) {}
 
-    }
-
-
-    /*
-     * Post doesn't exist.
-     */
-
-    if (
-      index === -1 ||
-      !post
-    ) {
-
-      params.delete("post");
-
-      const cleanURL =
-        window.location.pathname +
-        (
-          params.toString()
-            ? "?" + params.toString()
-            : ""
-        ) +
-        window.location.hash;
+    return null;
+  }
 
 
-      history.replaceState(
-        {},
-        "",
-        cleanURL
-      );
+  /* ------------------------------------------------------------
+     SHARE ONE POST
+     ------------------------------------------------------------ */
 
+  async function sharePost(post) {
 
-      showToast(
-        "Post not found"
-      );
-
-      return;
-
-    }
-
-
-    const cards =
-      document.querySelectorAll(
-        "#carousel .card"
-      );
-
-
-    const card =
-      cards[index];
-
-
-    if (!card) {
+    if (!post || post.id === undefined || post.id === null) {
+      toast("Post ID not found");
       return;
     }
 
+    const url =
+      window.location.origin +
+      window.location.pathname +
+      "?post=" +
+      encodeURIComponent(String(post.id));
 
-    /*
-     * Use the EXISTING card click.
-     *
-     * Your original card click already does:
-     *
-     * setActive(index)
-     * map.flyTo(...)
-     */
+    const title =
+      post.title ||
+      "Sawantwadi Post";
 
-    setTimeout(
-      function () {
+    const text =
+      post.title
+        ? `Check out "${post.title}"`
+        : "Check out this post";
 
-        card.click();
+    try {
 
-        card.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "center"
+      if (navigator.share) {
+
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url
         });
 
-      },
-      100
-    );
+        return;
+      }
+
+    } catch (error) {
+
+      if (error && error.name === "AbortError") {
+        return;
+      }
+    }
 
 
-    createExitButton();
+    try {
 
+      await navigator.clipboard.writeText(url);
+
+      toast("Share link copied");
+
+      return;
+
+    } catch (error) {}
+
+
+    /* Final fallback */
+
+    const input = document.createElement("input");
+
+    input.value = url;
+
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+
+    document.body.appendChild(input);
+
+    input.select();
+
+    try {
+      document.execCommand("copy");
+      toast("Share link copied");
+    } catch (error) {
+      toast(url);
+    }
+
+    input.remove();
+  }
+
+
+  /* ------------------------------------------------------------
+     ADD SHARE BUTTONS TO EXISTING CARDS
+     ------------------------------------------------------------ */
+
+  function addShareButtons() {
+
+    const cards =
+      document.querySelectorAll("#carousel .card");
+
+    if (!cards.length) return;
+
+    cards.forEach(card => {
+
+      if (card.querySelector("." + SHARE_CLASS)) {
+        return;
+      }
+
+      const post = getPostForCard(card);
+
+      if (!post) return;
+
+      /*
+       * Make sure the card can contain an absolute-positioned button.
+       * We don't change its visual design.
+       */
+
+      const computed =
+        window.getComputedStyle(card);
+
+      if (computed.position === "static") {
+        card.style.position = "relative";
+      }
+
+
+      const button =
+        document.createElement("button");
+
+      button.type = "button";
+      button.className = SHARE_CLASS;
+
+      button.setAttribute(
+        "aria-label",
+        "Share post"
+      );
+
+      button.setAttribute(
+        "title",
+        "Share post"
+      );
+
+      button.innerHTML = shareIcon();
+
+
+      button.addEventListener(
+        "click",
+        function (event) {
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          /*
+           * Re-read the post when clicked so that
+           * filtering/re-rendering doesn't create stale data.
+           */
+
+          const currentPost =
+            getPostForCard(card);
+
+          sharePost(currentPost || post);
+        },
+        true
+      );
+
+
+      card.appendChild(button);
+    });
+  }
+
+
+  /* ------------------------------------------------------------
+     EXIT SHARED POST MODE
+     ------------------------------------------------------------ */
+
+  function exitSharedPost() {
+
+    const url =
+      new URL(window.location.href);
+
+    url.searchParams.delete("post");
+
+    /*
+     * Reload the exact same normal map page.
+     * No alternate screen.
+     */
+
+    window.location.href = url.pathname + url.search + url.hash;
   }
 
 
@@ -473,299 +389,294 @@
   function createExitButton() {
 
     if (
-      document.getElementById(
-        "UniversalExitButton"
-      )
+      document.getElementById(EXIT_ID)
     ) {
       return;
     }
 
-
     const button =
-      document.createElement(
-        "button"
-      );
+      document.createElement("button");
 
+    button.id = EXIT_ID;
 
-    button.id =
-      "UniversalExitButton";
+    button.type = "button";
 
-
-    button.type =
-      "button";
-
-
-    button.innerHTML =
+    button.textContent =
       "← View all posts";
 
-
-    Object.assign(
-      button.style,
-      {
-
-        position: "fixed",
-
-        top: "15px",
-
-        left: "15px",
-
-        zIndex: "999999",
-
-        padding: "10px 16px",
-
-        border: "none",
-
-        borderRadius: "999px",
-
-        background: "#111",
-
-        color: "#fff",
-
-        fontSize: "14px",
-
-        fontWeight: "600",
-
-        cursor: "pointer",
-
-        boxShadow:
-          "0 5px 20px rgba(0,0,0,.3)"
-
-      }
+    button.addEventListener(
+      "click",
+      exitSharedPost
     );
 
-
-    button.onclick =
-      function () {
-
-        const url =
-          new URL(
-            window.location.href
-          );
-
-
-        url.searchParams.delete(
-          "post"
-        );
-
-
-        history.pushState(
-          {},
-          "",
-          url.pathname +
-          url.search +
-          url.hash
-        );
-
-
-        button.remove();
-
-
-        showToast(
-          "Showing all posts"
-        );
-
-      };
-
-
-    document.body.appendChild(
-      button
-    );
-
+    document.body.appendChild(button);
   }
 
 
   /* ------------------------------------------------------------
-     TOAST
+     REMOVE EXIT BUTTON
      ------------------------------------------------------------ */
 
-  function showToast(message) {
+  function removeExitButton() {
 
-    const old =
-      document.getElementById(
-        "UniversalToast"
-      );
+    const button =
+      document.getElementById(EXIT_ID);
 
-    if (old) {
-      old.remove();
+    if (button) {
+      button.remove();
     }
-
-
-    const toast =
-      document.createElement(
-        "div"
-      );
-
-
-    toast.id =
-      "UniversalToast";
-
-
-    toast.textContent =
-      message;
-
-
-    Object.assign(
-      toast.style,
-      {
-
-        position: "fixed",
-
-        left: "50%",
-
-        bottom: "25px",
-
-        transform:
-          "translateX(-50%)",
-
-        zIndex: "999999",
-
-        padding: "12px 18px",
-
-        borderRadius: "999px",
-
-        background: "#111",
-
-        color: "#fff",
-
-        fontSize: "14px",
-
-        boxShadow:
-          "0 8px 30px rgba(0,0,0,.35)"
-
-      }
-    );
-
-
-    document.body.appendChild(
-      toast
-    );
-
-
-    setTimeout(
-      function () {
-
-        toast.remove();
-
-      },
-      2200
-    );
-
   }
 
 
   /* ------------------------------------------------------------
-     WATCH FOR DYNAMIC CARDS
+     OPEN POST FROM ?post=ID
      ------------------------------------------------------------ */
 
-  function start() {
+  function openSharedPost() {
 
-    addCSS();
-
-    scanCards();
-
-
-    /*
-     * MutationObserver catches
-     * renderMapAndCarousel()
-     */
-
-    const observer =
-      new MutationObserver(
-        function () {
-
-          scanCards();
-
-        }
+    const params =
+      new URLSearchParams(
+        window.location.search
       );
 
+    const requestedId =
+      params.get("post");
 
-    const carousel =
-      document.getElementById(
-        "carousel"
-      );
-
-
-    if (carousel) {
-
-      observer.observe(
-        carousel,
-        {
-          childList: true,
-          subtree: true
-        }
-      );
-
+    if (!requestedId) {
+      removeExitButton();
+      return;
     }
 
 
     /*
-     * Extra safety for your
-     * async IndexedDB startup.
+     * Wait until IndexedDB has rendered
+     * the cards onto the map.
      */
 
     let attempts = 0;
 
     const timer =
-      setInterval(
-        function () {
+      setInterval(() => {
 
-          scanCards();
+        attempts++;
 
-          attempts++;
+        let places = [];
 
+        try {
           if (
-            attempts > 60
+            typeof activePlaces !== "undefined" &&
+            Array.isArray(activePlaces)
           ) {
+            places = activePlaces;
+          }
+        } catch (e) {}
 
-            clearInterval(
-              timer
+
+        const cards =
+          Array.from(
+            document.querySelectorAll(
+              "#carousel .card"
+            )
+          );
+
+
+        if (!places.length || !cards.length) {
+
+          if (attempts > 80) {
+            clearInterval(timer);
+
+            /*
+             * Post does not exist anymore.
+             */
+
+            const cleanURL =
+              new URL(window.location.href);
+
+            cleanURL.searchParams.delete("post");
+
+            window.history.replaceState(
+              {},
+              "",
+              cleanURL.pathname +
+              cleanURL.search +
+              cleanURL.hash
             );
+
+            toast("Post not found");
 
           }
 
-        },
-        250
-      );
+          return;
+        }
 
 
-    /*
-     * Try shared URL after
-     * cards have definitely rendered.
-     */
+        const index =
+          places.findIndex(
+            post =>
+              String(post.id) ===
+              String(requestedId)
+          );
 
-    setTimeout(
-      function () {
 
-        scanCards();
+        if (index === -1) {
 
-        openSharedPost();
+          clearInterval(timer);
 
-      },
-      1000
-    );
+          const cleanURL =
+            new URL(window.location.href);
 
+          cleanURL.searchParams.delete("post");
+
+          window.history.replaceState(
+            {},
+            "",
+            cleanURL.pathname +
+            cleanURL.search +
+            cleanURL.hash
+          );
+
+          toast("Post not found");
+
+          return;
+        }
+
+
+        const card = cards[index];
+
+        if (!card) return;
+
+
+        clearInterval(timer);
+
+        createExitButton();
+
+
+        /*
+         * THIS IS THE IMPORTANT PART:
+         *
+         * We trigger the EXISTING card click.
+         *
+         * Your existing code already does:
+         * setActive(index)
+         * map.flyTo(...)
+         *
+         * So the shared URL behaves exactly
+         * like tapping the normal card.
+         */
+
+        card.click();
+
+
+        /*
+         * Make sure the selected card is visible
+         * in the existing carousel.
+         */
+
+        setTimeout(() => {
+
+          try {
+
+            card.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+              inline: "center"
+            });
+
+          } catch (e) {}
+
+        }, 100);
+
+      }, 250);
   }
 
 
-  /*
-   * IMPORTANT:
-   * Start after the entire
-   * document has loaded.
-   */
+  /* ------------------------------------------------------------
+     WATCH FOR DYNAMICALLY CREATED CARDS
+     ------------------------------------------------------------ */
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
+  function startObserver() {
+
+    const observer =
+      new MutationObserver(() => {
+
+        addShareButtons();
+
+      });
+
+
+    observer.observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+
+
+    /*
+     * Backup scanner.
+     * Handles IndexedDB rendering and
+     * complete carousel replacement.
+     */
+
+    setInterval(() => {
+
+      addShareButtons();
+
+    }, 500);
+  }
+
+
+  /* ------------------------------------------------------------
+     INITIALIZE
+     ------------------------------------------------------------ */
+
+  function init() {
+
+    addStyles();
+
+    addShareButtons();
+
+    startObserver();
+
+    /*
+     * Give the existing app time to initialize
+     * IndexedDB and render the map.
+     */
+
+    setTimeout(() => {
+
+      addShareButtons();
+      openSharedPost();
+
+    }, 300);
+
+    setTimeout(() => {
+
+      addShareButtons();
+
+      if (
+        new URLSearchParams(
+          window.location.search
+        ).has("post")
+      ) {
+        openSharedPost();
+      }
+
+    }, 1500);
+  }
+
+
+  if (document.readyState === "loading") {
 
     document.addEventListener(
       "DOMContentLoaded",
-      start
+      init
     );
 
   } else {
 
-    start();
+    init();
 
   }
 
