@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
 <meta charset="UTF-8" />
 
 <meta name="viewport"
@@ -22,295 +23,258 @@ rel="stylesheet">
 <style>
 
 *{
-margin:0;
-padding:0;
-box-sizing:border-box;
--webkit-tap-highlight-color:transparent;
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
 }
 
 body{
-width:100%;
-min-height:100vh;
+  width:100%;
+  min-height:100vh;
 
-background:#fcfcfc;
-color:#000;
+  background:#fcfcfc;
+  color:#000;
 
-font-family:'Inter',
--apple-system,
-BlinkMacSystemFont,
-sans-serif;
+  font-family:'Inter',
+  -apple-system,
+  BlinkMacSystemFont,
+  sans-serif;
 
-overflow-y:auto;
-overflow-x:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
 
-padding:24px 12px 40px;
+  padding:24px 12px 40px;
 
-scrollbar-width:none;
+  scrollbar-width:none;
 }
 
 body::-webkit-scrollbar{
-display:none;
+  display:none;
 }
 
 
 /* HEADER */
 
 .page-header{
-
-display:flex;
-
-align-items:center;
-
-gap:12px;
-
-margin-bottom:20px;
-
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
 }
 
 
 .back-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
 
-display:flex;
+  background:none;
+  border:none;
 
-align-items:center;
+  cursor:pointer;
 
-justify-content:center;
+  padding:4px;
 
-background:none;
+  text-decoration:none;
 
-border:none;
-
-cursor:pointer;
-
-padding:4px;
-
-text-decoration:none;
-
-flex-shrink:0;
-
+  flex-shrink:0;
 }
 
 
 .back-btn svg{
+  width:26px;
+  height:26px;
 
-width:26px;
+  fill:none;
+  stroke:#000;
 
-height:26px;
+  stroke-width:2.5;
 
-fill:none;
-
-stroke:#000;
-
-stroke-width:2.5;
-
-stroke-linecap:round;
-
-stroke-linejoin:round;
-
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 
 .main-title{
+  font-size:2rem;
 
-font-size:2rem;
+  font-weight:900;
 
-font-weight:900;
+  letter-spacing:-0.8px;
 
-letter-spacing:-0.8px;
+  color:#000;
 
-color:#000;
-
-line-height:1.05;
-
+  line-height:1.05;
 }
 
 
 /* SECTION */
 
 .section-header{
+  display:flex;
 
-display:flex;
+  align-items:flex-end;
 
-align-items:flex-end;
+  justify-content:space-between;
 
-justify-content:space-between;
+  margin-top:18px;
 
-margin-top:18px;
+  margin-bottom:14px;
 
-margin-bottom:14px;
-
-gap:8px;
-
+  gap:8px;
 }
 
 
 .section-label{
+  font-size:.95rem;
 
-font-size:.95rem;
+  font-weight:700;
 
-font-weight:700;
+  color:#8e8e93;
 
-color:#8e8e93;
-
-line-height:1.1;
-
+  line-height:1.1;
 }
 
 
 .see-all-btn{
+  font-size:.88rem;
 
-font-size:.88rem;
+  font-weight:600;
 
-font-weight:600;
+  color:#8e8e93;
 
-color:#8e8e93;
+  text-decoration:none;
 
-text-decoration:none;
+  white-space:nowrap;
 
-white-space:nowrap;
-
+  flex-shrink:0;
 }
 
 
 /* LIST */
 
 .list-group{
+  display:flex;
 
-display:flex;
+  flex-direction:column;
 
-flex-direction:column;
+  gap:16px;
 
-gap:16px;
-
-margin-bottom:28px;
-
+  margin-bottom:28px;
 }
 
 
 .list-item{
+  display:flex;
 
-display:flex;
+  align-items:center;
 
-align-items:center;
+  gap:14px;
 
-gap:14px;
+  text-decoration:none;
 
-text-decoration:none;
+  color:inherit;
 
-color:inherit;
+  cursor:pointer;
 
-cursor:pointer;
+  background:transparent;
 
-background:transparent;
+  border-radius:12px;
 
-border-radius:12px;
+  padding:2px 0;
 
-padding:2px 0;
-
-transition:
-transform .12s ease,
-opacity .12s ease;
-
+  transition:
+  transform .12s ease,
+  opacity .12s ease;
 }
 
 
 .list-item:active{
+  transform:scale(.97);
 
-transform:scale(.97);
-
-opacity:.7;
-
+  opacity:.7;
 }
 
 
 /* COMMUNITY IMAGE */
 
 .icon-wrapper{
+  width:44px;
 
-width:44px;
+  height:44px;
 
-height:44px;
+  flex-shrink:0;
 
-flex-shrink:0;
+  border-radius:50%;
 
-border-radius:50%;
+  overflow:hidden;
 
-overflow:hidden;
-
-background:#eee;
-
+  background:#eee;
 }
 
 
 .community-image{
+  width:100%;
 
-width:100%;
+  height:100%;
 
-height:100%;
+  display:block;
 
-display:block;
-
-object-fit:cover;
-
+  object-fit:cover;
 }
 
 
 /* FEED ICON */
 
 .feed-icon{
+  width:44px;
 
-width:44px;
+  height:44px;
 
-height:44px;
+  flex-shrink:0;
 
-flex-shrink:0;
+  display:flex;
 
-display:flex;
+  align-items:center;
 
-align-items:center;
-
-justify-content:center;
-
+  justify-content:center;
 }
 
 
 .feed-icon svg{
+  width:85%;
 
-width:85%;
+  height:85%;
 
-height:85%;
+  fill:none;
 
-fill:none;
+  stroke:#000;
 
-stroke:#000;
+  stroke-width:2.2;
 
-stroke-width:2.2;
+  stroke-linecap:round;
 
-stroke-linecap:round;
-
-stroke-linejoin:round;
-
+  stroke-linejoin:round;
 }
 
 
 /* TITLE */
 
 .item-title{
+  font-size:1.05rem;
 
-font-size:1.05rem;
+  font-weight:800;
 
-font-weight:800;
+  color:#000;
 
-color:#000;
+  letter-spacing:-.2px;
 
-letter-spacing:-.2px;
+  line-height:1.15;
 
-line-height:1.15;
+  word-break:break-word;
 
-word-break:break-word;
-
-overflow-wrap:break-word;
-
+  overflow-wrap:break-word;
 }
 
 </style>
@@ -321,74 +285,75 @@ overflow-wrap:break-word;
 <body>
 
 
-<!-- HEADER -->
+<!-- =========================
+     HEADER
+========================= -->
 
 <div class="page-header">
 
-<a href="index.html"
-target="_top"
-class="back-btn">
+  <a
+    href="index.html"
+    target="_top"
+    class="back-btn"
+  >
 
-<svg viewBox="0 0 24 24">
+    <svg viewBox="0 0 24 24">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
 
-<path d="M15 18l-6-6 6-6"/>
-
-</svg>
-
-</a>
+  </a>
 
 
-<h1 class="main-title">
-
-Communities
-
-</h1>
+  <h1 class="main-title">
+    Communities
+  </h1>
 
 </div>
 
 
 
-<!-- SUGGESTED -->
+<!-- =========================
+     SUGGESTED
+========================= -->
 
 <div class="section-header">
 
-<span class="section-label">
-
-Suggested
-
-</span>
+  <span class="section-label">
+    Suggested
+  </span>
 
 
-<a href="communities-all.html"
-class="see-all-btn">
-
-See all
-
-</a>
+  <a
+    href="communities-all.html"
+    target="_top"
+    class="see-all-btn"
+  >
+    See all
+  </a>
 
 </div>
 
 
 
-<!-- DYNAMIC LIST -->
+<!-- DYNAMIC SUGGESTED LIST -->
 
 <div
-class="list-group"
-id="suggestedList">
-
+  class="list-group"
+  id="suggestedList"
+>
 </div>
 
 
 
-<!-- OTHER FEEDS -->
+<!-- =========================
+     OTHER FEEDS
+========================= -->
 
 <div class="section-header">
 
-<span class="section-label">
-
-Other feeds
-
-</span>
+  <span class="section-label">
+    Other feeds
+  </span>
 
 </div>
 
@@ -397,199 +362,214 @@ Other feeds
 <div class="list-group">
 
 
-<!-- UPDATES -->
+  <!-- UPDATES -->
 
-<a
-href="news.html"
-class="list-item">
+  <a
+    href="news.html"
+    target="_top"
+    class="list-item"
+  >
 
-<div class="feed-icon">
+    <div class="feed-icon">
 
-<svg viewBox="0 0 24 24">
+      <svg viewBox="0 0 24 24">
 
-<path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
+        <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
 
-<path d="M8 7h8"/>
+        <path d="M8 7h8"/>
 
-<path d="M8 11h8"/>
+        <path d="M8 11h8"/>
 
-<path d="M8 15h5"/>
+        <path d="M8 15h5"/>
 
-<path d="M17 15h1"/>
+        <path d="M17 15h1"/>
 
-</svg>
+      </svg>
+
+    </div>
+
+
+    <span class="item-title">
+      Updates
+    </span>
+
+  </a>
+
+
+
+  <!-- SAVED -->
+
+  <a
+    href="saved.html"
+    target="_top"
+    class="list-item"
+  >
+
+    <div class="feed-icon">
+
+      <svg viewBox="0 0 24 24">
+
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+
+      </svg>
+
+    </div>
+
+
+    <span class="item-title">
+      Saved
+    </span>
+
+  </a>
+
+
+
+  <!-- LIKED -->
+
+  <a
+    href="liked.html"
+    target="_top"
+    class="list-item"
+  >
+
+    <div class="feed-icon">
+
+      <svg viewBox="0 0 24 24">
+
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+
+      </svg>
+
+    </div>
+
+
+    <span class="item-title">
+      Liked
+    </span>
+
+  </a>
+
+
+
+  <!-- GHOST POSTS -->
+
+  <a
+    href="ghost-posts.html"
+    target="_top"
+    class="list-item"
+  >
+
+    <div class="feed-icon">
+
+      <svg viewBox="0 0 24 24">
+
+        <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+
+      </svg>
+
+    </div>
+
+
+    <span class="item-title">
+      Ghost posts
+    </span>
+
+  </a>
+
 
 </div>
 
-<span class="item-title">
-
-Updates
-
-</span>
-
-</a>
 
 
-
-<!-- SAVED -->
-
-<a
-href="saved.html"
-class="list-item">
-
-<div class="feed-icon">
-
-<svg viewBox="0 0 24 24">
-
-<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-
-</svg>
-
-</div>
-
-<span class="item-title">
-
-Saved
-
-</span>
-
-</a>
-
-
-
-<!-- LIKED -->
-
-<a
-href="#"
-class="list-item">
-
-<div class="feed-icon">
-
-<svg viewBox="0 0 24 24">
-
-<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-
-</svg>
-
-</div>
-
-<span class="item-title">
-
-Liked
-
-</span>
-
-</a>
-
-
-
-<!-- GHOST POSTS -->
-
-<a
-href="#"
-class="list-item">
-
-<div class="feed-icon">
-
-<svg viewBox="0 0 24 24">
-
-<path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
-
-</svg>
-
-</div>
-
-<span class="item-title">
-
-Ghost posts
-
-</span>
-
-</a>
-
-
-</div>
-
-
-
-<!-- DATA -->
+<!-- =========================
+     COMMUNITIES DATA
+========================= -->
 
 <script src="communities-data.js"></script>
 
 
 
-<!-- RENDER -->
+<!-- =========================
+     RENDER SUGGESTED
+========================= -->
 
 <script>
 
+
 const suggestedList =
-document.getElementById(
-"suggestedList"
-);
+document.getElementById("suggestedList");
 
 
-/*
-SHOW ONLY 5
-*/
+/* -------------------------
+   GET FIRST 5 COMMUNITIES
+------------------------- */
 
 const suggested =
 window.communitiesData
-.slice(0,5);
+.slice(0, 5);
 
 
-/*
-CREATE ITEMS
-*/
+/* -------------------------
+   CREATE COMMUNITY ITEMS
+------------------------- */
 
 suggested.forEach(community => {
 
 
-const item =
-document.createElement("a");
+  const item =
+  document.createElement("a");
 
 
-item.className =
-"list-item";
+  item.className =
+  "list-item";
 
 
-item.href =
-community.href;
+  /* COMMUNITY LINK */
+
+  item.href =
+  community.href;
 
 
+  /* 
+     OPEN IN TOP PAGE
+     EVEN IF INSIDE IFRAME/EMBED
+  */
 
-item.innerHTML = `
-
-<div class="icon-wrapper">
-
-<img
-
-src="${community.image}"
-
-alt="${community.title}"
-
-class="community-image"
-
-loading="lazy"
-
->
-
-</div>
+  item.target =
+  "_top";
 
 
-<span class="item-title">
+  /* CONTENT */
 
-${community.title}
+  item.innerHTML = `
 
-</span>
+    <div class="icon-wrapper">
 
-`;
+      <img
+        src="${community.image}"
+        alt="${community.title}"
+        class="community-image"
+        loading="lazy"
+      >
+
+    </div>
 
 
-suggestedList
-.appendChild(item);
+    <span class="item-title">
+
+      ${community.title}
+
+    </span>
+
+  `;
+
+
+  suggestedList
+  .appendChild(item);
 
 
 });
+
 
 </script>
 
