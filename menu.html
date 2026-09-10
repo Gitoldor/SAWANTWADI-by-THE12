@@ -1,304 +1,599 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0,
+maximum-scale=1.0,user-scalable=no" />
+
 <title>Communities & Feeds</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+rel="stylesheet">
 
 <style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
 
-  body {
-    width: 100%;
-    height: 100vh;
-    background: #fcfcfc;
-    color: #000000;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 24px 12px 40px;
-    scrollbar-width: none;
-    -webkit-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphens: auto;
-  }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+-webkit-tap-highlight-color:transparent;
+}
 
-  body::-webkit-scrollbar {
-    display: none;
-  }
+body{
+width:100%;
+min-height:100vh;
 
-  .page-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+background:#fcfcfc;
+color:#000;
 
-  .back-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    text-decoration: none;
-    flex-shrink: 0;
-  }
+font-family:'Inter',
+-apple-system,
+BlinkMacSystemFont,
+sans-serif;
 
-  .back-btn svg {
-    width: 26px;
-    height: 26px;
-    fill: none;
-    stroke: #000000;
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
+overflow-y:auto;
+overflow-x:hidden;
 
-  .main-title {
-    font-size: 2rem;
-    font-weight: 900;
-    letter-spacing: -0.8px;
-    color: #000000;
-    line-height: 1.05;
-    word-break: break-word;
-    -webkit-hyphens: auto;
-    hyphens: auto;
-  }
+padding:24px 12px 40px;
 
-  .section-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-top: 18px;
-    margin-bottom: 14px;
-    gap: 8px;
-  }
+scrollbar-width:none;
+}
 
-  .section-label {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #8e8e93;
-    word-break: break-word;
-    line-height: 1.1;
-  }
+body::-webkit-scrollbar{
+display:none;
+}
 
-  .see-all-btn {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #8e8e93;
-    text-decoration: none;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
 
-  .list-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 28px;
-  }
+/* HEADER */
 
-  .list-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    text-decoration: none;
-    color: inherit;
-    cursor: pointer;
-    background: transparent;
-    border-radius: 12px;
-    padding: 2px 0;
-    transition: transform 0.12s ease, opacity 0.12s ease;
-  }
+.page-header{
 
-  .list-item:active {
-    transform: scale(0.97);
-    opacity: 0.7;
-  }
+display:flex;
 
-  .icon-wrapper {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-  }
+align-items:center;
 
-  .icon-wrapper svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
+gap:12px;
 
-  .feed-icon {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+margin-bottom:20px;
 
-  .feed-icon svg {
-    width: 85%;
-    height: 85%;
-    fill: none;
-    stroke: #000000;
-    stroke-width: 2.2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
+}
 
-  .item-title {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #000000;
-    letter-spacing: -0.2px;
-    line-height: 1.15;
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    -webkit-hyphens: auto;
-    hyphens: auto;
-  }
+
+.back-btn{
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+background:none;
+
+border:none;
+
+cursor:pointer;
+
+padding:4px;
+
+text-decoration:none;
+
+flex-shrink:0;
+
+}
+
+
+.back-btn svg{
+
+width:26px;
+
+height:26px;
+
+fill:none;
+
+stroke:#000;
+
+stroke-width:2.5;
+
+stroke-linecap:round;
+
+stroke-linejoin:round;
+
+}
+
+
+.main-title{
+
+font-size:2rem;
+
+font-weight:900;
+
+letter-spacing:-0.8px;
+
+color:#000;
+
+line-height:1.05;
+
+}
+
+
+/* SECTION */
+
+.section-header{
+
+display:flex;
+
+align-items:flex-end;
+
+justify-content:space-between;
+
+margin-top:18px;
+
+margin-bottom:14px;
+
+gap:8px;
+
+}
+
+
+.section-label{
+
+font-size:.95rem;
+
+font-weight:700;
+
+color:#8e8e93;
+
+line-height:1.1;
+
+}
+
+
+.see-all-btn{
+
+font-size:.88rem;
+
+font-weight:600;
+
+color:#8e8e93;
+
+text-decoration:none;
+
+white-space:nowrap;
+
+}
+
+
+/* LIST */
+
+.list-group{
+
+display:flex;
+
+flex-direction:column;
+
+gap:16px;
+
+margin-bottom:28px;
+
+}
+
+
+.list-item{
+
+display:flex;
+
+align-items:center;
+
+gap:14px;
+
+text-decoration:none;
+
+color:inherit;
+
+cursor:pointer;
+
+background:transparent;
+
+border-radius:12px;
+
+padding:2px 0;
+
+transition:
+transform .12s ease,
+opacity .12s ease;
+
+}
+
+
+.list-item:active{
+
+transform:scale(.97);
+
+opacity:.7;
+
+}
+
+
+/* COMMUNITY IMAGE */
+
+.icon-wrapper{
+
+width:44px;
+
+height:44px;
+
+flex-shrink:0;
+
+border-radius:50%;
+
+overflow:hidden;
+
+background:#eee;
+
+}
+
+
+.community-image{
+
+width:100%;
+
+height:100%;
+
+display:block;
+
+object-fit:cover;
+
+}
+
+
+/* FEED ICON */
+
+.feed-icon{
+
+width:44px;
+
+height:44px;
+
+flex-shrink:0;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+}
+
+
+.feed-icon svg{
+
+width:85%;
+
+height:85%;
+
+fill:none;
+
+stroke:#000;
+
+stroke-width:2.2;
+
+stroke-linecap:round;
+
+stroke-linejoin:round;
+
+}
+
+
+/* TITLE */
+
+.item-title{
+
+font-size:1.05rem;
+
+font-weight:800;
+
+color:#000;
+
+letter-spacing:-.2px;
+
+line-height:1.15;
+
+word-break:break-word;
+
+overflow-wrap:break-word;
+
+}
+
 </style>
+
 </head>
+
+
 <body>
 
-  <!-- Page Header with Back Button & Title -->
-  <div class="page-header">
-    <a href="index.html" target="_top" class="back-btn">
-      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-    </a>
-    <h1 class="main-title">Communities</h1>
-  </div>
 
-  <!-- SECTION 1: SUGGESTED -->
-  <div class="section-header">
-    <span class="section-label">Suggested</span>
-    <a href="#" class="see-all-btn">See all</a>
-  </div>
+<!-- HEADER -->
 
-  <div class="list-group">
-    <!-- NBA -->
-    <a href="#" class="list-item">
-      <div class="icon-wrapper">
-        <svg viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="17" fill="#F4511E"/>
-          <path d="M18 1v34M1 18h34M6 6c8 8 8 16 0 24M30 6c-8 8-8 16 0 24" stroke="#ffffff" stroke-width="2" fill="none"/>
-        </svg>
-      </div>
-      <span class="item-title">NBA Threads</span>
-    </a>
+<div class="page-header">
 
-    <!-- WNBA -->
-    <a href="#" class="list-item">
-      <div class="icon-wrapper">
-        <svg viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="17" fill="#FF7043"/>
-          <path d="M18 1v34M1 18h34M6 6c8 8 8 16 0 24M30 6c-8 8-8 16 0 24" stroke="#ffffff" stroke-width="2" stroke-dasharray="3,2" fill="none"/>
-        </svg>
-      </div>
-      <span class="item-title">WNBA Threads</span>
-    </a>
+<a href="index.html"
+target="_top"
+class="back-btn">
 
-    <!-- F1 -->
-    <a href="#" class="list-item">
-      <div class="icon-wrapper">
-        <svg viewBox="0 0 36 36">
-          <rect width="36" height="36" rx="10" fill="#212121"/>
-          <path d="M8 24h6l4-12h-6L8 24zm10 0h4l2-6h-4l-2 6zm6-8h4l2-4h-6l-2 4z" fill="#E53935"/>
-        </svg>
-      </div>
-      <span class="item-title">F1 Threads</span>
-    </a>
+<svg viewBox="0 0 24 24">
 
-    <!-- Tennis -->
-    <a href="#" class="list-item">
-      <div class="icon-wrapper">
-        <svg viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="17" fill="#C0CA33"/>
-          <path d="M5 10c10 2 18 10 20 20M31 26C21 24 13 16 11 6" stroke="#ffffff" stroke-width="2.5" fill="none"/>
-        </svg>
-      </div>
-      <span class="item-title">Tennis Threads</span>
-    </a>
+<path d="M15 18l-6-6 6-6"/>
 
-    <!-- NFL -->
-    <a href="#" class="list-item">
-      <div class="icon-wrapper">
-        <svg viewBox="0 0 36 36">
-          <path d="M18 2C8 2 2 12 2 18s6 16 16 16 16-6 16-16S28 2 18 2z" fill="#8D6E63"/>
-          <path d="M18 5v26M13 13h10M13 18h10M13 23h10" stroke="#ffffff" stroke-width="2"/>
-        </svg>
-      </div>
-      <span class="item-title">NFL Threads</span>
-    </a>
-  </div>
+</svg>
 
-  <!-- SECTION 2: OTHER FEEDS -->
-  <div class="section-header">
-    <span class="section-label">Other feeds</span>
-    <a href="#" class="see-all-btn">See all</a>
-  </div>
-
-  <div class="list-group">
-    <!-- Following -->
-<a href="news.html" class="list-item">
-  <div class="feed-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
-      <path d="M8 7h8"/>
-      <path d="M8 11h8"/>
-      <path d="M8 15h5"/>
-      <path d="M17 15h1"/>
-    </svg>
-  </div>
-  <span class="item-title">Updates</span>
 </a>
-    <!-- Saved -->
-    <a href="saved.html" target="_top" class="list-item">
-      <div class="feed-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-        </svg>
-      </div>
-      <span class="item-title">Saved</span>
-    </a>
 
-    <!-- Liked -->
-    <a href="#" class="list-item">
-      <div class="feed-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-      </div>
-      <span class="item-title">Liked</span>
-    </a>
 
-    <!-- Ghost posts -->
-    <a href="#" class="list-item">
-      <div class="feed-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
-        </svg>
-      </div>
-      <span class="item-title">Ghost posts</span>
-    </a>
-  </div>
+<h1 class="main-title">
+
+Communities
+
+</h1>
+
+</div>
+
+
+
+<!-- SUGGESTED -->
+
+<div class="section-header">
+
+<span class="section-label">
+
+Suggested
+
+</span>
+
+
+<a href="communities-all.html"
+class="see-all-btn">
+
+See all
+
+</a>
+
+</div>
+
+
+
+<!-- DYNAMIC LIST -->
+
+<div
+class="list-group"
+id="suggestedList">
+
+</div>
+
+
+
+<!-- OTHER FEEDS -->
+
+<div class="section-header">
+
+<span class="section-label">
+
+Other feeds
+
+</span>
+
+</div>
+
+
+
+<div class="list-group">
+
+
+<!-- UPDATES -->
+
+<a
+href="news.html"
+class="list-item">
+
+<div class="feed-icon">
+
+<svg viewBox="0 0 24 24">
+
+<path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
+
+<path d="M8 7h8"/>
+
+<path d="M8 11h8"/>
+
+<path d="M8 15h5"/>
+
+<path d="M17 15h1"/>
+
+</svg>
+
+</div>
+
+<span class="item-title">
+
+Updates
+
+</span>
+
+</a>
+
+
+
+<!-- SAVED -->
+
+<a
+href="saved.html"
+class="list-item">
+
+<div class="feed-icon">
+
+<svg viewBox="0 0 24 24">
+
+<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+
+</svg>
+
+</div>
+
+<span class="item-title">
+
+Saved
+
+</span>
+
+</a>
+
+
+
+<!-- LIKED -->
+
+<a
+href="#"
+class="list-item">
+
+<div class="feed-icon">
+
+<svg viewBox="0 0 24 24">
+
+<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+
+</svg>
+
+</div>
+
+<span class="item-title">
+
+Liked
+
+</span>
+
+</a>
+
+
+
+<!-- GHOST POSTS -->
+
+<a
+href="#"
+class="list-item">
+
+<div class="feed-icon">
+
+<svg viewBox="0 0 24 24">
+
+<path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+
+</svg>
+
+</div>
+
+<span class="item-title">
+
+Ghost posts
+
+</span>
+
+</a>
+
+
+</div>
+
+
+
+<!-- DATA -->
+
+<script src="communities-data.js"></script>
+
+
+
+<!-- RENDER -->
+
+<script>
+
+const suggestedList =
+document.getElementById(
+"suggestedList"
+);
+
+
+/*
+SHOW ONLY 5
+*/
+
+const suggested =
+window.communitiesData
+.slice(0,5);
+
+
+/*
+CREATE ITEMS
+*/
+
+suggested.forEach(community => {
+
+
+const item =
+document.createElement("a");
+
+
+item.className =
+"list-item";
+
+
+item.href =
+community.href;
+
+
+
+item.innerHTML = `
+
+<div class="icon-wrapper">
+
+<img
+
+src="${community.image}"
+
+alt="${community.title}"
+
+class="community-image"
+
+loading="lazy"
+
+>
+
+</div>
+
+
+<span class="item-title">
+
+${community.title}
+
+</span>
+
+`;
+
+
+suggestedList
+.appendChild(item);
+
+
+});
+
+</script>
+
 
 </body>
+
 </html>
