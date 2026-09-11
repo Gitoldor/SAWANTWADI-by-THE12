@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memories UI - Explore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #111111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      max-width: 410px;
+      margin: 0 auto;
+      padding: 0 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      padding-bottom: 10px;
+    }
+
+    .avatar-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: #fde8ef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      text-decoration: none;
+    }
+
+    .header-title {
+      font-family: 'Quicksand', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111111;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-icon-link {
+      background: none;
+      border: none;
+      font-size: 15px;
+      color: #111111;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    /* Soft Fade Gradient Area */
+    .photo-fade-wrapper {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      background: radial-gradient(circle, rgba(253, 232, 239, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
+    }
+
+    /* 3 Large Stacked Images */
+    .img-card {
+      position: absolute;
+      border-radius: 20px;
+      object-fit: cover;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+      border: 3px solid #ffffff;
+      transition: transform 0.2s ease;
+    }
+
+    /* Left card */
+    .img-1 {
+      width: 105px;
+      height: 140px;
+      left: 14%;
+      transform: rotate(-9deg) translateY(4px);
+      z-index: 1;
+    }
+
+    /* Right card */
+    .img-2 {
+      width: 105px;
+      height: 140px;
+      right: 14%;
+      transform: rotate(9deg) translateY(4px);
+      z-index: 2;
+    }
+
+    /* Center big card */
+    .img-3 {
+      width: 125px;
+      height: 165px;
+      z-index: 3;
+      transform: rotate(0deg);
+    }
+
+    /* Typography */
+    .title {
+      font-family: 'Quicksand', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #111111;
+      letter-spacing: -0.2px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      font-weight: 500;
+      color: #92929a;
+      line-height: 1.5;
+      max-width: 210px;
+      margin-bottom: 24px;
+    }
+
+    /* Create Action Button */
+    .btn-create {
+      background-color: #0d0d0d;
+      color: #ffffff;
+      border: none;
+      padding: 10px 36px;
+      border-radius: 20px;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transition: transform 0.15s ease;
+      display: inline-block;
+    }
+
+    .btn-create:active {
+      transform: scale(0.96);
+    }
+
+    /* Bottom Dock Bar */
+    .bottom-dock {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      width: 100%;
+      gap: 10px;
+    }
+
+    /* Slim, Sleek Text Bar Container */
+    .input-bar-container {
+      flex: 1;
+      height: 34px; /* Reduced overall height */
+      background-color: #f5f6f8;
+      border-radius: 17px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .input-field {
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px; /* Scaled down for a compact look */
+      font-weight: 500;
+      color: #111111;
+    }
+
+    .input-field::placeholder {
+      color: #a0a0a8;
+    }
+
+    /* Outside Send Circle Button matching height */
+    .send-circle-btn {
+      width: 34px;
+      height: 34px;
+      background-color: #0d0d0d;
+      color: #ffffff;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .send-circle-btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="header">
+    <a href="#profile" class="avatar-btn" aria-label="Profile">
+      <span>🦁</span>
+    </a>
+    <span class="header-title">Welcome</span>
+    <div class="header-actions">
+      <a href="#chats" class="nav-icon-link" aria-label="Chats">
+        <i class="fa-regular fa-comment"></i>
+      </a>
+      <a href="#calendar" class="nav-icon-link" aria-label="Calendar">
+        <i class="fa-regular fa-calendar"></i>
+      </a>
+      <a href="#search" class="nav-icon-link" aria-label="Search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Center Content -->
+  <main class="main-content">
+    <div class="photo-fade-wrapper">
+      <img 
+        class="img-card img-1" 
+        src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&q=80" 
+        alt="Memory left photo"
+      >
+      <img 
+        class="img-card img-2" 
+        src="https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400&q=80" 
+        alt="Memory right photo"
+      >
+      <img 
+        class="img-card img-3" 
+        src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&q=80" 
+        alt="Memory center big photo"
+      >
+    </div>
+
+    <h1 class="title">Explore</h1>
+    <p class="subtitle">Choose memories from your phone or create a collection</p>
+
+    <a href="#create" class="btn-create">Create</a>
+  </main>
+
+  <!-- Bottom Dock: Slim Input Field + Send Button -->
+  <footer class="bottom-dock">
+    <div class="input-bar-container">
+      <input 
+        type="text" 
+        class="input-field" 
+        placeholder="Type a message..." 
+        aria-label="Text input"
+      >
+    </div>
+    <button class="send-circle-btn" aria-label="Send">
+      <i class="fa-solid fa-arrow-up"></i>
+    </button>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1,
+viewport-fit=cover">
+
+<title>Explore</title>
+
+<style>
+
+/* =====================================================
+   ROOT
+===================================================== */
+
+:root{
+
+    --bg:#fcfcfa;
+    --ink:#11110f;
+    --muted:#aaa9a3;
+
+    --radius:40px;
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+*{
+
+    box-sizing:border-box;
+
+    -webkit-tap-highlight-color:transparent;
+
+}
+
+
+html{
+
+    background:var(--bg);
+
+}
+
+
+body{
+
+    margin:0;
+
+    min-height:100vh;
+
+    background:var(--bg);
+
+    color:var(--ink);
+
+    font-family:
+
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "Segoe UI",
+    sans-serif;
+
+    -webkit-font-smoothing:antialiased;
+
+    overflow-x:hidden;
+
+}
+
+
+/* =====================================================
+   APP
+===================================================== */
+
+.app{
+
+    width:100%;
+
+    max-width:900px;
+
+    margin:auto;
+
+    padding:
+
+    24px
+    12px
+    130px;
+
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header{
+
+    height:62px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 5px;
+
+    margin-bottom:18px;
+
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
+
+.title{
+
+    margin:0;
+
+    font-size:34px;
+
+    font-weight:650;
+
+    letter-spacing:-1.8px;
+
+    line-height:1;
+
+    transform-origin:left center;
+
+}
+
+
+/* =====================================================
+   RAW SEARCH
+===================================================== */
+
+.search-input{
+
+    display:none;
+
+    width:100%;
+
+    padding:0;
+
+    margin:0;
+
+    border:none;
+
+    outline:none;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    font:inherit;
+
+    font-size:31px;
+
+    font-weight:600;
+
+    letter-spacing:-1.5px;
+
+}
+
+
+.search-input::placeholder{
+
+    color:#c5c4be;
+
+}
+
+
+body.searching .title{
+
+    display:none;
+
+}
+
+
+body.searching .search-input{
+
+    display:block;
+
+    animation:
+
+    searchPop
+
+    .45s
+
+    cubic-bezier(
+
+        .16,
+        1.4,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes searchPop{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateY(8px)
+
+        scale(.96);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   VIEW BUTTON
+===================================================== */
+
+.view-button{
+
+    width:44px;
+
+    height:44px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    flex-shrink:0;
+
+    transition:
+
+    transform
+
+    .3s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+
+}
+
+
+.view-button:active{
+
+    transform:scale(.82);
+
+}
+
+
+/* =====================================================
+   FEED
+===================================================== */
+
+.feed{
+
+    display:grid;
+
+    grid-template-columns:
+
+    repeat(
+
+        2,
+
+        minmax(0,1fr)
+
+    );
+
+    gap:9px;
+
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+.card{
+
+    position:relative;
+
+    width:100%;
+
+    /*
+       EXACT 1:1
+    */
+
+    aspect-ratio:1 / 1;
+
+    overflow:hidden;
+
+    border-radius:var(--radius);
+
+    background:#f0f0ec;
+
+    cursor:pointer;
+
+    transform:
+
+    translateZ(0);
+
+    /*
+       Performance
+    */
+
+    content-visibility:auto;
+
+    contain-intrinsic-size:180px;
+
+    will-change:
+
+    transform,
+
+    opacity;
+
+    transition:
+
+    transform
+
+    .35s
+
+    cubic-bezier(
+
+        .16,
+        1.4,
+        .3,
+        1
+
+    );
+
+
+}
+
+
+/* Spring touch */
+
+.card:active{
+
+    transform:
+
+    scale(.94);
+
+}
+
+
+/* =====================================================
+   IMAGE
+===================================================== */
+
+.card-image{
+
+    width:100%;
+
+    height:100%;
+
+}
+
+
+.card img{
+
+    width:100%;
+
+    height:100%;
+
+    display:block;
+
+    object-fit:cover;
+
+    pointer-events:none;
+
+    user-select:none;
+
+}
+
+
+/* =====================================================
+   TITLE
+
+   HIDDEN IN GRID
+===================================================== */
+
+.card-title{
+
+    display:none;
+
+}
+
+
+/* =====================================================
+   LIST VIEW
+===================================================== */
+
+.feed.list{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
+
+}
+
+
+/*
+   LIST CARD
+*/
+
+.feed.list .card{
+
+    width:100%;
+
+    height:88px;
+
+    aspect-ratio:auto;
+
+    border-radius:30px;
+
+    display:flex;
+
+    align-items:center;
+
+    overflow:hidden;
+
+    background:transparent;
+
+}
+
+
+/*
+   LIST IMAGE
+
+   Square
+*/
+
+.feed.list .card-image{
+
+    width:88px;
+
+    height:88px;
+
+    flex-shrink:0;
+
+    border-radius:18px;
+
+    overflow:hidden;
+
+    background:#eee;
+
+}
+
+
+/*
+   TITLE ONLY
+*/
+
+.feed.list .card-title{
+
+    display:block;
+
+    margin-left:15px;
+
+    padding-right:15px;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    letter-spacing:-.4px;
+
+    white-space:nowrap;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+
+}
+
+
+/* =====================================================
+   CARD ENTRANCE
+===================================================== */
+
+.card.enter{
+
+    animation:
+
+    cardJump
+
+    .55s
+
+    cubic-bezier(
+
+        .16,
+        1.35,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes cardJump{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateY(18px)
+
+        scale(.90);
+
+    }
+
+
+    60%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(-3px)
+
+        scale(1.025);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   LIST ENTRANCE
+===================================================== */
+
+.feed.list .card.enter{
+
+    animation:
+
+    listJump
+
+    .45s
+
+    cubic-bezier(
+
+        .16,
+        1.3,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes listJump{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateX(-14px)
+
+        scale(.97);
+
+    }
+
+
+    70%{
+
+        transform:
+
+        translateX(2px)
+
+        scale(1.01);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateX(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   FLOATING SEARCH BUTTON
+===================================================== */
+
+.search-button{
+
+    position:fixed;
+
+    z-index:100;
+
+    left:50%;
+
+    bottom:
+
+    calc(
+
+        20px +
+
+        env(safe-area-inset-bottom)
+
+    );
+
+    width:58px;
+
+    height:58px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:var(--ink);
+
+    color:white;
+
+    cursor:pointer;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    box-shadow:
+
+    0 10px 30px
+
+    rgba(0,0,0,.14);
+
+    transform:
+
+    translateX(-50%);
+
+    transition:
+
+    background .3s,
+
+    color .3s,
+
+    transform .35s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+}
+
+
+/*
+   Spring click
+*/
+
+.search-button:active{
+
+    transform:
+
+    translateX(-50%)
+
+    scale(.86);
+
+}
+
+
+/*
+   Search mode
+*/
+
+body.searching .search-button{
+
+    background:#efefeb;
+
+    color:var(--ink);
+
+    box-shadow:none;
+
+}
+
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.empty{
+
+    grid-column:1/-1;
+
+    padding:100px 20px;
+
+    text-align:center;
+
+    color:var(--muted);
+
+    font-size:14px;
+
+}
+
+
+/* =====================================================
+   DESKTOP
+===================================================== */
+
+@media(min-width:700px){
+
+    .app{
+
+        padding:
+
+        40px
+        24px
+        140px;
+
+    }
+
+
+    .feed{
+
+        grid-template-columns:
+
+        repeat(
+
+            4,
+
+            minmax(0,1fr)
+
+        );
+
+        gap:12px;
+
+    }
+
+
+}
+
+
+/* =====================================================
+   REDUCE MOTION
+===================================================== */
+
+@media(prefers-reduced-motion:reduce){
+
+    *{
+
+        animation:none!important;
+
+        transition:none!important;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="app">
+
+
+<!-- ============================================
+     HEADER
+============================================ -->
+
+<header class="header">
+
+
+<div style="flex:1; min-width:0;">
+
+
+<h1 class="title">
+
+Explore Apps
+
+</h1>
+
+
+
+<input
+
+id="searchInput"
+
+class="search-input"
+
+type="text"
+
+placeholder="Search"
+
+autocomplete="off"
+
+spellcheck="false"
+
+>
+
+
+</div>
+
+
+
+<!-- VIEW BUTTON -->
+
+<button
+
+class="view-button"
+
+id="viewButton"
+
+aria-label="Change view"
+
+>
+
+
+<svg
+
+id="viewIcon"
+
+width="20"
+
+height="20"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="1.8"
+
+stroke-linecap="round"
+
+>
+
+<path d="M5 7H19"/>
+<path d="M5 12H19"/>
+<path d="M5 17H19"/>
+
+</svg>
+
+
+</button>
+
+
+</header>
+
+
+
+<!-- ============================================
+     FEED
+============================================ -->
+
+<main
+
+id="feed"
+
+class="feed"
+
+>
+
+</main>
+
+
+</div>
+
+
+
+<!-- ============================================
+     SEARCH
+============================================ -->
+
+<button
+
+class="search-button"
+
+id="searchButton"
+
+aria-label="Search"
+
+>
+
+
+<svg
+
+width="22"
+
+height="22"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="2"
+
+stroke-linecap="round"
+
+stroke-linejoin="round"
+
+>
+
+<circle
+
+cx="11"
+
+cy="11"
+
+r="6"
+
+/>
+
+<path
+
+d="M20 20L16 16"
+
+/>
+
+</svg>
+
+
+</button>
+
+
+
+<!-- ============================================
+     DATA
+============================================ -->
+
+<script src="explore.js"></script>
+
+
+<script>
+
+
+/* =====================================================
+   CONFIG
+===================================================== */
+
+const CONFIG = {
+
+    BATCH_SIZE:8,
+
+    SEARCH_DELAY:180
+
+};
+
+
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const feed =
+
+document.getElementById("feed");
+
+
+const searchInput =
+
+document.getElementById("searchInput");
+
+
+const searchButton =
+
+document.getElementById("searchButton");
+
+
+const viewButton =
+
+document.getElementById("viewButton");
+
+
+const viewIcon =
+
+document.getElementById("viewIcon");
+
+
+
+
+/* =====================================================
+   DATA
+===================================================== */
+
+const allData =
+
+Array.isArray(
+
+    window.exploreData
+
+)
+
+? window.exploreData
+
+: [];
+
+
+
+let filteredData =
+
+allData;
+
+
+
+let renderedCount = 0;
+
+
+
+let currentView =
+
+localStorage.getItem(
+
+    "explore-layout"
+
+)
+
+|| "grid";
+
+
+
+let isSearching = false;
+
+
+
+
+/* =====================================================
+   CREATE CARD
+===================================================== */
+
+function createCard(item,index){
+
+
+    const card =
+
+    document.createElement("article");
+
+
+    card.className =
+
+    "card enter";
+
+
+    card.dataset.id =
+
+    item.id || "";
+
+
+
+    /*
+       Small stagger.
+
+       Makes cards feel alive.
+    */
+
+
+    card.style.animationDelay =
+
+    Math.min(
+
+        index * 35,
+
+        180
+
+    )
+
+    + "ms";
+
+
+
+    /* IMAGE WRAPPER */
+
+
+    const imageBox =
+
+    document.createElement("div");
+
+
+    imageBox.className =
+
+    "card-image";
+
+
+
+    /* IMAGE */
+
+
+    const image =
+
+    document.createElement("img");
+
+
+    image.loading = "lazy";
+
+
+    image.decoding = "async";
+
+
+    image.alt =
+
+    item.title || "";
+
+
+    image.src =
+
+    item.image || "";
+
+
+
+    imageBox.appendChild(image);
+
+
+
+    /* TITLE */
+
+
+    const title =
+
+    document.createElement("div");
+
+
+    title.className =
+
+    "card-title";
+
+
+    title.textContent =
+
+    item.title || "Untitled";
+
+
+
+    card.appendChild(imageBox);
+
+
+    card.appendChild(title);
+
+
+
+    return card;
+
+}
+
+
+
+
+/* =====================================================
+   CLICK DELEGATION
+===================================================== */
+
+feed.addEventListener(
+
+    "click",
+
+    event => {
+
+
+        const card =
+
+        event.target.closest(".card");
+
+
+        if(!card) return;
+
+
+
+        const id =
+
+        card.dataset.id;
+
+
+
+        console.log(
+
+            "Open:",
+
+            id
+
+        );
+
+
+        /*
+        
+        FUTURE:
+
+        openPost(id);
+
+        */
+
+
+    },
+
+    {passive:true}
+
+);
+
+
+
+
+/* =====================================================
+   RENDER
+===================================================== */
+
+function render(reset=false){
+
+
+    if(reset){
+
+
+        feed.replaceChildren();
+
+
+        renderedCount = 0;
+
+
+    }
+
+
+
+    if(
+
+        filteredData.length === 0
+
+    ){
+
+
+        const empty =
+
+        document.createElement("div");
+
+
+        empty.className = "empty";
+
+
+        empty.textContent =
+
+        "Nothing found";
+
+
+        feed.appendChild(empty);
+
+
+        return;
+
+    }
+
+
+
+    const end =
+
+    Math.min(
+
+        renderedCount +
+
+        CONFIG.BATCH_SIZE,
+
+        filteredData.length
+
+    );
+
+
+
+    /*
+       Fragment =
+       fewer DOM operations
+    */
+
+
+    const fragment =
+
+    document.createDocumentFragment();
+
+
+
+    for(
+
+        let i = renderedCount;
+
+        i < end;
+
+        i++
+
+    ){
+
+
+        fragment.appendChild(
+
+            createCard(
+
+                filteredData[i],
+
+                i - renderedCount
+
+            )
+
+        );
+
+
+    }
+
+
+
+    feed.appendChild(fragment);
+
+
+    renderedCount = end;
+
+
+}
+
+
+
+
+/* =====================================================
+   LOAD MORE
+===================================================== */
+
+let scrollPending = false;
+
+
+
+window.addEventListener(
+
+    "scroll",
+
+    () => {
+
+
+        if(scrollPending) return;
+
+
+        scrollPending = true;
+
+
+
+        requestAnimationFrame(
+
+            () => {
+
+
+                const bottom =
+
+
+                window.scrollY +
+
+                window.innerHeight;
+
+
+                const pageHeight =
+
+
+                document.documentElement
+
+                .scrollHeight;
+
+
+
+                if(
+
+                    bottom >=
+
+                    pageHeight - 500
+
+                    &&
+
+                    renderedCount <
+
+                    filteredData.length
+
+                ){
+
+
+                    render();
+
+
+                }
+
+
+
+                scrollPending = false;
+
+
+            }
+
+        );
+
+
+    },
+
+    {passive:true}
+
+);
+
+
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+let searchTimer;
+
+
+
+searchInput.addEventListener(
+
+    "input",
+
+    () => {
+
+
+        clearTimeout(searchTimer);
+
+
+
+        searchTimer =
+
+        setTimeout(
+
+            () => {
+
+
+                const query =
+
+                searchInput.value
+
+                .trim()
+
+                .toLowerCase();
+
+
+
+                if(!query){
+
+
+                    filteredData =
+
+                    allData;
+
+
+                }
+
+
+                else{
+
+
+                    filteredData =
+
+                    allData.filter(
+
+                        item =>
+
+                        (
+
+                            item.title || ""
+
+                        )
+
+                        .toLowerCase()
+
+                        .includes(query)
+
+                    );
+
+
+                }
+
+
+
+                render(true);
+
+
+            },
+
+            CONFIG.SEARCH_DELAY
+
+        );
+
+
+    }
+
+);
+
+
+
+
+/* =====================================================
+   SEARCH TOGGLE
+===================================================== */
+
+function toggleSearch(){
+
+
+    isSearching =
+
+    !isSearching;
+
+
+
+    document.body.classList.toggle(
+
+        "searching",
+
+        isSearching
+
+    );
+
+
+
+    if(isSearching){
+
+
+        requestAnimationFrame(
+
+            () => {
+
+
+                searchInput.focus();
+
+
+            }
+
+        );
+
+
+    }
+
+
+    else{
+
+
+        searchInput.value = "";
+
+
+        filteredData =
+
+        allData;
+
+
+        render(true);
+
+
+    }
+
+
+}
+
+
+
+
+searchButton.addEventListener(
+
+    "click",
+
+    toggleSearch
+
+);
+
+
+
+
+/* =====================================================
+   VIEW SWITCH
+===================================================== */
+
+function setView(view){
+
+
+    currentView = view;
+
+
+
+    localStorage.setItem(
+
+        "explore-layout",
+
+        view
+
+    );
+
+
+
+    /*
+       Animate feed slightly
+    */
+
+
+    feed.animate(
+
+        [
+
+            {
+
+                opacity:.7,
+
+                transform:"scale(.985)"
+
+            },
+
+            {
+
+                opacity:1,
+
+                transform:"scale(1)"
+
+            }
+
+        ],
+
+        {
+
+            duration:350,
+
+            easing:
+
+            "cubic-bezier(.16,1.35,.3,1)"
+
+        }
+
+    );
+
+
+
+    feed.classList.toggle(
+
+        "list",
+
+        view === "list"
+
+    );
+
+
+
+    updateViewIcon();
+
+
+}
+
+
+
+
+function updateViewIcon(){
+
+
+    if(
+
+        currentView === "grid"
+
+    ){
+
+
+        /*
+           Show LIST icon
+        */
+
+
+        viewIcon.innerHTML = `
+
+            <path d="M6 7H19"/>
+            <path d="M6 12H19"/>
+            <path d="M6 17H19"/>
+
+            <path
+            d="M3 7H3.01"/>
+
+            <path
+            d="M3 12H3.01"/>
+
+            <path
+            d="M3 17H3.01"/>
+
+        `;
+
+
+    }
+
+
+    else{
+
+
+        /*
+           Show GRID icon
+        */
+
+
+        viewIcon.innerHTML = `
+
+            <rect
+
+            x="4"
+
+            y="4"
+
+            width="6"
+
+            height="6"
+
+            rx="1"
+
+            />
+
+            <rect
+
+            x="14"
+
+            y="4"
+
+            width="6"
+
+            height="6"
+
+            rx="1"
+
+            />
+
+            <rect
+
+            x="4"
+
+            y="14"
+
+            width="6"
+
+            height="6"
+
+            rx="1"
+
+            />
+
+            <rect
+
+            x="14"
+
+            y="14"
+
+            width="6"
+
+            height="6"
+
+            rx="1"
+
+            />
+
+        `;
+
+
+    }
+
+
+}
+
+
+
+
+viewButton.addEventListener(
+
+    "click",
+
+    () => {
+
+
+        setView(
+
+
+            currentView === "grid"
+
+            ? "list"
+
+            : "grid"
+
+
+        );
+
+
+    }
+
+);
+
+
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+document.addEventListener(
+
+    "keydown",
+
+    event => {
+
+
+        if(
+
+            event.key === "Escape"
+
+            &&
+
+            isSearching
+
+        ){
+
+
+            toggleSearch();
+
+
+        }
+
+
+    }
+
+);
+
+
+
+
+/* =====================================================
+   START
+===================================================== */
+
+setView(
+
+    currentView
+
+);
+
+
+render();
+
+
+</script>
+<script src="pwa-gate.js"></script>
+
+
+</body>
+</html>
