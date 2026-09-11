@@ -20,7 +20,7 @@
     tabs: {
       map: {
         title: "Map View",
-        url: "map.html",
+        url: "index.html",
         desc: "Live Tracking"
       },
       explore: {
