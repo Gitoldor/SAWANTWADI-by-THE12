@@ -12,7 +12,7 @@
     width: "210px",
     height: "55px",
     bottom: "20px",
-    right: "95px",
+    right: "120px",
     zIndex: "999999",
     backgroundColor: "#ffffff",
     textColor: "#111111",
