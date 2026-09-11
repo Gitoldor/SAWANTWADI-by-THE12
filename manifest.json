@@ -1,7 +1,7 @@
 {
   "name": "Sawantwadi",
   "short_name": "Sawantwadi",
-  "start_url": "./indeex.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
