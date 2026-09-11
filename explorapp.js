@@ -1,308 +1,136 @@
 (function () {
-
   "use strict";
 
-
-  /* =========================================
-     PREVENT DUPLICATE
-  ========================================= */
-
   if (document.getElementById("custom-explore-bar-root")) return;
-
-
-  /* =========================================
-     ICONS
-  ========================================= */
-
-  function getIconSvg(title) {
-
-    const key = (title || "").toLowerCase();
-
-
-    if (key.includes("map")) {
-
-      return `
-        <svg viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2">
-
-          <polygon
-            points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-
-          <line x1="8" y1="2" x2="8" y2="18"/>
-
-          <line x1="16" y1="6" x2="16" y2="22"/>
-
-        </svg>
-      `;
-
-    }
-
-
-    if (key.includes("inbox")) {
-
-      return `
-        <svg viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2">
-
-          <polyline
-            points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-
-          <path
-            d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-
-        </svg>
-      `;
-
-    }
-
-
-    if (key.includes("media")) {
-
-      return `
-        <svg viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2">
-
-          <rect
-            x="2"
-            y="2"
-            width="20"
-            height="20"
-            rx="10"/>
-
-          <polygon
-            points="10 8 16 12 10 16"/>
-
-        </svg>
-      `;
-
-    }
-
-
-    if (key.includes("explore")) {
-
-      return `
-        <svg viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2">
-
-          <circle
-            cx="12"
-            cy="12"
-            r="10"/>
-
-          <polygon
-            points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-
-        </svg>
-      `;
-
-    }
-
-
-    return `
-      <svg viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2">
-
-        <rect
-          x="3"
-          y="3"
-          width="18"
-          height="18"
-          rx="2"/>
-
-      </svg>
-    `;
-
-  }
-
-
 
   /* =========================================
      CONFIG
   ========================================= */
 
   const config = {
-
     text: "Type to navigate...",
-
     width: "210px",
-
     height: "55px",
-
     bottom: "20px",
-
     right: "95px",
-
     zIndex: "999999",
-
     backgroundColor: "#ffffff",
-
     textColor: "#111111",
 
-
     tabs: {
-
       map: {
-
         title: "Map View",
-
         url: "map.html",
-
         desc: "Live Tracking"
-
       },
-
-
       explore: {
-
         title: "Explore",
-
         url: "nofeature.html",
-
         desc: "Discover Content"
-
       },
-
-
-      leftPlaceholder: {
-
+      tab1: {
         title: "Tab 1",
-
-        url: "#",
-
-        desc: "Placeholder"
-
+        url: "#"
       },
-
-
       media: {
-
         title: "Media",
-
-        url: "https://gitoldor.github.io/67/index.html",
-
-        desc: "Audio & Visuals"
-
+        url: "https://gitoldor.github.io/67/index.html"
       },
-
-
       inbox: {
-
         title: "Inbox",
-
-        url: "nofeature.html",
-
-        desc: "Messages & Alerts"
-
+        url: "nofeature.html"
       },
-
-
-      rightPlaceholder1: {
-
+      tab2: {
         title: "Tab 2",
-
-        url: "#",
-
-        desc: "Placeholder"
-
+        url: "#"
       },
-
-
-      rightPlaceholder2: {
-
+      tab3: {
         title: "Tab 3",
-
-        url: "#",
-
-        desc: "Placeholder"
-
+        url: "#"
       }
-
     }
-
   };
 
 
-
   /* =========================================
-     ROOT
+     ICONS
   ========================================= */
 
-  const container = document.createElement("div");
+  function icon(type) {
 
+    const icons = {
 
-  container.id =
-    "custom-explore-bar-root";
+      map: `
+        <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+          <line x1="8" y1="2" x2="8" y2="18"/>
+          <line x1="16" y1="6" x2="16" y2="22"/>
+        </svg>
+      `,
 
+      explore: `
+        <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+        </svg>
+      `,
 
-  Object.assign(
-    container.style,
-    {
+      media: `
+        <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="20" rx="10"/>
+          <polygon points="10 8 16 12 10 16"/>
+        </svg>
+      `,
 
-      position: "fixed",
+      inbox: `
+        <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </svg>
+      `,
 
-      bottom: config.bottom,
+      square: `
+        <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="3"/>
+        </svg>
+      `
+    };
 
-      right: config.right,
-
-      zIndex: config.zIndex,
-
-      display: "flex",
-
-      alignItems: "center"
-
-    }
-  );
-
+    return icons[type] || icons.square;
+  }
 
 
   /* =========================================
-     HTML
+     CREATE ROOT
   ========================================= */
 
-  container.innerHTML = `
+  const root = document.createElement("div");
 
+  root.id = "custom-explore-bar-root";
+
+
+  root.innerHTML = `
 
     <div class="explore-wrapper">
 
+      <button class="toggle-arrow-btn"
+      aria-label="Toggle navigation">
 
-      <!-- TOGGLE -->
+        <svg viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5">
 
-
-      <button
-        class="toggle-arrow-btn"
-        aria-label="Toggle navigation">
-
-        <svg
-          class="arrow-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5">
-
-          <polyline
-            points="9 18 15 12 9 6">
-
-          </polyline>
+          <polyline points="9 18 15 12 9 6"/>
 
         </svg>
 
       </button>
-
-
-
-      <!-- BAR -->
 
 
       <div class="explore-bar-container">
@@ -310,49 +138,30 @@
 
         <div class="explore-bar-inner">
 
+          <svg class="search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2">
 
-          <svg
-            class="search-icon"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2">
-
-
-            <circle
-              cx="11"
-              cy="11"
-              r="8">
-
-            </circle>
-
+            <circle cx="11" cy="11" r="7"/>
 
             <line
-              x1="21"
-              y1="21"
-              x2="16.65"
-              y2="16.65">
-
-            </line>
-
+            x1="16"
+            y1="16"
+            x2="21"
+            y2="21"/>
 
           </svg>
 
 
-
           <input
-            type="text"
-            autocomplete="off"
-            placeholder="${config.text}" />
-
+          type="text"
+          autocomplete="off"
+          placeholder="${config.text}">
 
         </div>
 
-
-
-        <!-- DROPDOWN -->
 
 
         <div class="explore-dropdown">
@@ -363,26 +172,22 @@
 
             <!-- MAP -->
 
+            <a href="${config.tabs.map.url}"
+            class="nav-tile tile-map">
 
-            <a
-              href="${config.tabs.map.url}"
-              class="nav-tile tile-map">
+              <div class="tile-icon">
 
-              <span class="tile-icon">
+                ${icon("map")}
 
-                ${getIconSvg("map")}
+              </div>
 
-              </span>
-
-
-              <div class="tile-text">
+              <div>
 
                 <div class="tile-title hero-title">
 
                   ${config.tabs.map.title}
 
                 </div>
-
 
                 <div class="tile-desc">
 
@@ -391,7 +196,6 @@
                 </div>
 
               </div>
-
 
               <span class="badge-main">
 
@@ -405,21 +209,16 @@
 
             <!-- EXPLORE -->
 
+            <a href="${config.tabs.explore.url}"
+            class="nav-tile tile-explore">
 
-            <a
-              href="${config.tabs.explore.url}"
-              class="nav-tile tile-explore">
+              <div class="tile-icon">
 
+                ${icon("explore")}
 
-              <span class="tile-icon">
+              </div>
 
-                ${getIconSvg("explore")}
-
-              </span>
-
-
-              <div class="tile-text">
-
+              <div>
 
                 <div class="tile-title hero-title">
 
@@ -427,16 +226,13 @@
 
                 </div>
 
-
                 <div class="tile-desc">
 
                   ${config.tabs.explore.desc}
 
                 </div>
 
-
               </div>
-
 
             </a>
 
@@ -444,25 +240,20 @@
 
             <!-- TAB 1 -->
 
+            <a href="${config.tabs.tab1.url}"
+            class="nav-tile tile-placeholder">
 
-            <a
-              href="${config.tabs.leftPlaceholder.url}"
-              class="nav-tile tile-placeholder">
+              <div class="tile-icon">
 
-
-              <span class="tile-icon">
-
-                ${getIconSvg("")}
-
-              </span>
-
-
-              <div class="tile-title">
-
-                ${config.tabs.leftPlaceholder.title}
+                ${icon("square")}
 
               </div>
 
+              <div class="tile-title">
+
+                ${config.tabs.tab1.title}
+
+              </div>
 
             </a>
 
@@ -470,18 +261,14 @@
 
             <!-- MEDIA -->
 
+            <a href="${config.tabs.media.url}"
+            class="nav-tile">
 
-            <a
-              href="${config.tabs.media.url}"
-              class="nav-tile tile-media">
+              <div class="tile-icon">
 
+                ${icon("media")}
 
-              <span class="tile-icon">
-
-                ${getIconSvg("media")}
-
-              </span>
-
+              </div>
 
               <div class="tile-title">
 
@@ -489,25 +276,20 @@
 
               </div>
 
-
             </a>
 
 
 
             <!-- INBOX -->
 
+            <a href="${config.tabs.inbox.url}"
+            class="nav-tile">
 
-            <a
-              href="${config.tabs.inbox.url}"
-              class="nav-tile tile-inbox">
+              <div class="tile-icon">
 
+                ${icon("inbox")}
 
-              <span class="tile-icon">
-
-                ${getIconSvg("inbox")}
-
-              </span>
-
+              </div>
 
               <div class="tile-title">
 
@@ -515,32 +297,26 @@
 
               </div>
 
-
             </a>
 
 
 
             <!-- TAB 2 -->
 
+            <a href="${config.tabs.tab2.url}"
+            class="nav-tile tile-placeholder">
 
-            <a
-              href="${config.tabs.rightPlaceholder1.url}"
-              class="nav-tile tile-placeholder">
+              <div class="tile-icon">
 
-
-              <span class="tile-icon">
-
-                ${getIconSvg("")}
-
-              </span>
-
-
-              <div class="tile-title">
-
-                ${config.tabs.rightPlaceholder1.title}
+                ${icon("square")}
 
               </div>
 
+              <div class="tile-title">
+
+                ${config.tabs.tab2.title}
+
+              </div>
 
             </a>
 
@@ -548,37 +324,29 @@
 
             <!-- TAB 3 -->
 
+            <a href="${config.tabs.tab3.url}"
+            class="nav-tile tile-placeholder">
 
-            <a
-              href="${config.tabs.rightPlaceholder2.url}"
-              class="nav-tile tile-placeholder">
+              <div class="tile-icon">
 
-
-              <span class="tile-icon">
-
-                ${getIconSvg("")}
-
-              </span>
-
-
-              <div class="tile-title">
-
-                ${config.tabs.rightPlaceholder2.title}
+                ${icon("square")}
 
               </div>
 
+              <div class="tile-title">
+
+                ${config.tabs.tab3.title}
+
+              </div>
 
             </a>
 
 
           </div>
 
-
         </div>
 
-
       </div>
-
 
     </div>
 
@@ -588,41 +356,50 @@
 
 
       /* =========================================
-         ROOT ENTRANCE
+         ROOT
       ========================================= */
-
 
       #custom-explore-bar-root {
 
-        animation:
+        position: fixed;
 
-          rootEnter .8s
+        right: ${config.right};
+
+        bottom: ${config.bottom};
+
+        z-index: ${config.zIndex};
+
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+
+        animation:
+          exploreEnter .7s
           cubic-bezier(.16,1,.3,1)
           both;
 
       }
 
 
-      @keyframes rootEnter {
+      @keyframes exploreEnter {
 
-        0% {
+        from {
 
           opacity: 0;
 
           transform:
-
             translateY(50px)
             scale(.85);
 
         }
 
-
-        100% {
+        to {
 
           opacity: 1;
 
           transform:
-
             translateY(0)
             scale(1);
 
@@ -636,47 +413,45 @@
          WRAPPER
       ========================================= */
 
-
       #custom-explore-bar-root
       .explore-wrapper {
+
+        position: relative;
 
         display: flex;
 
         align-items: center;
-
-        position: relative;
 
       }
 
 
 
       /* =========================================
-         TOGGLE BUTTON
+         TOGGLE
       ========================================= */
-
 
       #custom-explore-bar-root
       .toggle-arrow-btn {
+
+        position: absolute;
+
+        left: -14px;
+
+        z-index: 10;
 
         width: 28px;
 
         height: 28px;
 
+        border: 1px solid #e5e5e5;
+
         border-radius: 50%;
 
-        border:
+        background: white;
 
-          1px solid
-          rgba(0,0,0,.1);
+        color: #555;
 
-        background:
-
-          ${config.backgroundColor};
-
-        box-shadow:
-
-          0 4px 12px
-          rgba(0,0,0,.12);
+        cursor: pointer;
 
         display: flex;
 
@@ -684,24 +459,23 @@
 
         justify-content: center;
 
-        position: absolute;
-
-        left: -14px;
-
-        z-index: 20;
-
-        cursor: pointer;
-
-        color: #555;
+        box-shadow:
+          0 4px 12px
+          rgba(0,0,0,.12);
 
         transition:
+          transform .45s cubic-bezier(.16,1,.3,1),
+          box-shadow .3s ease;
 
-          transform .45s
-          cubic-bezier(.16,1,.3,1),
+      }
 
-          box-shadow .3s ease,
 
-          background .3s ease;
+      #custom-explore-bar-root
+      .toggle-arrow-btn svg {
+
+        width: 14px;
+
+        height: 14px;
 
       }
 
@@ -710,32 +484,19 @@
       .toggle-arrow-btn:hover {
 
         transform:
-
           scale(1.1);
 
         box-shadow:
-
           0 7px 18px
-          rgba(0,0,0,.18);
-
-      }
-
-
-      #custom-explore-bar-root
-      .toggle-arrow-btn:active {
-
-        transform:
-
-          scale(.85);
+          rgba(0,0,0,.16);
 
       }
 
 
 
       /* =========================================
-         BAR CONTAINER
+         BAR
       ========================================= */
-
 
       #custom-explore-bar-root
       .explore-bar-container {
@@ -745,14 +506,12 @@
       }
 
 
-
-      /* =========================================
-         SEARCH BAR
-      ========================================= */
-
-
       #custom-explore-bar-root
       .explore-bar-inner {
+
+        width: ${config.width};
+
+        height: ${config.height};
 
         display: flex;
 
@@ -760,55 +519,31 @@
 
         gap: 12px;
 
-        width: ${config.width};
-
-        height: ${config.height};
-
         padding:
-
           0 18px
           0 22px;
 
-        box-sizing:
-
-          border-box;
-
-        border-radius:
-
-          999px;
-
-        background:
-
-          ${config.backgroundColor};
-
-        border:
-
-          1px solid
-          rgba(0,0,0,.05);
-
-        box-shadow:
-
-          0 6px 20px
-          rgba(0,0,0,.10);
+        box-sizing: border-box;
 
         overflow: hidden;
 
-        transform-origin:
+        border-radius: 999px;
 
-          right center;
+        background:
+          ${config.backgroundColor};
+
+        border:
+          1px solid #eee;
+
+        box-shadow:
+          0 6px 20px
+          rgba(0,0,0,.10);
 
         transition:
-
-          width .6s
-          cubic-bezier(.16,1,.3,1),
-
+          width .55s cubic-bezier(.16,1,.3,1),
+          padding .55s cubic-bezier(.16,1,.3,1),
           opacity .35s ease,
-
-          padding .6s
-          cubic-bezier(.16,1,.3,1),
-
           transform .35s ease,
-
           box-shadow .35s ease;
 
       }
@@ -816,23 +551,20 @@
 
 
       /* =========================================
-         OPEN BAR
+         BAR OPEN
       ========================================= */
-
 
       #custom-explore-bar-root
       .explore-bar-container.is-open
       .explore-bar-inner {
 
         transform:
-
           translateY(-2px)
           scale(1.02);
 
         box-shadow:
-
           0 12px 30px
-          rgba(0,0,0,.15);
+          rgba(0,0,0,.14);
 
       }
 
@@ -842,34 +574,30 @@
          SEARCH ICON
       ========================================= */
 
-
       #custom-explore-bar-root
       .search-icon {
+
+        width: 20px;
+
+        height: 20px;
 
         flex-shrink: 0;
 
         color: #555;
 
         transition:
-
-          transform .5s
-          cubic-bezier(.16,1,.3,1),
-
-          color .3s ease;
+          transform .5s cubic-bezier(.16,1,.3,1);
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .search-icon {
 
         transform:
-
-          rotate(-12deg)
+          rotate(-10deg)
           scale(1.12);
-
-        color: #111;
 
       }
 
@@ -879,7 +607,6 @@
          INPUT
       ========================================= */
 
-
       #custom-explore-bar-root
       input {
 
@@ -887,21 +614,20 @@
 
         height: 100%;
 
+        min-width: 0;
+
         border: none;
 
         outline: none;
 
         background: transparent;
 
+        color:
+          ${config.textColor};
+
         font-size: 15px;
 
         font-weight: 600;
-
-        color:
-
-          ${config.textColor};
-
-        min-width: 0;
 
       }
 
@@ -911,18 +637,6 @@
 
         color: #999;
 
-        transition:
-
-          opacity .3s ease;
-
-      }
-
-
-      #custom-explore-bar-root
-      input:focus::placeholder {
-
-        opacity: .45;
-
       }
 
 
@@ -931,51 +645,32 @@
          DROPDOWN
       ========================================= */
 
-
       #custom-explore-bar-root
       .explore-dropdown {
 
         position: absolute;
 
-        bottom:
-
-          calc(
-            ${config.height}
-            + 14px
-          );
-
         left: 50%;
+
+        bottom:
+          calc(${config.height} + 14px);
 
         width: 360px;
 
         padding: 14px;
 
-        box-sizing:
+        box-sizing: border-box;
 
-          border-box;
+        border-radius: 30px;
 
-        background:
-
-          ${config.backgroundColor};
+        background: white;
 
         border:
-
           1px solid #eee;
 
-        border-radius:
-
-          30px;
-
         box-shadow:
-
           0 25px 60px
           rgba(0,0,0,.16);
-
-        z-index: 10;
-
-
-        /* CLOSED STATE */
-
 
         opacity: 0;
 
@@ -983,26 +678,17 @@
 
         pointer-events: none;
 
-
         transform:
-
           translateX(-50%)
-          translateY(30px)
-          scale(.88);
-
+          translateY(25px)
+          scale(.92);
 
         transform-origin:
-
           bottom center;
 
-
         transition:
-
           opacity .25s ease,
-
-          transform .65s
-          cubic-bezier(.16,1,.3,1),
-
+          transform .55s cubic-bezier(.16,1,.3,1),
           visibility .25s;
 
       }
@@ -1013,9 +699,8 @@
          DROPDOWN OPEN
       ========================================= */
 
-
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .explore-dropdown {
 
         opacity: 1;
@@ -1024,9 +709,7 @@
 
         pointer-events: auto;
 
-
         transform:
-
           translateX(-50%)
           translateY(0)
           scale(1);
@@ -1039,14 +722,12 @@
          GRID
       ========================================= */
 
-
       #custom-explore-bar-root
       .navigation-grid {
 
         display: grid;
 
         grid-template-columns:
-
           repeat(4,1fr);
 
         gap: 10px;
@@ -1056,22 +737,25 @@
 
 
       /* =========================================
-         TILES
+         TILE
       ========================================= */
-
 
       #custom-explore-bar-root
       .nav-tile {
+
+        position: relative;
+
+        min-height: 70px;
+
+        padding: 12px;
+
+        box-sizing: border-box;
 
         display: flex;
 
         flex-direction: column;
 
         justify-content: center;
-
-        padding: 12px;
-
-        min-height: 70px;
 
         text-decoration: none;
 
@@ -1080,133 +764,102 @@
         background: #f8f9fa;
 
         border:
-
           2px solid #e9ecef;
 
         border-radius: 22px;
 
-        position: relative;
-
-        box-sizing:
-
-          border-box;
-
-        cursor: pointer;
-
-
-        /* START HIDDEN */
-
-
         opacity: 0;
 
-
         transform:
-
-          translateY(25px)
-          scale(.85);
-
+          translateY(20px)
+          scale(.9);
 
         transition:
-
-          opacity .4s ease,
-
-          transform .6s
-          cubic-bezier(.16,1,.3,1),
-
-          box-shadow .3s ease,
-
-          background .3s ease,
-
-          border-color .3s ease,
-
-          filter .3s ease;
+          opacity .35s ease,
+          transform .55s cubic-bezier(.16,1,.3,1),
+          box-shadow .25s ease,
+          border-color .25s ease;
 
       }
 
 
 
       /* =========================================
-         TILE ENTRANCE
+         TILE OPEN
       ========================================= */
 
-
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile {
 
         opacity: 1;
 
         transform:
-
           translateY(0)
           scale(1);
 
       }
 
 
-
-      /* STAGGER */
-
-
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(1) {
 
-        transition-delay: .05s;
+        transition-delay: .03s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(2) {
 
-        transition-delay: .10s;
+        transition-delay: .08s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(3) {
 
-        transition-delay: .15s;
+        transition-delay: .13s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(4) {
 
-        transition-delay: .20s;
+        transition-delay: .18s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(5) {
 
-        transition-delay: .25s;
+        transition-delay: .23s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(6) {
 
-        transition-delay: .30s;
+        transition-delay: .28s;
 
       }
 
 
       #custom-explore-bar-root
-      .explore-bar-container.is-open
+      .is-open
       .nav-tile:nth-child(7) {
 
-        transition-delay: .35s;
+        transition-delay: .33s;
 
       }
 
@@ -1216,32 +869,18 @@
          TILE HOVER
       ========================================= */
 
-
       #custom-explore-bar-root
       .nav-tile:hover {
 
         transform:
+          translateY(-5px)
+          scale(1.03);
 
-          translateY(-6px)
-          scale(1.04);
-
-        z-index: 10;
+        z-index: 5;
 
         box-shadow:
-
-          0 14px 25px
-          rgba(0,0,0,.13);
-
-      }
-
-
-      #custom-explore-bar-root
-      .nav-tile:active {
-
-        transform:
-
-          translateY(-2px)
-          scale(.97);
+          0 12px 25px
+          rgba(0,0,0,.12);
 
       }
 
@@ -1250,7 +889,6 @@
       /* =========================================
          ICON
       ========================================= */
-
 
       #custom-explore-bar-root
       .tile-icon {
@@ -1263,17 +901,10 @@
 
         display: flex;
 
-        align-items: center;
-
-        justify-content: center;
-
         color: #444;
 
-
         transition:
-
-          transform .5s
-          cubic-bezier(.16,1,.3,1);
+          transform .4s cubic-bezier(.16,1,.3,1);
 
       }
 
@@ -1288,27 +919,21 @@
       }
 
 
-
-      /* ICON HOVER */
-
-
       #custom-explore-bar-root
       .nav-tile:hover
       .tile-icon {
 
         transform:
-
-          rotate(-10deg)
-          scale(1.2);
+          rotate(-8deg)
+          scale(1.15);
 
       }
 
 
 
       /* =========================================
-         MAP TILE
+         MAP
       ========================================= */
-
 
       #custom-explore-bar-root
       .tile-map {
@@ -1328,7 +953,6 @@
         border-radius: 26px;
 
         justify-content:
-
           space-between;
 
       }
@@ -1354,9 +978,8 @@
 
 
       /* =========================================
-         EXPLORE TILE
+         EXPLORE
       ========================================= */
-
 
       #custom-explore-bar-root
       .tile-explore {
@@ -1374,7 +997,6 @@
         border-radius: 26px;
 
         justify-content:
-
           space-between;
 
       }
@@ -1403,7 +1025,6 @@
          BADGE
       ========================================= */
 
-
       #custom-explore-bar-root
       .badge-main {
 
@@ -1414,7 +1035,6 @@
         right: 10px;
 
         padding:
-
           3px 8px;
 
         font-size: 9px;
@@ -1422,44 +1042,14 @@
         font-weight: 700;
 
         text-transform:
-
           uppercase;
 
-        border-radius:
-
-          999px;
+        border-radius: 999px;
 
         color: white;
 
         background:
-
           rgba(255,255,255,.15);
-
-        backdrop-filter:
-
-          blur(10px);
-
-        transition:
-
-          transform .3s
-          cubic-bezier(.16,1,.3,1),
-
-          background .3s ease;
-
-      }
-
-
-      #custom-explore-bar-root
-      .tile-map:hover
-      .badge-main {
-
-        transform:
-
-          scale(1.08);
-
-        background:
-
-          rgba(255,255,255,.25);
 
       }
 
@@ -1469,21 +1059,19 @@
          PLACEHOLDER
       ========================================= */
 
-
       #custom-explore-bar-root
       .tile-placeholder {
-
-        background: #fafafa;
-
-        border:
-
-          1px dashed #ccc;
 
         align-items: center;
 
         text-align: center;
 
         color: #888;
+
+        background: #fafafa;
+
+        border:
+          1px dashed #ccc;
 
       }
 
@@ -1493,18 +1081,12 @@
          TEXT
       ========================================= */
 
-
       #custom-explore-bar-root
       .tile-title {
 
         font-size: 12px;
 
         font-weight: 600;
-
-        transition:
-
-          transform .3s
-          cubic-bezier(.16,1,.3,1);
 
       }
 
@@ -1522,65 +1104,32 @@
       #custom-explore-bar-root
       .tile-desc {
 
+        margin-top: 2px;
+
         font-size: 10px;
 
         color: #666;
 
-        margin-top: 2px;
-
-        transition:
-
-          opacity .3s ease,
-
-          transform .3s
-          cubic-bezier(.16,1,.3,1);
-
-      }
-
-
-      #custom-explore-bar-root
-      .nav-tile:hover
-      .tile-title {
-
-        transform:
-
-          translateX(2px);
-
       }
 
 
 
       /* =========================================
-         SEARCH DIM
+         SEARCH FILTER
       ========================================= */
-
 
       #custom-explore-bar-root
       .nav-tile.is-dimmed {
 
-        opacity: .18 !important;
-
-        filter:
-
-          grayscale(1)
-          blur(.3px);
+        opacity: .2 !important;
 
         transform:
+          scale(.94) !important;
 
-          scale(.92)
-          !important;
-
-        pointer-events:
-
-          none;
+        filter:
+          grayscale(1);
 
       }
-
-
-
-      /* =========================================
-         BEST MATCH
-      ========================================= */
 
 
       #custom-explore-bar-root
@@ -1588,37 +1137,26 @@
 
         opacity: 1 !important;
 
-        filter: none;
-
         border-color:
-
           #111 !important;
 
-        background:
-
-          #fff !important;
-
         transform:
-
           translateY(-4px)
-          scale(1.04)
-          !important;
+          scale(1.04) !important;
 
-        z-index: 20;
+        z-index: 10;
 
         box-shadow:
-
           0 15px 30px
-          rgba(0,0,0,.15);
+          rgba(0,0,0,.14);
 
       }
 
 
 
       /* =========================================
-         HIDE BAR
+         HIDDEN BAR
       ========================================= */
-
 
       #custom-explore-bar-root
       .explore-wrapper.is-hidden
@@ -1626,35 +1164,23 @@
 
         width: 0;
 
-        padding:
+        padding-left: 0;
 
-          0;
+        padding-right: 0;
 
         opacity: 0;
 
         transform:
+          scale(.8);
 
-          scale(.7);
-
-        box-shadow:
-
-          none;
+        pointer-events: none;
 
         border-color:
-
           transparent;
 
-        pointer-events:
-
-          none;
+        box-shadow: none;
 
       }
-
-
-
-      /* =========================================
-         ARROW ROTATION
-      ========================================= */
 
 
       #custom-explore-bar-root
@@ -1662,48 +1188,7 @@
       .toggle-arrow-btn {
 
         transform:
-
           rotate(180deg);
-
-      }
-
-
-      #custom-explore-bar-root
-      .explore-wrapper.is-hidden
-      .toggle-arrow-btn:hover {
-
-        transform:
-
-          rotate(180deg)
-          scale(1.1);
-
-      }
-
-
-
-      /* =========================================
-         REDUCED MOTION
-      ========================================= */
-
-
-      @media
-      (prefers-reduced-motion: reduce) {
-
-
-        #custom-explore-bar-root,
-
-        #custom-explore-bar-root * {
-
-          animation:
-
-            none !important;
-
-          transition:
-
-            none !important;
-
-        }
-
 
       }
 
@@ -1713,836 +1198,301 @@
          MOBILE
       ========================================= */
 
-
-      @media
-      (max-width: 500px) {
-
+      @media (max-width: 500px) {
 
         #custom-explore-bar-root {
 
-          right:
-
-            20px !important;
-
-          bottom:
-
-            20px !important;
+          right: 20px;
 
         }
-
 
         #custom-explore-bar-root
         .explore-dropdown {
 
           width:
-
-            min(
-              360px,
-              calc(100vw - 30px)
-            );
+            calc(100vw - 30px);
 
         }
-
-
-        #custom-explore-bar-root
-        .explore-bar-inner {
-
-          width:
-
-            200px;
-
-        }
-
 
       }
-
 
     </style>
 
   `;
 
 
+/* =========================================
+     MOUNT
+  ========================================= */
+
+  function mount() {
+
+    document.body.appendChild(root);
+
+  }
+
+
+  if (document.body) {
+
+    mount();
+
+  } else {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      mount,
+      { once: true }
+    );
+
+  }
+
 
   /* =========================================
      ELEMENTS
   ========================================= */
 
-
   const wrapper =
-    container.querySelector(
-      ".explore-wrapper"
-    );
+    root.querySelector(".explore-wrapper");
 
+  const toggle =
+    root.querySelector(".toggle-arrow-btn");
 
-  const toggleBtn =
-    container.querySelector(
-      ".toggle-arrow-btn"
-    );
+  const bar =
+    root.querySelector(".explore-bar-container");
 
-
-  const barContainer =
-    container.querySelector(
-      ".explore-bar-container"
-    );
-
-
-  const inputEl =
-    container.querySelector(
-      "input"
-    );
-
+  const input =
+    root.querySelector("input");
 
   const tiles =
     Array.from(
-
-      container.querySelectorAll(
-        ".nav-tile"
-      )
-
+      root.querySelectorAll(".nav-tile")
     );
 
 
-
   /* =========================================
-     OPEN NAVIGATION
+     OPEN / CLOSE
   ========================================= */
 
-
-  function openNavigation() {
-
+  function openMenu() {
 
     if (
-
-      wrapper.classList.contains(
-        "is-hidden"
-      )
-
+      !wrapper.classList.contains("is-hidden")
     ) {
+
+      bar.classList.add("is-open");
+
+    }
+
+  }
+
+
+  function closeMenu() {
+
+    bar.classList.remove("is-open");
+
+  }
+
+
+  /* =========================================
+     TOGGLE
+  ========================================= */
+
+  toggle.addEventListener("click", function (e) {
+
+    e.stopPropagation();
+
+    wrapper.classList.toggle("is-hidden");
+
+    if (
+      wrapper.classList.contains("is-hidden")
+    ) {
+
+      closeMenu();
+
+      input.blur();
+
+    }
+
+  });
+
+
+  /* =========================================
+     INPUT
+  ========================================= */
+
+  input.addEventListener(
+    "focus",
+    openMenu
+  );
+
+  input.addEventListener(
+    "click",
+    openMenu
+  );
+
+
+  /* =========================================
+     SEARCH
+  ========================================= */
+
+  let bestMatch = null;
+
+
+  function score(text, query) {
+
+    text = text.toLowerCase();
+
+    query = query.toLowerCase();
+
+    if (text === query) return 1;
+
+    if (text.startsWith(query)) return 0.8;
+
+    if (text.includes(query)) return 0.6;
+
+    return 0;
+
+  }
+
+
+  input.addEventListener("input", function () {
+
+    const query =
+      input.value.trim();
+
+    bestMatch = null;
+
+    let highest = 0;
+
+
+    tiles.forEach(function (tile) {
+
+      tile.classList.remove(
+        "is-dimmed",
+        "is-best-match"
+      );
+
+    });
+
+
+    if (!query) return;
+
+
+    tiles.forEach(function (tile) {
+
+      const title =
+        tile.querySelector(".tile-title")
+        ?.textContent || "";
+
+      const desc =
+        tile.querySelector(".tile-desc")
+        ?.textContent || "";
+
+      const currentScore =
+        Math.max(
+          score(title, query),
+          score(desc, query)
+        );
+
+      if (currentScore > highest) {
+
+        highest = currentScore;
+
+        bestMatch = tile;
+
+      }
+
+    });
+
+
+    if (!bestMatch) {
+
+      tiles.forEach(function (tile) {
+
+        tile.classList.add("is-dimmed");
+
+      });
 
       return;
 
     }
 
 
-    if (
+    tiles.forEach(function (tile) {
 
-      !barContainer.classList.contains(
-        "is-open"
-      )
+      if (tile === bestMatch) {
 
-    ) {
-
-
-      barContainer.classList.add(
-        "is-open"
-      );
-
-
-    }
-
-
-  }
-
-
-
-  /* =========================================
-     CLOSE NAVIGATION
-  ========================================= */
-
-
-  function closeNavigation() {
-
-
-    barContainer.classList.remove(
-      "is-open"
-    );
-
-
-  }
-
-
-
-  /* =========================================
-     TOGGLE BAR
-  ========================================= */
-
-
-  toggleBtn.addEventListener(
-
-    "click",
-
-    (event) => {
-
-
-      event.preventDefault();
-
-      event.stopPropagation();
-
-
-      const isHidden =
-
-        wrapper.classList.toggle(
-          "is-hidden"
+        tile.classList.add(
+          "is-best-match"
         );
 
+      } else {
 
-      if (isHidden) {
-
-
-        closeNavigation();
-
-
-        inputEl.blur();
-
-
-      }
-
-
-    }
-
-  );
-
-
-
-  /* =========================================
-     INPUT EVENTS
-  ========================================= */
-
-
-  inputEl.addEventListener(
-
-    "focus",
-
-    () => {
-
-
-      openNavigation();
-
-
-    }
-
-  );
-
-
-  inputEl.addEventListener(
-
-    "click",
-
-    () => {
-
-
-      openNavigation();
-
-
-    }
-
-  );
-
-
-
-  /* =========================================
-     SEARCH SCORE
-  ========================================= */
-
-
-  function calculateMatchScore(
-
-    text,
-
-    query
-
-  ) {
-
-
-    if (!query) {
-
-
-      return 0;
-
-
-    }
-
-
-    const lowerText =
-
-      text.toLowerCase();
-
-
-    const lowerQuery =
-
-      query.toLowerCase();
-
-
-    if (
-
-      lowerText ===
-      lowerQuery
-
-    ) {
-
-
-      return 1;
-
-
-    }
-
-
-    if (
-
-      lowerText.startsWith(
-        lowerQuery
-      )
-
-    ) {
-
-
-      return .88;
-
-
-    }
-
-
-    if (
-
-      lowerText.includes(
-        lowerQuery
-      )
-
-    ) {
-
-
-      return .7;
-
-
-    }
-
-
-    return 0;
-
-
-  }
-
-
-
-  /* =========================================
-     NAVIGATION
-  ========================================= */
-
-
-  function triggerNavigation(tile) {
-
-
-    if (!tile) return;
-
-
-    const targetUrl =
-
-      tile.getAttribute(
-        "href"
-      );
-
-
-    if (
-
-      targetUrl &&
-
-      targetUrl !== "#"
-
-    ) {
-
-
-      /* SMALL EXIT FEEL */
-
-
-      tile.style.transform =
-
-        "translateY(-2px) scale(.97)";
-
-
-      setTimeout(
-
-        () => {
-
-
-          window.location.href =
-            targetUrl;
-
-
-        },
-
-        120
-
-      );
-
-
-    }
-
-
-  }
-
-
-
-  /* =========================================
-     SEARCH STATE
-  ========================================= */
-
-
-  let bestMatchTile = null;
-
-
-
-  /* =========================================
-     SEARCH INPUT
-  ========================================= */
-
-
-  inputEl.addEventListener(
-
-    "input",
-
-    (event) => {
-
-
-      const query =
-
-        event.target.value
-          .trim();
-
-
-      let highestScore = 0;
-
-
-      bestMatchTile = null;
-
-
-
-      /* -------------------------
-         RESET TILES
-      ------------------------- */
-
-
-      tiles.forEach(
-
-        (tile) => {
-
-
-          tile.classList.remove(
-
-            "is-dimmed",
-
-            "is-best-match"
-
-          );
-
-
-        }
-
-      );
-
-
-
-      /* -------------------------
-         EMPTY SEARCH
-      ------------------------- */
-
-
-      if (!query) {
-
-
-        return;
-
-
-      }
-
-
-
-      /* -------------------------
-         FIND BEST MATCH
-      ------------------------- */
-
-
-      tiles.forEach(
-
-        (tile) => {
-
-
-          const title =
-
-            tile.querySelector(
-              ".tile-title"
-            )?.textContent || "";
-
-
-          const desc =
-
-            tile.querySelector(
-              ".tile-desc"
-            )?.textContent || "";
-
-
-          const score =
-
-            Math.max(
-
-              calculateMatchScore(
-                title,
-                query
-              ),
-
-              calculateMatchScore(
-                desc,
-                query
-              )
-
-            );
-
-
-          if (
-
-            score >
-
-            highestScore
-
-          ) {
-
-
-            highestScore =
-
-              score;
-
-
-            bestMatchTile =
-
-              tile;
-
-
-          }
-
-
-        }
-
-      );
-
-
-
-      /* -------------------------
-         NO MATCH
-      ------------------------- */
-
-
-      if (
-
-        !bestMatchTile ||
-
-        highestScore <= 0
-
-      ) {
-
-
-        bestMatchTile = null;
-
-
-        tiles.forEach(
-
-          (tile) => {
-
-
-            tile.classList.add(
-              "is-dimmed"
-            );
-
-
-          }
-
+        tile.classList.add(
+          "is-dimmed"
         );
 
-
-        return;
-
-
       }
 
+    });
 
-
-      /* -------------------------
-         DIM OTHER TILES
-      ------------------------- */
-
-
-      tiles.forEach(
-
-        (tile) => {
-
-
-          if (
-
-            tile ===
-            bestMatchTile
-
-          ) {
-
-
-            tile.classList.add(
-              "is-best-match"
-            );
-
-
-          }
-
-          else {
-
-
-            tile.classList.add(
-              "is-dimmed"
-            );
-
-
-          }
-
-
-        }
-
-      );
-
-
-    }
-
-  );
-
+  });
 
 
   /* =========================================
-     KEYBOARD
+     ENTER
   ========================================= */
 
-
-  inputEl.addEventListener(
-
+  input.addEventListener(
     "keydown",
-
-    (event) => {
-
-
-      /* -------------------------
-         ENTER
-      ------------------------- */
-
+    function (e) {
 
       if (
-
-        event.key === "Enter" &&
-
-        bestMatchTile
-
+        e.key === "Enter" &&
+        bestMatch
       ) {
 
+        e.preventDefault();
 
-        event.preventDefault();
+        const url =
+          bestMatch.getAttribute("href");
 
+        if (url && url !== "#") {
 
-        triggerNavigation(
-          bestMatchTile
-        );
+          window.location.href = url;
 
-
-        return;
-
+        }
 
       }
 
 
+      if (e.key === "Escape") {
 
-      /* -------------------------
-         ESCAPE
-      ------------------------- */
+        closeMenu();
 
-
-      if (
-
-        event.key === "Escape"
-
-      ) {
-
-
-        event.preventDefault();
-
-
-        closeNavigation();
-
-
-        inputEl.blur();
-
+        input.blur();
 
       }
 
-
     }
-
   );
-
-
-
-  /* =========================================
-     TILE CLICK ANIMATION
-  ========================================= */
-
-
-  tiles.forEach(
-
-    (tile) => {
-
-
-      tile.addEventListener(
-
-        "pointerdown",
-
-        () => {
-
-
-          tile.classList.add(
-            "is-pressing"
-          );
-
-
-        }
-
-      );
-
-
-      tile.addEventListener(
-
-        "pointerup",
-
-        () => {
-
-
-          tile.classList.remove(
-            "is-pressing"
-          );
-
-
-        }
-
-      );
-
-
-      tile.addEventListener(
-
-        "pointerleave",
-
-        () => {
-
-
-          tile.classList.remove(
-            "is-pressing"
-          );
-
-
-        }
-
-      );
-
-
-    }
-
-  );
-
 
 
   /* =========================================
      OUTSIDE CLICK
   ========================================= */
 
-
   document.addEventListener(
-
     "click",
+    function (e) {
 
-    (event) => {
+      if (!root.contains(e.target)) {
 
-
-      if (
-
-        !container.contains(
-          event.target
-        )
-
-      ) {
-
-
-        closeNavigation();
-
-
-        inputEl.blur();
-
+        closeMenu();
 
       }
 
-
     }
-
   );
-
-
-
-  /* =========================================
-     APPEND
-  ========================================= */
-
-
-  function mount() {
-
-
-    if (
-
-      document.body &&
-
-      !document.body.contains(
-        container
-      )
-
-    ) {
-
-
-      document.body.appendChild(
-        container
-      );
-
-
-    }
-
-
-  }
-
-
-
-  if (document.body) {
-
-
-    mount();
-
-
-  }
-
-  else {
-
-
-    document.addEventListener(
-
-      "DOMContentLoaded",
-
-      mount,
-
-      {
-
-        once: true
-
-      }
-
-    );
-
-
-  }
-
 
 })();
