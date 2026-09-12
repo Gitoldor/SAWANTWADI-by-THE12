@@ -116,6 +116,74 @@ body{
 
 
 /* =====================================================
+   BACK BUTTON
+===================================================== */
+
+.back-button{
+
+    width:44px;
+
+    height:44px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    flex-shrink:0;
+
+    margin-right:4px;
+
+    transition:
+
+    transform
+
+    .3s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+}
+
+
+.back-button:active{
+
+    transform:scale(.82);
+
+}
+
+
+/* =====================================================
+   HEADER CONTENT
+===================================================== */
+
+.header-content{
+
+    flex:1;
+
+    min-width:0;
+
+}
+
+
+/* =====================================================
    TITLE
 ===================================================== */
 
@@ -280,7 +348,6 @@ body.searching .search-input{
 
     );
 
-
 }
 
 
@@ -324,10 +391,6 @@ body.searching .search-input{
 
     width:100%;
 
-    /*
-       EXACT 1:1
-    */
-
     aspect-ratio:1 / 1;
 
     overflow:hidden;
@@ -341,10 +404,6 @@ body.searching .search-input{
     transform:
 
     translateZ(0);
-
-    /*
-       Performance
-    */
 
     content-visibility:auto;
 
@@ -371,11 +430,8 @@ body.searching .search-input{
 
     );
 
-
 }
 
-
-/* Spring touch */
 
 .card:active{
 
@@ -444,10 +500,6 @@ body.searching .search-input{
 }
 
 
-/*
-   LIST CARD
-*/
-
 .feed.list .card{
 
     width:100%;
@@ -469,12 +521,6 @@ body.searching .search-input{
 }
 
 
-/*
-   LIST IMAGE
-
-   Square
-*/
-
 .feed.list .card-image{
 
     width:88px;
@@ -491,10 +537,6 @@ body.searching .search-input{
 
 }
 
-
-/*
-   TITLE ONLY
-*/
 
 .feed.list .card-title{
 
@@ -727,10 +769,6 @@ body.searching .search-input{
 }
 
 
-/*
-   Spring click
-*/
-
 .search-button:active{
 
     transform:
@@ -741,10 +779,6 @@ body.searching .search-input{
 
 }
 
-
-/*
-   Search mode
-*/
 
 body.searching .search-button{
 
@@ -809,7 +843,6 @@ body.searching .search-button{
 
     }
 
-
 }
 
 
@@ -847,7 +880,54 @@ body.searching .search-button{
 <header class="header">
 
 
-<div style="flex:1; min-width:0;">
+<!-- BACK BUTTON -->
+
+<button
+
+class="back-button"
+
+id="backButton"
+
+aria-label="Go to home"
+
+onclick="window.location.href='index.html'"
+
+>
+
+
+<svg
+
+width="22"
+
+height="22"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="2"
+
+stroke-linecap="round"
+
+stroke-linejoin="round"
+
+>
+
+<path d="M19 12H5"/>
+
+<path d="M12 19L5 12L12 5"/>
+
+</svg>
+
+
+</button>
+
+
+<!-- TITLE / SEARCH -->
+
+<div class="header-content">
 
 
 <h1 class="title">
@@ -855,7 +935,6 @@ body.searching .search-button{
 Explore Apps
 
 </h1>
-
 
 
 <input
@@ -876,7 +955,6 @@ spellcheck="false"
 
 
 </div>
-
 
 
 <!-- VIEW BUTTON -->
@@ -913,7 +991,9 @@ stroke-linecap="round"
 >
 
 <path d="M5 7H19"/>
+
 <path d="M5 12H19"/>
+
 <path d="M5 17H19"/>
 
 </svg>
@@ -1026,8 +1106,6 @@ const CONFIG = {
 };
 
 
-
-
 /* =====================================================
    ELEMENTS
 ===================================================== */
@@ -1057,8 +1135,6 @@ const viewIcon =
 document.getElementById("viewIcon");
 
 
-
-
 /* =====================================================
    DATA
 ===================================================== */
@@ -1076,15 +1152,12 @@ Array.isArray(
 : [];
 
 
-
 let filteredData =
 
 allData;
 
 
-
 let renderedCount = 0;
-
 
 
 let currentView =
@@ -1098,10 +1171,7 @@ localStorage.getItem(
 || "grid";
 
 
-
 let isSearching = false;
-
-
 
 
 /* =====================================================
@@ -1126,14 +1196,6 @@ function createCard(item,index){
     item.id || "";
 
 
-
-    /*
-       Small stagger.
-
-       Makes cards feel alive.
-    */
-
-
     card.style.animationDelay =
 
     Math.min(
@@ -1147,10 +1209,6 @@ function createCard(item,index){
     + "ms";
 
 
-
-    /* IMAGE WRAPPER */
-
-
     const imageBox =
 
     document.createElement("div");
@@ -1159,10 +1217,6 @@ function createCard(item,index){
     imageBox.className =
 
     "card-image";
-
-
-
-    /* IMAGE */
 
 
     const image =
@@ -1186,12 +1240,7 @@ function createCard(item,index){
     item.image || "";
 
 
-
     imageBox.appendChild(image);
-
-
-
-    /* TITLE */
 
 
     const title =
@@ -1209,19 +1258,15 @@ function createCard(item,index){
     item.title || "Untitled";
 
 
-
     card.appendChild(imageBox);
 
 
     card.appendChild(title);
 
 
-
     return card;
 
 }
-
-
 
 
 /* =====================================================
@@ -1243,11 +1288,9 @@ feed.addEventListener(
         if(!card) return;
 
 
-
         const id =
 
         card.dataset.id;
-
 
 
         console.log(
@@ -1259,22 +1302,11 @@ feed.addEventListener(
         );
 
 
-        /*
-        
-        FUTURE:
-
-        openPost(id);
-
-        */
-
-
     },
 
     {passive:true}
 
 );
-
-
 
 
 /* =====================================================
@@ -1294,7 +1326,6 @@ function render(reset=false){
 
 
     }
-
 
 
     if(
@@ -1325,7 +1356,6 @@ function render(reset=false){
     }
 
 
-
     const end =
 
     Math.min(
@@ -1339,17 +1369,9 @@ function render(reset=false){
     );
 
 
-
-    /*
-       Fragment =
-       fewer DOM operations
-    */
-
-
     const fragment =
 
     document.createDocumentFragment();
-
 
 
     for(
@@ -1375,9 +1397,7 @@ function render(reset=false){
 
         );
 
-
     }
-
 
 
     feed.appendChild(fragment);
@@ -1385,10 +1405,7 @@ function render(reset=false){
 
     renderedCount = end;
 
-
 }
-
-
 
 
 /* =====================================================
@@ -1396,7 +1413,6 @@ function render(reset=false){
 ===================================================== */
 
 let scrollPending = false;
-
 
 
 window.addEventListener(
@@ -1412,14 +1428,12 @@ window.addEventListener(
         scrollPending = true;
 
 
-
         requestAnimationFrame(
 
             () => {
 
 
                 const bottom =
-
 
                 window.scrollY +
 
@@ -1428,11 +1442,9 @@ window.addEventListener(
 
                 const pageHeight =
 
-
                 document.documentElement
 
                 .scrollHeight;
-
 
 
                 if(
@@ -1452,18 +1464,14 @@ window.addEventListener(
 
                     render();
 
-
                 }
-
 
 
                 scrollPending = false;
 
-
             }
 
         );
-
 
     },
 
@@ -1472,14 +1480,11 @@ window.addEventListener(
 );
 
 
-
-
 /* =====================================================
    SEARCH
 ===================================================== */
 
 let searchTimer;
-
 
 
 searchInput.addEventListener(
@@ -1490,7 +1495,6 @@ searchInput.addEventListener(
 
 
         clearTimeout(searchTimer);
-
 
 
         searchTimer =
@@ -1509,14 +1513,12 @@ searchInput.addEventListener(
                 .toLowerCase();
 
 
-
                 if(!query){
 
 
                     filteredData =
 
                     allData;
-
 
                 }
 
@@ -1542,13 +1544,10 @@ searchInput.addEventListener(
 
                     );
 
-
                 }
 
 
-
                 render(true);
-
 
             },
 
@@ -1556,12 +1555,9 @@ searchInput.addEventListener(
 
         );
 
-
     }
 
 );
-
-
 
 
 /* =====================================================
@@ -1576,7 +1572,6 @@ function toggleSearch(){
     !isSearching;
 
 
-
     document.body.classList.toggle(
 
         "searching",
@@ -1584,7 +1579,6 @@ function toggleSearch(){
         isSearching
 
     );
-
 
 
     if(isSearching){
@@ -1597,11 +1591,9 @@ function toggleSearch(){
 
                 searchInput.focus();
 
-
             }
 
         );
-
 
     }
 
@@ -1619,13 +1611,9 @@ function toggleSearch(){
 
         render(true);
 
-
     }
 
-
 }
-
-
 
 
 searchButton.addEventListener(
@@ -1635,8 +1623,6 @@ searchButton.addEventListener(
     toggleSearch
 
 );
-
-
 
 
 /* =====================================================
@@ -1649,7 +1635,6 @@ function setView(view){
     currentView = view;
 
 
-
     localStorage.setItem(
 
         "explore-layout",
@@ -1657,12 +1642,6 @@ function setView(view){
         view
 
     );
-
-
-
-    /*
-       Animate feed slightly
-    */
 
 
     feed.animate(
@@ -1700,7 +1679,6 @@ function setView(view){
     );
 
 
-
     feed.classList.toggle(
 
         "list",
@@ -1710,13 +1688,9 @@ function setView(view){
     );
 
 
-
     updateViewIcon();
 
-
 }
-
-
 
 
 function updateViewIcon(){
@@ -1729,28 +1703,17 @@ function updateViewIcon(){
     ){
 
 
-        /*
-           Show LIST icon
-        */
-
-
         viewIcon.innerHTML = `
 
             <path d="M6 7H19"/>
             <path d="M6 12H19"/>
             <path d="M6 17H19"/>
 
-            <path
-            d="M3 7H3.01"/>
-
-            <path
-            d="M3 12H3.01"/>
-
-            <path
-            d="M3 17H3.01"/>
+            <path d="M3 7H3.01"/>
+            <path d="M3 12H3.01"/>
+            <path d="M3 17H3.01"/>
 
         `;
-
 
     }
 
@@ -1758,78 +1721,41 @@ function updateViewIcon(){
     else{
 
 
-        /*
-           Show GRID icon
-        */
-
-
         viewIcon.innerHTML = `
 
             <rect
-
             x="4"
-
             y="4"
-
             width="6"
-
             height="6"
-
-            rx="1"
-
-            />
+            rx="1"/>
 
             <rect
-
             x="14"
-
             y="4"
-
             width="6"
-
             height="6"
-
-            rx="1"
-
-            />
+            rx="1"/>
 
             <rect
-
             x="4"
-
             y="14"
-
             width="6"
-
             height="6"
-
-            rx="1"
-
-            />
+            rx="1"/>
 
             <rect
-
             x="14"
-
             y="14"
-
             width="6"
-
             height="6"
-
-            rx="1"
-
-            />
+            rx="1"/>
 
         `;
 
-
     }
 
-
 }
-
-
 
 
 viewButton.addEventListener(
@@ -1841,22 +1767,17 @@ viewButton.addEventListener(
 
         setView(
 
-
             currentView === "grid"
 
             ? "list"
 
             : "grid"
 
-
         );
-
 
     }
 
 );
-
-
 
 
 /* =====================================================
@@ -1883,15 +1804,11 @@ document.addEventListener(
 
             toggleSearch();
 
-
         }
-
 
     }
 
 );
-
-
 
 
 /* =====================================================
@@ -1909,7 +1826,9 @@ render();
 
 
 </script>
-<script src="pwa-gate.js"></script>
+
+
+<script src="pwa-gte.js"></script>
 
 
 </body>
