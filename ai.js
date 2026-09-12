@@ -1,6 +1,6 @@
 /* =========================================
    SHO1RE1 — ANIMATED AI ICON
-   CENTER → WHITE TRANSITION → HREF
+   CENTER → CLEAN WHITE → HREF
 ========================================= */
 
 (() => {
@@ -18,6 +18,19 @@
 
   const WHITE_DURATION = 420;
 
+  const EXIT_DURATION = 180;
+
+
+  /* =========================
+     PREVENT DUPLICATES
+  ========================= */
+
+  if (
+    document.querySelector(".sho1re1-ai-button")
+  ) {
+    return;
+  }
+
 
   /* =========================
      ADD STYLE
@@ -32,41 +45,41 @@
        AI BUTTON
     ===================== */
 
-    .sho1re1-ai-button{
+    .sho1re1-ai-button {
 
-      position:fixed;
+      position: fixed;
 
-      left:20px;
+      left: 20px;
+      bottom: 240px;
 
-      bottom:240px;
+      width: 58px;
+      height: 58px;
 
-      width:58px;
-      height:58px;
+      display: flex;
 
-      display:flex;
+      align-items: center;
+      justify-content: center;
 
-      align-items:center;
-      justify-content:center;
+      background: #fff;
 
-      background:#fff;
+      border: 1px solid #eee;
 
-      border:1px solid #eee;
+      border-radius: 18px;
 
-      border-radius:18px;
+      color: #000;
 
-      color:#000;
+      text-decoration: none;
 
-      text-decoration:none;
-
-      z-index:99999;
+      z-index: 99999;
 
       box-shadow:
         0 8px 30px
         rgba(0,0,0,.10);
 
-      cursor:pointer;
+      cursor: pointer;
 
-      -webkit-tap-highlight-color:transparent;
+      -webkit-tap-highlight-color:
+        transparent;
 
       animation:
         aiButtonEnter
@@ -78,17 +91,15 @@
 
 
     /* =====================
-       ICON WRAPPER
+       ICON
     ===================== */
 
-    .sho1re1-ai-icon{
+    .sho1re1-ai-icon {
 
-      width:28px;
-      height:28px;
+      width: 28px;
+      height: 28px;
 
-      position:relative;
-
-      display:block;
+      display: block;
 
     }
 
@@ -97,9 +108,9 @@
        MAIN SPARKLE
     ===================== */
 
-    .ai-main-sparkle{
+    .ai-main-sparkle {
 
-      transform-origin:center;
+      transform-origin: center;
 
       animation:
 
@@ -107,12 +118,7 @@
 
         2.4s
 
-        cubic-bezier(
-          .45,
-          0,
-          .55,
-          1
-        )
+        cubic-bezier(.45,0,.55,1)
 
         infinite;
 
@@ -123,9 +129,9 @@
        SMALL SPARKLE
     ===================== */
 
-    .ai-small-sparkle{
+    .ai-small-sparkle {
 
-      transform-origin:center;
+      transform-origin: center;
 
       animation:
 
@@ -133,12 +139,7 @@
 
         2.4s
 
-        cubic-bezier(
-          .45,
-          0,
-          .55,
-          1
-        )
+        cubic-bezier(.45,0,.55,1)
 
         infinite;
 
@@ -146,80 +147,66 @@
 
 
     /* =====================
-       MAIN ICON ANIMATION
+       MAIN PULSE
     ===================== */
 
-    @keyframes aiPulse{
+    @keyframes aiPulse {
 
-      0%{
-
-        transform:scale(1);
-
+      0% {
+        transform: scale(1);
       }
 
-
-      35%{
-
-        transform:scale(1.18);
-
+      35% {
+        transform: scale(1.18);
       }
 
-
-      60%{
-
-        transform:scale(.94);
-
+      60% {
+        transform: scale(.94);
       }
 
-
-      100%{
-
-        transform:scale(1);
-
+      100% {
+        transform: scale(1);
       }
 
     }
 
 
     /* =====================
-       SMALL SPARKLE
+       SMALL PULSE
     ===================== */
 
-    @keyframes aiSmallPulse{
+    @keyframes aiSmallPulse {
 
       0%,
-      20%{
+      20% {
 
-        transform:scale(.7);
+        transform: scale(.7);
 
-        opacity:.45;
-
-      }
-
-
-      50%{
-
-        transform:scale(1.15);
-
-        opacity:1;
+        opacity: .45;
 
       }
 
+      50% {
 
-      75%{
+        transform: scale(1.15);
 
-        transform:scale(.85);
-
-        opacity:.7;
+        opacity: 1;
 
       }
 
+      75% {
 
-      100%{
+        transform: scale(.85);
 
-        transform:scale(.7);
+        opacity: .7;
 
-        opacity:.45;
+      }
+
+      100% {
+
+        transform: scale(.7);
+
+        opacity: .45;
 
       }
 
@@ -227,14 +214,14 @@
 
 
     /* =====================
-       BUTTON ENTRANCE
+       BUTTON ENTER
     ===================== */
 
-    @keyframes aiButtonEnter{
+    @keyframes aiButtonEnter {
 
-      from{
+      from {
 
-        opacity:0;
+        opacity: 0;
 
         transform:
           translateY(30px)
@@ -242,10 +229,9 @@
 
       }
 
+      to {
 
-      to{
-
-        opacity:1;
+        opacity: 1;
 
         transform:
           translateY(0)
@@ -260,9 +246,9 @@
        PRESS
     ===================== */
 
-    .sho1re1-ai-button:active{
+    .sho1re1-ai-button:active {
 
-      transform:scale(.90);
+      transform: scale(.9);
 
     }
 
@@ -271,73 +257,76 @@
        TRANSITION OVERLAY
     ===================== */
 
-    .sho1re1-ai-transition{
+    .sho1re1-ai-transition {
 
-      position:fixed;
+      position: fixed;
 
-      inset:0;
+      inset: 0;
 
-      z-index:2147483647;
+      z-index: 2147483647;
 
-      pointer-events:none;
+      overflow: hidden;
 
-      overflow:hidden;
+      pointer-events: none;
+
+      background: transparent;
 
     }
 
 
     /* =====================
-       MOVING ICON BOX
+       MOVING BOX
     ===================== */
 
-    .sho1re1-ai-moving-box{
+    .sho1re1-ai-moving-box {
 
-      position:fixed;
+      position: fixed;
 
-      display:flex;
+      display: flex;
 
-      align-items:center;
-      justify-content:center;
+      align-items: center;
+      justify-content: center;
 
-      background:#fff;
+      background: #fff;
 
-      border:1px solid #eee;
+      border: 1px solid #eee;
 
-      border-radius:18px;
+      border-radius: 18px;
 
-      color:#000;
+      color: #000;
 
       box-shadow:
         0 8px 30px
         rgba(0,0,0,.10);
 
-      pointer-events:none;
+      pointer-events: none;
 
       will-change:
-        transform,
         left,
         top,
         width,
-        height;
+        height,
+        opacity,
+        transform;
 
     }
 
 
     /* =====================
-       FULL WHITE SCREEN
+       WHITE SCREEN
     ===================== */
 
-    .sho1re1-ai-white-screen{
+    .sho1re1-ai-white-screen {
 
-      position:absolute;
+      position: fixed;
 
-      inset:0;
+      inset: 0;
 
-      background:#fff;
+      background: #fff;
 
-      opacity:0;
+      opacity: 0;
 
-      pointer-events:none;
+      pointer-events: none;
 
     }
 
@@ -347,12 +336,12 @@
     ===================== */
 
     @media
-    (prefers-reduced-motion:reduce){
+    (prefers-reduced-motion: reduce) {
 
       .sho1re1-ai-icon *,
-      .sho1re1-ai-button{
+      .sho1re1-ai-button {
 
-        animation:none !important;
+        animation: none !important;
 
       }
 
@@ -362,7 +351,6 @@
 
 
   document.head.appendChild(style);
-
 
 
   /* =========================
@@ -381,10 +369,6 @@
     AI_LINK;
 
 
-  aiButton.target =
-    "_top";
-
-
   aiButton.setAttribute(
     "aria-label",
     "Open AI"
@@ -392,7 +376,7 @@
 
 
   /* =========================
-     ANIMATED AI SVG
+     SVG
   ========================= */
 
   aiButton.innerHTML = `
@@ -403,9 +387,6 @@
       fill="none"
       aria-hidden="true"
     >
-
-
-      <!-- MAIN SPARKLE -->
 
       <path
 
@@ -431,8 +412,6 @@
 
       />
 
-
-      <!-- SMALL SPARKLE -->
 
       <path
 
@@ -463,33 +442,27 @@
   `;
 
 
-
   /* =========================
-     TRANSITION STATE
+     STATE
   ========================= */
 
   let isTransitioning = false;
 
 
-
   /* =========================
-     CLICK TRANSITION
+     CLICK
   ========================= */
 
   aiButton.addEventListener(
-
     "click",
 
     event => {
 
-
       event.preventDefault();
 
 
-      if(isTransitioning){
-
+      if (isTransitioning) {
         return;
-
       }
 
 
@@ -497,7 +470,7 @@
 
 
       /* =====================
-         GET ORIGINAL POSITION
+         ORIGINAL POSITION
       ===================== */
 
       const rect =
@@ -505,7 +478,7 @@
 
 
       /* =====================
-         CREATE OVERLAY
+         TRANSITION ROOT
       ===================== */
 
       const transition =
@@ -517,7 +490,7 @@
 
 
       /* =====================
-         CREATE WHITE SCREEN
+         WHITE SCREEN
       ===================== */
 
       const whiteScreen =
@@ -529,11 +502,7 @@
 
 
       /* =====================
-         CREATE MOVING BOX
-
-         IMPORTANT:
-         Entire icon box is copied.
-         Animated SVG remains inside.
+         MOVING BOX
       ===================== */
 
       const movingBox =
@@ -549,28 +518,34 @@
 
 
       /* =====================
-         START AT ORIGINAL
-         POSITION
+         START POSITION
       ===================== */
 
-      movingBox.style.left =
-        rect.left + "px";
+      Object.assign(
+        movingBox.style,
+        {
 
+          left:
+            rect.left + "px",
 
-      movingBox.style.top =
-        rect.top + "px";
+          top:
+            rect.top + "px",
 
+          width:
+            rect.width + "px",
 
-      movingBox.style.width =
-        rect.width + "px";
+          height:
+            rect.height + "px"
 
-
-      movingBox.style.height =
-        rect.height + "px";
+        }
+      );
 
 
       /* =====================
          ADD ELEMENTS
+
+         WHITE SCREEN FIRST
+         ICON ABOVE IT
       ===================== */
 
       transition.appendChild(
@@ -597,38 +572,29 @@
 
 
       /* =====================
-         EXACT SCREEN CENTER
+         CENTER
       ===================== */
 
-      const centerX =
-        window.innerWidth / 2;
-
-
-      const centerY =
-        window.innerHeight / 2;
-
-
-      const centerSize =
-        112;
+      const centerSize = 112;
 
 
       const targetLeft =
-        centerX -
-        centerSize / 2;
+
+        window.innerWidth / 2
+
+        - centerSize / 2;
 
 
       const targetTop =
-        centerY -
-        centerSize / 2;
+
+        window.innerHeight / 2
+
+        - centerSize / 2;
 
 
       /* =====================
          PHASE 1
-
-         WHOLE BOX MOVES
-         TO CENTER
-
-         AND GETS BIGGER
+         MOVE TO CENTER
       ===================== */
 
       const moveAnimation =
@@ -652,11 +618,7 @@
                 rect.height + "px",
 
               borderRadius:
-                "18px",
-
-              opacity:1,
-
-              offset:0
+                "18px"
 
             },
 
@@ -676,11 +638,7 @@
                 centerSize + "px",
 
               borderRadius:
-                "32px",
-
-              opacity:1,
-
-              offset:1
+                "32px"
 
             }
 
@@ -703,38 +661,29 @@
 
 
       /* =====================
-         AFTER CENTER REACHED
+         AFTER CENTER
       ===================== */
 
       moveAnimation.finished.then(
-
         () => {
 
 
           /* =================
-             PHASE 2
-
-             WHITE SCREEN
-             FADES IN
+             WHITE SCREEN IN
           ================= */
 
-          const fadeAnimation =
+          const whiteAnimation =
 
             whiteScreen.animate(
 
               [
 
                 {
-
-                  opacity:0
-
+                  opacity: 0
                 },
 
-
                 {
-
-                  opacity:1
-
+                  opacity: 1
                 }
 
               ],
@@ -756,64 +705,105 @@
 
 
           /* =================
-             MOVING BOX
+             ICON DISAPPEARS
 
-             GENTLY EXPANDS
-             AS WHITE COMES
+             THIS IS THE FIX
+
+             The icon goes away
+             BEFORE navigation.
           ================= */
 
-          movingBox.animate(
+          const iconExitAnimation =
 
-            [
+            movingBox.animate(
+
+              [
+
+                {
+
+                  opacity: 1,
+
+                  transform:
+                    "scale(1)"
+
+                },
+
+
+                {
+
+                  opacity: 0,
+
+                  transform:
+                    "scale(.85)"
+
+                }
+
+              ],
 
               {
 
-                transform:
-                  "scale(1)",
+                duration:
+                  EXIT_DURATION,
 
-                opacity:1
+                easing:
+                  "ease-in",
 
-              },
-
-
-              {
-
-                transform:
-                  "scale(1.12)",
-
-                opacity:.98
+                fill:
+                  "forwards"
 
               }
 
-            ],
-
-            {
-
-              duration:
-                WHITE_DURATION,
-
-              easing:
-                "cubic-bezier(.2,1,.3,1)",
-
-              fill:
-                "forwards"
-
-            }
-
-          );
+            );
 
 
           /* =================
-             OPEN AI PAGE
+             WAIT FOR BOTH
           ================= */
 
-          fadeAnimation.finished.then(
+          Promise.all(
 
+            [
+
+              whiteAnimation.finished,
+
+              iconExitAnimation.finished
+
+            ]
+
+          ).then(
             () => {
 
 
-              window.location.href =
-                AI_LINK;
+              /* =================
+                 IMPORTANT
+
+                 Remove icon
+                 completely.
+
+                 Only pure white
+                 screen remains.
+              ================= */
+
+              movingBox.remove();
+
+
+              /* =================
+                 NAVIGATE
+              ================= */
+
+              setTimeout(
+
+                () => {
+
+                  window.location.assign(
+                    AI_LINK
+                  );
+
+                },
+
+                50
+
+              );
 
 
             }
@@ -831,26 +821,19 @@
   );
 
 
-
   /* =========================
      ADD BUTTON
   ========================= */
 
-  function addAIButton(){
+  function addAIButton() {
 
 
-    /* Prevent duplicates */
-
-    if(
-
+    if (
       document.querySelector(
         ".sho1re1-ai-button"
       )
-
-    ){
-
+    ) {
       return;
-
     }
 
 
@@ -861,18 +844,15 @@
   }
 
 
-
   /* =========================
-     PAGE READY
+     READY
   ========================= */
 
-  if(document.body){
+  if (document.body) {
 
     addAIButton();
 
-  }
-
-  else{
+  } else {
 
     document.addEventListener(
 
@@ -880,7 +860,7 @@
 
       addAIButton,
 
-      { once:true }
+      { once: true }
 
     );
 
