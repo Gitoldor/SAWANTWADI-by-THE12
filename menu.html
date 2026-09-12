@@ -20,16 +20,29 @@ crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
 rel="stylesheet">
 
+
 <style>
+
+/* =====================================================
+   RESET
+===================================================== */
 
 *{
   margin:0;
   padding:0;
   box-sizing:border-box;
+
   -webkit-tap-highlight-color:transparent;
 }
 
+
+html{
+  background:#fcfcfc;
+}
+
+
 body{
+
   width:100%;
   min-height:100vh;
 
@@ -44,103 +57,274 @@ body{
   overflow-y:auto;
   overflow-x:hidden;
 
-  padding:24px 12px 40px;
+  padding:24px 16px 48px;
 
   scrollbar-width:none;
+
 }
+
 
 body::-webkit-scrollbar{
   display:none;
 }
 
 
-/* HEADER */
+/* =====================================================
+   PAGE ENTER
+===================================================== */
 
-.page-header{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:20px;
+body{
+  animation:
+  pageEnter .55s
+  cubic-bezier(.22,1,.36,1)
+  both;
 }
 
 
-.back-btn{
+@keyframes pageEnter{
+
+  from{
+    opacity:0;
+    transform:translateY(10px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.page-header{
+
   display:flex;
+
+  align-items:center;
+
+  gap:13px;
+
+  margin-bottom:26px;
+
+  animation:
+  headerEnter .6s
+  cubic-bezier(.22,1,.36,1)
+  both;
+
+}
+
+
+@keyframes headerEnter{
+
+  from{
+    opacity:0;
+    transform:
+    translateY(-12px);
+  }
+
+  to{
+    opacity:1;
+    transform:
+    translateY(0);
+  }
+
+}
+
+
+/* =====================================================
+   BACK BUTTON
+===================================================== */
+
+.back-btn{
+
+  width:38px;
+  height:38px;
+
+  display:flex;
+
   align-items:center;
   justify-content:center;
 
-  background:none;
+  background:transparent;
+
   border:none;
 
-  cursor:pointer;
+  border-radius:50%;
 
-  padding:4px;
+  cursor:pointer;
 
   text-decoration:none;
 
   flex-shrink:0;
+
+  transition:
+  background .2s ease,
+  transform .2s
+  cubic-bezier(.22,1,.36,1);
+
+}
+
+
+.back-btn:hover{
+
+  background:#f0f0f0;
+
+  transform:
+  translateX(-2px);
+
+}
+
+
+.back-btn:active{
+
+  transform:
+  scale(.86)
+  translateX(-2px);
+
 }
 
 
 .back-btn svg{
-  width:26px;
-  height:26px;
+
+  width:25px;
+  height:25px;
 
   fill:none;
+
   stroke:#000;
 
   stroke-width:2.5;
 
   stroke-linecap:round;
   stroke-linejoin:round;
+
+  transition:
+  transform .2s
+  cubic-bezier(.22,1,.36,1);
+
 }
 
 
+.back-btn:hover svg{
+
+  transform:
+  translateX(-2px);
+
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
+
 .main-title{
+
   font-size:2rem;
 
   font-weight:900;
 
-  letter-spacing:-0.8px;
+  letter-spacing:-1px;
 
   color:#000;
 
-  line-height:1.05;
+  line-height:1;
+
 }
 
 
-/* SECTION */
+/* =====================================================
+   SECTION
+===================================================== */
 
 .section-header{
+
   display:flex;
 
   align-items:flex-end;
 
   justify-content:space-between;
 
-  margin-top:18px;
+  margin-top:24px;
 
-  margin-bottom:14px;
+  margin-bottom:15px;
 
   gap:8px;
+
+  opacity:0;
+
+  animation:
+  sectionEnter .55s
+  cubic-bezier(.22,1,.36,1)
+  forwards;
+
 }
 
 
+.section-header:nth-of-type(2){
+  animation-delay:.08s;
+}
+
+
+.section-header:nth-of-type(3){
+  animation-delay:.22s;
+}
+
+
+@keyframes sectionEnter{
+
+  from{
+
+    opacity:0;
+
+    transform:
+    translateY(8px);
+
+  }
+
+  to{
+
+    opacity:1;
+
+    transform:
+    translateY(0);
+
+  }
+
+}
+
+
+/* =====================================================
+   SECTION LABEL
+===================================================== */
+
 .section-label{
-  font-size:.95rem;
+
+  font-size:.92rem;
 
   font-weight:700;
 
-  color:#8e8e93;
+  color:#96969b;
+
+  letter-spacing:-.1px;
 
   line-height:1.1;
+
 }
 
 
+/* =====================================================
+   SEE ALL
+===================================================== */
+
 .see-all-btn{
+
   font-size:.88rem;
 
-  font-weight:600;
+  font-weight:700;
 
   color:#8e8e93;
 
@@ -149,28 +333,63 @@ body::-webkit-scrollbar{
   white-space:nowrap;
 
   flex-shrink:0;
+
+  transition:
+
+  color .2s ease,
+  transform .2s ease;
+
 }
 
 
-/* LIST */
+.see-all-btn:hover{
+
+  color:#000;
+
+  transform:
+  translateX(2px);
+
+}
+
+
+.see-all-btn:active{
+
+  transform:
+  scale(.95);
+
+}
+
+
+/* =====================================================
+   LIST
+===================================================== */
 
 .list-group{
+
   display:flex;
 
   flex-direction:column;
 
-  gap:16px;
+  gap:6px;
 
-  margin-bottom:28px;
+  margin-bottom:30px;
+
 }
 
 
+/* =====================================================
+   LIST ITEM
+===================================================== */
+
 .list-item{
+
   display:flex;
 
   align-items:center;
 
   gap:14px;
+
+  min-height:58px;
 
   text-decoration:none;
 
@@ -180,29 +399,96 @@ body::-webkit-scrollbar{
 
   background:transparent;
 
-  border-radius:12px;
+  border-radius:18px;
 
-  padding:2px 0;
+  padding:7px 8px;
+
+  margin:0 -8px;
+
+  opacity:0;
+
+  transform:
+  translateY(12px);
+
+  animation:
+  itemEnter .5s
+  cubic-bezier(.22,1,.36,1)
+  forwards;
 
   transition:
-  transform .12s ease,
-  opacity .12s ease;
+
+  background .2s ease,
+
+  transform .18s
+  cubic-bezier(.22,1,.36,1),
+
+  opacity .18s ease;
+
 }
 
+
+/* ANIMATION */
+
+@keyframes itemEnter{
+
+  from{
+
+    opacity:0;
+
+    transform:
+    translateY(12px);
+
+  }
+
+  to{
+
+    opacity:1;
+
+    transform:
+    translateY(0);
+
+  }
+
+}
+
+
+/* DESKTOP */
+
+@media (hover:hover){
+
+  .list-item:hover{
+
+    background:#f4f4f4;
+
+    transform:
+    translateX(3px);
+
+  }
+
+}
+
+
+/* MOBILE PRESS */
 
 .list-item:active{
-  transform:scale(.97);
 
-  opacity:.7;
+  background:#eeeeee;
+
+  transform:
+  scale(.975);
+
 }
 
 
-/* COMMUNITY IMAGE */
+/* =====================================================
+   COMMUNITY IMAGE
+===================================================== */
 
 .icon-wrapper{
-  width:44px;
 
-  height:44px;
+  width:46px;
+
+  height:46px;
 
   flex-shrink:0;
 
@@ -211,10 +497,40 @@ body::-webkit-scrollbar{
   overflow:hidden;
 
   background:#eee;
+
+  transform:
+  translateZ(0);
+
+  transition:
+
+  transform .3s
+  cubic-bezier(.22,1,.36,1),
+
+  box-shadow .3s ease;
+
 }
 
 
+.list-item:hover .icon-wrapper{
+
+  transform:
+  scale(1.06);
+
+}
+
+
+.list-item:active .icon-wrapper{
+
+  transform:
+  scale(.93);
+
+}
+
+
+/* IMAGE */
+
 .community-image{
+
   width:100%;
 
   height:100%;
@@ -222,15 +538,33 @@ body::-webkit-scrollbar{
   display:block;
 
   object-fit:cover;
+
+  transition:
+
+  transform .5s
+  cubic-bezier(.22,1,.36,1);
+
 }
 
 
-/* FEED ICON */
+.list-item:hover
+.community-image{
+
+  transform:
+  scale(1.08);
+
+}
+
+
+/* =====================================================
+   FEED ICON
+===================================================== */
 
 .feed-icon{
-  width:44px;
 
-  height:44px;
+  width:46px;
+
+  height:46px;
 
   flex-shrink:0;
 
@@ -239,42 +573,157 @@ body::-webkit-scrollbar{
   align-items:center;
 
   justify-content:center;
+
+  border-radius:50%;
+
+  transition:
+
+  background .25s ease,
+  transform .25s
+  cubic-bezier(.22,1,.36,1);
+
 }
 
 
 .feed-icon svg{
-  width:85%;
 
-  height:85%;
+  width:82%;
+
+  height:82%;
 
   fill:none;
 
   stroke:#000;
 
-  stroke-width:2.2;
+  stroke-width:2;
 
   stroke-linecap:round;
 
   stroke-linejoin:round;
+
+  transition:
+
+  transform .25s
+  cubic-bezier(.22,1,.36,1);
+
 }
 
 
-/* TITLE */
+.list-item:hover
+.feed-icon{
+
+  background:#e9e9e9;
+
+  transform:
+  scale(1.05);
+
+}
+
+
+.list-item:hover
+.feed-icon svg{
+
+  transform:
+  scale(1.05);
+
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
 
 .item-title{
-  font-size:1.05rem;
+
+  font-size:1.02rem;
 
   font-weight:800;
 
   color:#000;
 
-  letter-spacing:-.2px;
+  letter-spacing:-.35px;
 
   line-height:1.15;
 
   word-break:break-word;
 
   overflow-wrap:break-word;
+
+}
+
+
+/* =====================================================
+   STAGGER
+===================================================== */
+
+#suggestedList
+.list-item:nth-child(1){
+  animation-delay:.12s;
+}
+
+#suggestedList
+.list-item:nth-child(2){
+  animation-delay:.18s;
+}
+
+#suggestedList
+.list-item:nth-child(3){
+  animation-delay:.24s;
+}
+
+#suggestedList
+.list-item:nth-child(4){
+  animation-delay:.30s;
+}
+
+#suggestedList
+.list-item:nth-child(5){
+  animation-delay:.36s;
+}
+
+
+/* OTHER FEEDS */
+
+.list-group:not(#suggestedList)
+.list-item:nth-child(1){
+  animation-delay:.32s;
+}
+
+.list-group:not(#suggestedList)
+.list-item:nth-child(2){
+  animation-delay:.38s;
+}
+
+.list-group:not(#suggestedList)
+.list-item:nth-child(3){
+  animation-delay:.44s;
+}
+
+.list-group:not(#suggestedList)
+.list-item:nth-child(4){
+  animation-delay:.50s;
+}
+
+
+/* =====================================================
+   REDUCED MOTION
+===================================================== */
+
+@media
+(prefers-reduced-motion:reduce){
+
+  *,
+  *::before,
+  *::after{
+
+    animation-duration:.01ms !important;
+
+    animation-iteration-count:1 !important;
+
+    transition-duration:.01ms !important;
+
+  }
+
 }
 
 </style>
@@ -295,10 +744,13 @@ body::-webkit-scrollbar{
     href="index.html"
     target="_top"
     class="back-btn"
+    aria-label="Go back"
   >
 
     <svg viewBox="0 0 24 24">
+
       <path d="M15 18l-6-6 6-6"/>
+
     </svg>
 
   </a>
@@ -374,7 +826,7 @@ body::-webkit-scrollbar{
 
       <svg viewBox="0 0 24 24">
 
-        <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/>
+        <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
 
         <path d="M8 7h8"/>
 
@@ -387,7 +839,6 @@ body::-webkit-scrollbar{
       </svg>
 
     </div>
-
 
     <span class="item-title">
       Updates
@@ -415,7 +866,6 @@ body::-webkit-scrollbar{
 
     </div>
 
-
     <span class="item-title">
       Saved
     </span>
@@ -441,7 +891,6 @@ body::-webkit-scrollbar{
       </svg>
 
     </div>
-
 
     <span class="item-title">
       Liked
@@ -469,7 +918,6 @@ body::-webkit-scrollbar{
 
     </div>
 
-
     <span class="item-title">
       Ghost posts
     </span>
@@ -495,25 +943,25 @@ body::-webkit-scrollbar{
 
 <script>
 
-
 const suggestedList =
 document.getElementById("suggestedList");
 
 
-/* -------------------------
-   GET FIRST 5 COMMUNITIES
-------------------------- */
+const communities =
+Array.isArray(window.communitiesData)
+? window.communitiesData
+: [];
+
+
+/* GET FIRST 5 */
 
 const suggested =
-window.communitiesData
-.slice(0, 5);
+communities.slice(0,5);
 
 
-/* -------------------------
-   CREATE COMMUNITY ITEMS
-------------------------- */
+/* RENDER */
 
-suggested.forEach(community => {
+suggested.forEach((community,index)=>{
 
 
   const item =
@@ -524,22 +972,20 @@ suggested.forEach(community => {
   "list-item";
 
 
-  /* COMMUNITY LINK */
-
   item.href =
-  community.href;
+  community.href ||
+  "#";
 
-
-  /* 
-     OPEN IN TOP PAGE
-     EVEN IF INSIDE IFRAME/EMBED
-  */
 
   item.target =
   "_top";
 
 
-  /* CONTENT */
+  /* Dynamic stagger */
+
+  item.style.animationDelay =
+  `${0.12 + (index * 0.06)}s`;
+
 
   item.innerHTML = `
 
@@ -569,7 +1015,6 @@ suggested.forEach(community => {
 
 
 });
-
 
 </script>
 
