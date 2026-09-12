@@ -69,8 +69,20 @@ window.Sho1re1Places = [
     image: "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
     link: "welcome.html",
     plan: "PREMIUM"
-  }
+  },
 
+  {
+    id: 4,
+    title: "K",
+    topic: "K",
+    type: "M",
+    subtype: "N",
+    lat: 90,
+    lng: 90,
+    image: "",
+    link: "",
+    plan: "PRO"
+  }
 ];
 
 
