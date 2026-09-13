@@ -37,7 +37,7 @@ style.textContent=`
 
 .s1n{
   position:fixed;
-  top:12px;
+  top:20px;
   left:12px;
   right:12px;
   z-index:999;
@@ -284,8 +284,9 @@ style.textContent=`
   inset:0;
   z-index:1000;
 
-  background:#0003;
-  backdrop-filter:blur(5px);
+  
+  background:transparent;
+  backdrop-filter:none;
 
   opacity:0;
   pointer-events:none;
@@ -295,14 +296,13 @@ style.textContent=`
 
 
 /* DRAWER */
-
 .s1drawer{
   position:fixed;
-  top:0;
-  left:0;
+  top:10px;
+  left:10px;
 
-  width:100%;
-  height:82vh;
+  width:95%;
+  height:58.5vh;
 
   padding:
     calc(env(safe-area-inset-top,0px) + 8px)
@@ -312,12 +312,12 @@ style.textContent=`
   box-sizing:border-box;
 
   overflow-y:auto;
-
   overscroll-behavior:contain;
 
+  /* TOTAL WHITE */
   background:#fff;
 
-  border-radius:0 0 32px 32px;
+  border-radius: 40px 40px  40px 40px;
 
   z-index:1001;
 
@@ -327,7 +327,7 @@ style.textContent=`
 
   transition:
     transform .65s
-    cubic-bezier(.16,1.6,.3,1)
+    cubic-bezier(.16,1.6,.3,1);
 }
 
 .s1drawer.open{
