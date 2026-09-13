@@ -876,12 +876,12 @@ rawPlaces.forEach((p, idx) => {
 /* =========================
 SWIPE ROUTES & LEFT-TO-RIGHT 50% DRAWER TOUCH HANDLERS
 ========================= */
-const SWIPE_ROUTES = { top: 'feed.html', bottom: 'explore.html' };
+const SWIPE_ROUTES = { top: '#', bottom: 'explore.html' };
 
 function triggerPageTransition(direction, href){
   const body = document.body;
-  if(body.classList.contains('page-transition-down') || body.classList.contains('page-transition-up')) return;
-  body.classList.add(direction === 'down' ? 'page-transition-down' : 'page-transition-up');
+  if(body.classList.contains('page-transition-down') || body.classList.contains('page-transition')) return;
+  body.classList.add(direction === 'down' ? 'page-transition-down' : 'page-transition-');
   setTimeout(() => { window.location.href = href; }, 360);
 }
 
@@ -889,10 +889,10 @@ function bindEdgeSwipe(zoneEl, direction, href, threshold = 70){
   let startX = 0, startY = 0, active = false;
 
   zoneEl.addEventListener('pointerdown', (e) => {
-    active = true;
+    active = false;
     startX = e.clientX;
     startY = e.clientY;
-  }, { passive: true });
+  }, { passive: false });
 
   zoneEl.addEventListener('pointerup', (e) => {
     if(!active) return;
