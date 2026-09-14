@@ -359,54 +359,56 @@
          ROOT
       ========================================= */
 
-      #custom-explore-bar-root {
+  #custom-explore-bar-root {
 
-        position: fixed;
+  position: fixed;
 
-        right: ${config.right};
+  left: 50%;
 
-        bottom: ${config.bottom};
+  bottom: ${config.bottom};
 
-        z-index: ${config.zIndex};
+  transform: translateX(-50%);
 
-        font-family:
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
+  z-index: ${config.zIndex};
 
-        animation:
-          exploreEnter .7s
-          cubic-bezier(.16,1,.3,1)
-          both;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 
-      }
+  animation:
+    exploreEnter .7s
+    cubic-bezier(.16,1,.3,1)
+    both;
 
+}
 
-      @keyframes exploreEnter {
+@keyframes exploreEnter {
 
-        from {
+  from {
 
-          opacity: 0;
+    opacity: 0;
 
-          transform:
-            translateY(50px)
-            scale(.85);
+    transform:
+      translateX(-50%)
+      translateY(50px)
+      scale(.85);
 
-        }
+  }
 
-        to {
+  to {
 
-          opacity: 1;
+    opacity: 1;
 
-          transform:
-            translateY(0)
-            scale(1);
+    transform:
+      translateX(-50%)
+      translateY(0)
+      scale(1);
 
-        }
+  }
 
-      }
-
+}
 
 
       /* =========================================
@@ -1200,11 +1202,9 @@
 
       @media (max-width: 500px) {
 
-        #custom-explore-bar-root {
 
-          right: 20px;
 
-        }
+        
 
         #custom-explore-bar-root
         .explore-dropdown {
