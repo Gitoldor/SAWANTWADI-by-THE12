@@ -3,7 +3,7 @@
 const DATA="notificationdata.js",
       START=2000,
       INTERVAL=1000,
-      MAX=20;
+      MAX=3;
 
 
 /* LOAD DATA */
@@ -245,7 +245,10 @@ style.textContent=`
 }
 
 @keyframes pulse{
-  50%{scale:1.5;opacity:.45}
+  50%{
+    scale:1.5;
+    opacity:.45
+  }
 }
 
 
@@ -273,7 +276,9 @@ style.textContent=`
 }
 
 @keyframes hint{
-  50%{transform:translateY(5px)}
+  50%{
+    transform:translateY(5px)
+  }
 }
 
 
@@ -284,7 +289,6 @@ style.textContent=`
   inset:0;
   z-index:1000;
 
-  
   background:transparent;
   backdrop-filter:none;
 
@@ -295,9 +299,13 @@ style.textContent=`
 }
 
 
-/* DRAWER */
+/* =========================
+   DRAWER
+========================= */
+
 .s1drawer{
   position:fixed;
+
   top:10px;
   left:10px;
 
@@ -314,10 +322,9 @@ style.textContent=`
   overflow-y:auto;
   overscroll-behavior:contain;
 
-  /* TOTAL WHITE */
   background:#fff;
 
-  border-radius: 40px 40px  40px 40px;
+  border-radius:40px;
 
   z-index:1001;
 
@@ -359,17 +366,119 @@ style.textContent=`
 }
 
 
-/* HEADER */
+/* =========================
+   DRAWER HEADER
+========================= */
+
+.s1header{
+  position:relative;
+
+  min-height:82px;
+
+  margin:
+    5px 4px 18px;
+
+  padding-right:105px;
+
+  box-sizing:border-box;
+}
+
+
+/* HEADER TITLE */
 
 .s1head{
   margin:5px 0 4px;
-  font:750 24px system-ui
+
+  font:750 24px system-ui;
+
+  line-height:1.1;
 }
 
+
+/* SUBTITLE */
+
 .s1sub{
-  margin-bottom:18px;
   font:14px system-ui;
-  color:#777
+
+  color:#777;
+
+  line-height:1.3;
+}
+
+
+/* =========================
+   LIVE DATE
+========================= */
+
+.s1date{
+  position:absolute;
+
+  top:0;
+  right:0;
+
+  width:88px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+
+  text-align:right;
+
+  color:#111;
+
+  line-height:1;
+
+  pointer-events:none;
+
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+
+/* MONTH */
+
+.s1month{
+  font-size:10px;
+
+  font-weight:750;
+
+  letter-spacing:1.2px;
+
+  text-transform:uppercase;
+
+  margin-bottom:3px;
+}
+
+
+/* BIG DATE */
+
+.s1daynum{
+  font-size:42px;
+
+  font-weight:900;
+
+  letter-spacing:-2px;
+
+  line-height:.9;
+}
+
+
+/* DAY */
+
+.s1weekday{
+  margin-top:6px;
+
+  font-size:11px;
+
+  font-weight:750;
+
+  letter-spacing:.8px;
+
+  text-transform:uppercase;
 }
 
 
@@ -455,9 +564,29 @@ function card(d,cls){
 }
 
 
-/* START */
+/* =========================
+   START
+========================= */
 
 function start(){
+  
+  /* =========================
+   NOTIFICATION SOUND
+========================= */
+
+const notifyAudio = new Audio(
+  "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
+);
+
+notifyAudio.volume = 0.05;
+
+function playNotificationSound(){
+
+  notifyAudio.currentTime = 0;
+
+  notifyAudio.play().catch(()=>{});
+
+}
 
   const data=window.Sho1re1Notifications;
 
@@ -512,12 +641,15 @@ function start(){
 
   const cards=[];
 
+
   let opened=false,
       sy=0,
       pulling=false;
 
 
-  /* STACK */
+  /* =========================
+     STACK
+  ========================= */
 
   function update(){
 
@@ -547,7 +679,9 @@ function start(){
   }
 
 
-  /* SHOW HIGHLIGHTS */
+  /* =========================
+     SHOW HIGHLIGHTS
+  ========================= */
 
   setTimeout(()=>{
 
@@ -555,11 +689,14 @@ function start(){
 
       setTimeout(()=>{
 
-        const c=card(d,"s1card");
+  const c=card(d,"s1card");
 
-        cards.unshift(c);
+  cards.unshift(c);
+  stack.prepend(c);
 
-        stack.prepend(c);
+  /* PLAY SOUND */
+
+  playNotificationSound();
 
 
         requestAnimationFrame(()=>{
@@ -587,14 +724,24 @@ function start(){
           x.animate(
 
             [
-              {transform:x.style.transform},
-              {transform:"translateY(20px) scale(.97)"},
-              {transform:x.style.transform}
+              {
+                transform:x.style.transform
+              },
+
+              {
+                transform:
+                  "translateY(20px) scale(.97)"
+              },
+
+              {
+                transform:x.style.transform
+              }
             ],
 
             {
               duration:400,
-              easing:"cubic-bezier(.18,1.5,.3,1)"
+              easing:
+                "cubic-bezier(.18,1.5,.3,1)"
             }
 
           );
@@ -609,7 +756,8 @@ function start(){
 
     /* COLLAPSE AFTER ALL */
 
-    const end=data.length*INTERVAL+700;
+    const end=
+      data.length*INTERVAL+700;
 
 
     setTimeout(()=>{
@@ -620,23 +768,22 @@ function start(){
 
           {
             opacity:1,
-            transform:"translateY(0) scale(1)"
+            transform:
+              "translateY(0) scale(1)"
           },
 
           {
             opacity:0,
-            transform:"translateY(-20px) scale(.75)"
+            transform:
+              "translateY(-20px) scale(.75)"
           }
 
         ],
 
         {
-
           duration:500,
-
           easing:
             "cubic-bezier(.2,1.5,.3,1)"
-
         }
 
       );
@@ -659,7 +806,50 @@ function start(){
   },START);
 
 
-  /* BUILD DRAWER */
+  /* =========================
+     LIVE DATE
+  ========================= */
+
+  function updateDate(){
+
+    const month=
+      drawer.querySelector(".s1month");
+
+    const daynum=
+      drawer.querySelector(".s1daynum");
+
+    const weekday=
+      drawer.querySelector(".s1weekday");
+
+    if(!month)return;
+
+
+    const today=new Date();
+
+
+    month.textContent=
+      today.toLocaleDateString(
+        "en-IN",
+        {month:"long"}
+      );
+
+
+    daynum.textContent=
+      today.getDate();
+
+
+    weekday.textContent=
+      today.toLocaleDateString(
+        "en-IN",
+        {weekday:"long"}
+      );
+
+  }
+
+
+  /* =========================
+     BUILD DRAWER
+  ========================= */
 
   function build(){
 
@@ -667,20 +857,58 @@ function start(){
 
       <div class="s1handle"></div>
 
-      <div class="s1head">
-        Sawantwadi Now
-      </div>
+      <div class="s1header">
 
-      <div class="s1sub">
-        What's happening around you
+        <div>
+
+          <div class="s1head">
+            Sawantwadi on
+          </div>
+
+          <div class="s1sub">
+            What's happening around today 
+          </div>
+
+        </div>
+
+
+        <div class="s1date">
+
+          <div class="s1month"></div>
+
+          <div class="s1daynum"></div>
+
+          <div class="s1weekday"></div>
+
+        </div>
+
       </div>
 
     `;
 
 
+    /* INITIAL DATE */
+
+    updateDate();
+
+
+    /* KEEP DATE LIVE */
+
+    if(!window.Sho1re1DateTimer){
+
+      window.Sho1re1DateTimer=
+        setInterval(
+          updateDate,
+          1000
+        );
+
+    }
+
+
     data.forEach((d,i)=>{
 
-      const item=card(d,"s1item");
+      const item=
+        card(d,"s1item");
 
       drawer.append(item);
 
@@ -721,7 +949,9 @@ function start(){
   }
 
 
-  /* OPEN */
+  /* =========================
+     OPEN
+  ========================= */
 
   function open(){
 
@@ -749,7 +979,9 @@ function start(){
   }
 
 
-  /* CLOSE */
+  /* =========================
+     CLOSE
+  ========================= */
 
   function close(){
 
@@ -778,7 +1010,9 @@ function start(){
   now.onclick=open;
 
 
-  /* PULL FROM TOP LEFT */
+  /* =========================
+     PULL FROM TOP LEFT
+  ========================= */
 
   document.addEventListener(
 
@@ -832,9 +1066,11 @@ function start(){
       if(dy<=0)return;
 
 
-      const h=drawer.offsetHeight;
+      const h=
+        drawer.offsetHeight;
 
-      const p=Math.min(dy,h)/h;
+      const p=
+        Math.min(dy,h)/h;
 
 
       drawer.classList.add("drag");
@@ -876,7 +1112,10 @@ function start(){
       drawer.style.transform="";
 
 
-      if(top>-drawer.offsetHeight*.55){
+      if(
+        top>
+        -drawer.offsetHeight*.55
+      ){
 
         open();
 
@@ -891,7 +1130,9 @@ function start(){
   );
 
 
-  /* CLOSE HANDLE */
+  /* =========================
+     CLOSE HANDLE
+  ========================= */
 
   let cy=0,
       cm=0;
@@ -899,7 +1140,8 @@ function start(){
 
   function closeStart(e){
 
-    cy=e.touches[0].clientY;
+    cy=
+      e.touches[0].clientY;
 
     cm=0;
 
@@ -910,7 +1152,8 @@ function start(){
 
   function closeMove(e){
 
-    cm=e.touches[0].clientY-cy;
+    cm=
+      e.touches[0].clientY-cy;
 
     if(cm>=0)return;
 
