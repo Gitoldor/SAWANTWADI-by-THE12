@@ -82,4 +82,14 @@ window.Sho1re1Notifications = [
     link:"https://github.com/Gitoldor/SAWANTWADI-by-THE12",
     createdAt:"2026-09-15T07:57:17.575Z"
   }
+,
+
+  {
+    id:"n14",
+    image:"https://images.unsplash.com/photo-1500534623283-312aade485b7?w=800",
+    title:"Yo",
+    message:"Yoboys",
+    link:"Index.html",
+    createdAt:"2026-09-15T15:31:05.686Z"
+  }
 ];
