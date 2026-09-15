@@ -72,4 +72,14 @@ window.Sho1re1Notifications = [
     link:"https://api.github.com",
     createdAt:"2026-09-15T06:48:18.280Z"
   }
+,
+
+  {
+    id:"n13",
+    image:"https://github.com/Gitoldor/SAWANTWADI-by-THE12",
+    title:"Damn boys",
+    message:"Yo chat log",
+    link:"https://github.com/Gitoldor/SAWANTWADI-by-THE12",
+    createdAt:"2026-09-15T07:57:17.575Z"
+  }
 ];
