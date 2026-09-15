@@ -27,23 +27,9 @@ window.Sho1re1Notifications = [
     createdAt:"2026-09-14T18:45:00+05:30"
   },
 
-  {
-    id:"n4",
-    image:"https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=300",
-    title:"Discover",
-    message:"Check out something new.",
-    link:"map.html",
-    createdAt:"2026-09-14T10:15:00+05:30"
-  },
+  
 
-  {
-    id:"n5",
-    image:"https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300",
-    title:"More Waiting",
-    message:"You have another notification.",
-    link:"explore.html",
-    createdAt:"2026-09-13T23:30:00+05:30"
-  },
+  
 
   {
     id:"n6",
@@ -72,35 +58,11 @@ window.Sho1re1Notifications = [
     createdAt:"2026-09-14T16:40:00+05:30"
   },
 
-  {
-    id:"n9",
-    image:"https://images.unsplash.com/photo-1511497584788-876760111969?w=300",
-    title:"Nature Update",
-    message:"Something interesting is happening.",
-    link:"index.html",
-    createdAt:"2026-09-14T12:25:00+05:30"
-  },
+  
 
-  {
-    id:"n10",
-    image:"https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=300",
-    title:"What's New",
-    message:"Check out the latest update.",
-    link:"shorts.html",
-    createdAt:"2026-09-14T08:50:00+05:30"
-  },
+  
 
-  {
-    id:"n11",
-    image:"https://images.unsplash.com/photo-1448375240586-882707db888b?w=300",
-    title:"Explore More",
-    message:"There's something waiting for you.",
-    link:"explore.html",
-    createdAt:"2026-09-13T20:15:00+05:30"
-  }
-
-
-,
+  
 
   {
     id:"n12",
