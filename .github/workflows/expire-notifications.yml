@@ -1,27 +1,16 @@
 # ============================================================
-# SAWANTWADI NOTIFICATION AUTO EXPIRER
+# SAWANTWADI — AUTO EXPIRE NOTIFICATIONS
 # ============================================================
 #
-# PURPOSE:
-# Automatically removes notifications from notificationdata.js
-# after they have completed a full 24 hours.
+# Deletes notifications only after they have completed
+# a FULL 24 HOURS from their createdAt timestamp.
 #
-# SCHEDULE:
-# Every 12 hours.
+# Runs:
+#   - Automatically every 12 hours
+#   - Manually from GitHub Actions
 #
-# IMPORTANT:
-# A notification is NOT deleted simply because its calendar date
-# changed.
-#
-# Example:
-#
-# createdAt = 2026-09-15T18:30:00Z
-#
-# It becomes eligible for deletion only after:
-#
-# 2026-09-16T18:30:00Z
-#
-# This guarantees a COMPLETE 24 HOURS.
+# File:
+#   notificationdata.js
 #
 # ============================================================
 
@@ -29,19 +18,18 @@ name: Expire Notifications
 
 
 # ============================================================
-# WHEN THE ACTION RUNS
+# TRIGGERS
 # ============================================================
 
 on:
 
-  # Automatically every 12 hours
+  # Run every 12 hours
   schedule:
 
     - cron: "0 */12 * * *"
 
 
-  # Allows you to manually run it from:
-  # GitHub → Actions → Expire Notifications → Run workflow
+  # Allow manual execution
   workflow_dispatch:
 
 
@@ -60,7 +48,7 @@ permissions:
 
 jobs:
 
-  expire:
+  expire-notifications:
 
     runs-on: ubuntu-latest
 
@@ -69,7 +57,7 @@ jobs:
 
 
       # ======================================================
-      # DOWNLOAD REPOSITORY
+      # CHECKOUT REPOSITORY
       # ======================================================
 
       - name: Checkout repository
@@ -78,294 +66,410 @@ jobs:
 
 
       # ======================================================
-      # REMOVE EXPIRED NOTIFICATIONS
+      # CHECK NOTIFICATIONS
       # ======================================================
 
-      - name: Remove notifications older than 24 hours
-
-        env:
-
-          DATA_FILE: notificationdata.js
+      - name: Remove expired notifications
 
         run: |
 
-          python3 <<'PY'
+          node <<'NODE'
 
-          import re
-          import json
-          from datetime import datetime, timezone, timedelta
+          // ==================================================
+          // CONFIGURATION
+          // ==================================================
 
+          const fs = require("fs");
 
-          # ==================================================
-          # CONFIGURATION
-          # ==================================================
+          const FILE = "notificationdata.js";
 
-          FILE = "notificationdata.js"
-
-          # Complete lifetime of one notification
-          LIFETIME = timedelta(hours=24)
+          // A notification lives for exactly 24 hours.
+          const LIFETIME = 24 * 60 * 60 * 1000;
 
 
-          # ==================================================
-          # CURRENT UTC TIME
-          # ==================================================
+          // ==================================================
+          // CURRENT TIME
+          // ==================================================
 
-          now = datetime.now(timezone.utc)
-
-
-          print("")
-          print("==============================================")
-          print(" NOTIFICATION EXPIRATION")
-          print("==============================================")
-          print("Current UTC time:")
-          print(now.isoformat())
-          print("")
+          const now = Date.now();
 
 
-          # ==================================================
-          # READ FILE
-          # ==================================================
+          console.log("");
+          console.log("==========================================");
+          console.log(" NOTIFICATION EXPIRATION");
+          console.log("==========================================");
+          console.log(
+            "Current UTC:",
+            new Date(now).toISOString()
+          );
+          console.log("");
 
-          with open(
+
+          // ==================================================
+          // READ notificationdata.js
+          // ==================================================
+
+          if (!fs.existsSync(FILE)) {
+
+            console.error(
+              "ERROR: notificationdata.js was not found."
+            );
+
+            process.exit(1);
+
+          }
+
+
+          let text =
+            fs.readFileSync(
               FILE,
-              "r",
-              encoding="utf-8"
-          ) as f:
+              "utf8"
+            );
 
-              text = f.read()
 
+          // ==================================================
+          // FIND NOTIFICATION OBJECTS
+          // ==================================================
+          //
+          // Expected:
+          //
+          // {
+          //   id:"n1",
+          //   image:"...",
+          //   title:"...",
+          //   message:"...",
+          //   link:"...",
+          //   createdAt:"..."
+          // }
+          //
+          // ==================================================
 
-          # ==================================================
-          # FIND NOTIFICATION OBJECTS
-          # ==================================================
-          #
-          # Expected structure:
-          #
-          # {
-          #   id:"n1",
-          #   image:"...",
-          #   title:"...",
-          #   message:"...",
-          #   link:"...",
-          #   createdAt:"..."
-          # }
-          #
-          # ==================================================
+          const objectRegex =
+            /\{\s*id\s*:\s*(["'])(.*?)\1\s*,[\s\S]*?createdAt\s*:\s*(["'])(.*?)\3\s*\}/g;
 
-          object_pattern = re.compile(
-              r'\{\s*'
-              r'id\s*:\s*["\']([^"\']+)["\']\s*,\s*'
-              r'image\s*:\s*["\'](.*?)["\']\s*,\s*'
-              r'title\s*:\s*["\'](.*?)["\']\s*,\s*'
-              r'message\s*:\s*["\'](.*?)["\']\s*,\s*'
-              r'link\s*:\s*["\'](.*?)["\']\s*,\s*'
-              r'createdAt\s*:\s*["\']([^"\']+)["\']\s*'
-              r'\}',
-              re.DOTALL
-          )
 
+          const notifications = [];
 
-          matches = list(
-              object_pattern.finditer(text)
-          )
+          let match;
 
 
-          if not matches:
+          while (
+            (match = objectRegex.exec(text)) !== null
+          ) {
 
-              print(
-                  "No notification objects found."
-              )
+            notifications.push({
 
-              raise SystemExit(0)
+              id: match[2],
 
+              createdAt: match[4],
 
-          # ==================================================
-          # CHECK EACH NOTIFICATION
-          # ==================================================
+              start: match.index,
 
-          keep = []
-          removed = []
+              end: objectRegex.lastIndex
 
+            });
 
-          for match in matches:
+          }
 
-              notification_id = match.group(1)
 
-              created_at_text = match.group(6)
+          // ==================================================
+          // NO NOTIFICATIONS
+          // ==================================================
 
+          if (notifications.length === 0) {
 
-              try:
+            console.log(
+              "No notifications found."
+            );
 
-                  created_at =
-                      datetime.fromisoformat(
-                          created_at_text.replace(
-                              "Z",
-                              "+00:00"
-                          )
-                      )
+            process.exit(0);
 
+          }
 
-                  # Make sure comparison is UTC
-                  created_at =
-                      created_at.astimezone(
-                          timezone.utc
-                      )
 
+          // ==================================================
+          // FIND EXPIRED NOTIFICATIONS
+          // ==================================================
 
-              except Exception as error:
+          const expired = [];
 
-                  # ------------------------------------------
-                  # SAFETY:
-                  # If createdAt cannot be understood,
-                  # DO NOT DELETE THE notification.
-                  # ------------------------------------------
+          const keep = [];
 
-                  print(
-                      f"KEEP {notification_id} "
-                      f"(invalid createdAt: {error})"
-                  )
 
-                  keep.append(match)
+          for (
+            const notification
+            of notifications
+          ) {
 
-                  continue
 
+            // ------------------------------------------------
+            // Parse createdAt
+            // ------------------------------------------------
 
-              age =
-                  now - created_at
+            const created =
+              Date.parse(
+                notification.createdAt
+              );
 
 
-              # ==================================================
-              # EXPIRE ONLY AFTER A FULL 24 HOURS
-              # ==================================================
+            // ------------------------------------------------
+            // SAFETY:
+            // Invalid dates are NEVER deleted.
+            // ------------------------------------------------
 
-              if age >= LIFETIME:
+            if (
+              Number.isNaN(created)
+            ) {
 
-                  removed.append(
-                      notification_id
-                  )
+              console.log(
+                `KEEP ${notification.id} ` +
+                `(invalid createdAt)`
+              );
 
-                  print(
-                      f"DELETE {notification_id} "
-                      f"| age = {age}"
-                  )
+              keep.push(
+                notification
+              );
 
-              else:
+              continue;
 
-                  keep.append(match)
+            }
 
-                  remaining =
-                      LIFETIME - age
 
-                  print(
-                      f"KEEP {notification_id} "
-                      f"| remaining ≈ {remaining}"
-                  )
+            // ------------------------------------------------
+            // Calculate age
+            // ------------------------------------------------
 
+            const age =
+              now - created;
 
-          # ==================================================
-          # IF NOTHING EXPIRED
-          # ==================================================
 
-          if not removed:
+            const ageHours =
+              age /
+              (60 * 60 * 1000);
 
-              print("")
-              print(
-                  "Nothing expired."
-              )
 
-              raise SystemExit(0)
+            // ------------------------------------------------
+            // FULL 24 HOURS COMPLETED
+            // ------------------------------------------------
 
+            if (
+              age >= LIFETIME
+            ) {
 
-          # ==================================================
-          # REBUILD FILE
-          # ==================================================
-          #
-          # Remove only the expired objects.
-          # Everything else stays.
-          #
-          # ==================================================
+              console.log(
+                `DELETE ${notification.id} ` +
+                `(${ageHours.toFixed(2)} hours old)`
+              );
 
-          new_text = text
+              expired.push(
+                notification
+              );
 
+            }
 
-          for match in reversed(matches):
 
-              notification_id = match.group(1)
+            // ------------------------------------------------
+            // STILL ACTIVE
+            // ------------------------------------------------
 
-              if notification_id in removed:
+            else {
 
-                  start = match.start()
-                  end = match.end()
+              const remaining =
+                (
+                  LIFETIME - age
+                ) /
+                (60 * 60 * 1000);
 
 
-                  # Remove the object itself.
-                  new_text =
-                      new_text[:start] +
-                      new_text[end:]
+              console.log(
+                `KEEP ${notification.id} ` +
+                `(${remaining.toFixed(2)} hours remaining)`
+              );
 
 
-          # ==================================================
-          # CLEAN UP EXTRA COMMAS
-          # ==================================================
-          #
-          # Prevent:
-          #
-          # {
-          #   notification...
-          # },
-          #
-          # followed by weird comma placement.
-          #
-          # ==================================================
+              keep.push(
+                notification
+              );
 
-          new_text = re.sub(
-              r',\s*,',
-              ',',
-              new_text
-          )
+            }
 
+          }
 
-          # Remove comma immediately before ]
-          new_text = re.sub(
-              r',\s*\]',
-              ']',
-              new_text
-          )
 
+          // ==================================================
+          // NOTHING TO DELETE
+          // ==================================================
 
-          # ==================================================
-          # WRITE FILE
-          # ==================================================
+          if (
+            expired.length === 0
+          ) {
 
-          with open(
-              FILE,
-              "w",
-              encoding="utf-8"
-          ) as f:
+            console.log("");
+            console.log(
+              "Nothing has completed 24 hours."
+            );
+            console.log(
+              "No file changes required."
+            );
+            console.log("");
 
-              f.write(new_text)
+            process.exit(0);
 
+          }
 
-          # ==================================================
-          # SUMMARY
-          # ==================================================
 
-          print("")
-          print("==============================================")
-          print(" CLEANUP COMPLETE")
-          print("==============================================")
-          print(
-              "Removed:",
-              ", ".join(removed)
-          )
-          print(
-              "Count:",
-              len(removed)
-          )
-          print("")
+          // ==================================================
+          // REMOVE EXPIRED OBJECTS
+          // ==================================================
+          //
+          // Work backwards so indexes remain correct.
+          //
+          // ==================================================
 
+          for (
+            let i =
+              expired.length - 1;
 
-          PY
+            i >= 0;
+
+            i--
+
+          ) {
+
+            const item =
+              expired[i];
+
+
+            // ----------------------------------------------
+            // Determine removal boundaries
+            // ----------------------------------------------
+
+            let start =
+              item.start;
+
+
+            let end =
+              item.end;
+
+
+            // ----------------------------------------------
+            // Remove a following comma if present
+            // ----------------------------------------------
+
+            while (
+              end < text.length &&
+              /\s/.test(text[end])
+            ) {
+
+              end++;
+
+            }
+
+
+            if (
+              text[end] === ","
+            ) {
+
+              end++;
+
+            }
+
+
+            // ----------------------------------------------
+            // Otherwise remove a preceding comma
+            // ----------------------------------------------
+
+            else {
+
+              let before =
+                start - 1;
+
+
+              while (
+                before >= 0 &&
+                /\s/.test(text[before])
+              ) {
+
+                before--;
+
+              }
+
+
+              if (
+                text[before] === ","
+              ) {
+
+                start =
+                  before;
+
+              }
+
+            }
+
+
+            // ----------------------------------------------
+            // Delete object
+            // ----------------------------------------------
+
+            text =
+              text.slice(0, start) +
+              text.slice(end);
+
+          }
+
+
+          // ==================================================
+          // CLEAN EXTRA BLANK LINES
+          // ==================================================
+
+          text =
+            text.replace(
+              /\n{3,}/g,
+              "\n\n"
+            );
+
+
+          // ==================================================
+          // WRITE UPDATED FILE
+          // ==================================================
+
+          fs.writeFileSync(
+            FILE,
+            text,
+            "utf8"
+          );
+
+
+          // ==================================================
+          // SUMMARY
+          // ==================================================
+
+          console.log("");
+          console.log("==========================================");
+          console.log(" CLEANUP COMPLETE");
+          console.log("==========================================");
+
+          console.log(
+            "Deleted:",
+            expired.map(
+              n => n.id
+            ).join(", ")
+          );
+
+          console.log(
+            "Deleted count:",
+            expired.length
+          );
+
+          console.log(
+            "Remaining:",
+            keep.length
+          );
+
+          console.log("");
+
+
+          NODE
 
 
       # ======================================================
@@ -382,19 +486,19 @@ jobs:
 
             echo "changed=false" >> "$GITHUB_OUTPUT"
 
-            echo "No changes required."
+            echo "No changes detected."
 
           else
 
             echo "changed=true" >> "$GITHUB_OUTPUT"
 
-            echo "Expired notifications were removed."
+            echo "notificationdata.js was changed."
 
           fi
 
 
       # ======================================================
-      # COMMIT CLEANUP
+      # COMMIT
       # ======================================================
 
       - name: Commit expired notifications
@@ -403,7 +507,8 @@ jobs:
 
         run: |
 
-          git config user.name "github-actions[bot]"
+          git config user.name \
+            "github-actions[bot]"
 
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
