@@ -97,14 +97,7 @@ window.Sho1re1Notifications = [
     message:"There's something waiting for you.",
     link:"explore.html",
     createdAt:"2026-09-13T20:15:00+05:30"
-  },
-  {
-    id:"n1",
-    image:"https://to.com",
-    title:"Yes",
-    message:"Yo",
-    link:"https://api.github.com",
-    createdAt:"2026-09-15T06:42:26.964Z"
   }
+
 
 ];
