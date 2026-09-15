@@ -35,14 +35,4 @@ window.Sho1re1Notifications = [
     link:"explore.html"
   }
 
-,
-
-  {
-    id:"n1",
-    image:"https://to.com",
-    title:"Yes",
-    message:"Yo",
-    link:"https://api.github.com",
-    createdAt:"2026-09-15T06:42:26.964Z"
-  }
 ];
