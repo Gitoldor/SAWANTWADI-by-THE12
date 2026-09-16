@@ -17,8 +17,8 @@
   style.textContent = `
     .universal-share-btn {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 14px;
+      right: 14px;
       z-index: 9999;
       width: 38px;
       height: 38px;

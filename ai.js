@@ -40,7 +40,7 @@
 
       position: fixed;
 
-      left: 20px;
+      left: 15px;
       bottom: 245px;
 
       width: 58px;

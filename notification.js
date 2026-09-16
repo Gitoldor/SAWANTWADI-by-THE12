@@ -333,7 +333,7 @@ style.textContent=`
   /* ===== POSITION ===== */
 
   top:47%;
-  right:20px;
+  right:15px;
 
   /* =================== */
 
