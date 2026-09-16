@@ -6,7 +6,9 @@ const DATA="notificationdata.js",
       MAX=3;
 
 
-/* LOAD DATA */
+/* =========================
+   LOAD DATA
+========================= */
 
 function load(){
 
@@ -22,280 +24,521 @@ function load(){
 }
 
 
-/* STYLE */
+/* =========================
+   STYLE
+========================= */
 
 const style=document.createElement("style");
 
 style.textContent=`
 
 *{
-  -webkit-tap-highlight-color:transparent
+  -webkit-tap-highlight-color:transparent;
+  box-sizing:border-box;
 }
 
 
-/* FLOATING AREA */
+/* =========================
+   FLOATING AREA
+========================= */
 
 .s1n{
   position:fixed;
+
   top:20px;
   left:12px;
   right:12px;
+
   z-index:999;
+
   pointer-events:none;
-  transition:.5s cubic-bezier(.2,1.5,.3,1)
+
+  transition:
+    .5s cubic-bezier(.2,1.5,.3,1);
 }
+
 
 .s1stack{
+
   position:relative;
+
   width:100%;
+
   aspect-ratio:16/9;
-  pointer-events:auto
+
+  pointer-events:auto;
 }
 
 
-/* CARD */
+/* =========================
+   CARD
+========================= */
 
-.s1card,.s1item{
+.s1card,
+.s1item{
+
   position:relative;
+
   box-sizing:border-box;
+
   aspect-ratio:16/9;
+
   padding:10px;
+
   overflow:hidden;
+
   border-radius:24px;
+
   background:#fff;
-  box-shadow:0 18px 50px #0002;
+
+  box-shadow:
+    0 18px 50px #0002;
+
   cursor:pointer;
-  transform-origin:center
+
+  transform-origin:center;
 }
 
 
-/* FLOATING */
+/* =========================
+   FLOATING CARD
+========================= */
 
 .s1card{
+
   position:absolute;
+
   inset:0;
+
   opacity:0;
-  will-change:transform,opacity
+
+  will-change:
+    transform,
+    opacity;
 }
 
+
 .s1card.enter{
-  animation:drop .7s cubic-bezier(.16,1.65,.3,1) both
+
+  animation:
+    drop .7s
+    cubic-bezier(.16,1.65,.3,1)
+    both;
 }
+
 
 @keyframes drop{
 
   0%{
+
     opacity:0;
-    transform:translateY(-130px) scale(.78) rotate(-5deg)
+
+    transform:
+      translateY(-130px)
+      scale(.78)
+      rotate(-5deg);
   }
 
   60%{
+
     opacity:1;
-    transform:translateY(8px) scale(1.025) rotate(1deg)
+
+    transform:
+      translateY(8px)
+      scale(1.025)
+      rotate(1deg);
   }
 
   80%{
-    transform:translateY(-3px) scale(.995)
+
+    transform:
+      translateY(-3px)
+      scale(.995);
   }
 
   100%{
+
     opacity:1;
-    transform:none
+
+    transform:none;
   }
 
 }
 
 
-/* INNER IMAGE */
+/* =========================
+   INNER IMAGE
+========================= */
 
 .s1image{
+
   position:relative;
+
   width:100%;
   height:100%;
+
   overflow:hidden;
+
   border-radius:17px;
-  background:#eee
+
+  background:#eee;
 }
 
+
 .s1image img{
+
   width:100%;
   height:100%;
+
   display:block;
+
   object-fit:cover;
+
   transform:scale(1.07);
-  transition:1s cubic-bezier(.2,1,.3,1)
+
+  transition:
+    1s cubic-bezier(.2,1,.3,1);
 }
+
 
 .s1card.enter img,
 .s1item.show img{
-  transform:scale(1)
+
+  transform:scale(1);
 }
 
 
-/* OVERLAY */
+/* =========================
+   OVERLAY
+========================= */
 
 .s1text{
+
   position:absolute;
+
   inset:0;
+
   padding:16px;
+
   box-sizing:border-box;
+
   display:flex;
+
   flex-direction:column;
+
   align-items:flex-start;
+
   color:#fff;
-  background:linear-gradient(#000a,transparent 60%)
+
+  background:
+    linear-gradient(
+      #000a,
+      transparent 60%
+    );
 }
 
 
-/* TITLE */
+/* =========================
+   TITLE
+========================= */
 
 .s1title{
-  font:750 18px system-ui;
+
+  font:
+    750 18px system-ui;
+
   text-decoration:underline;
+
   text-underline-offset:5px;
+
   opacity:0;
-  transform:translateY(-12px)
+
+  transform:
+    translateY(-12px);
 }
 
 
-/* MESSAGE */
+/* =========================
+   MESSAGE
+========================= */
 
 .s1msg{
+
   margin-top:7px;
-  font:14px system-ui;
+
+  font:
+    14px system-ui;
+
   opacity:0;
-  transform:translateY(-10px)
+
+  transform:
+    translateY(-10px);
 }
 
 
-/* TEXT ARRIVAL */
+/* =========================
+   TEXT ARRIVAL
+========================= */
 
 .enter .s1title,
 .show .s1title{
-  animation:text .45s cubic-bezier(.18,1.5,.3,1) .16s forwards
+
+  animation:
+    text .45s
+    cubic-bezier(.18,1.5,.3,1)
+    .16s forwards;
 }
+
 
 .enter .s1msg,
 .show .s1msg{
-  animation:text .45s cubic-bezier(.18,1.5,.3,1) .25s forwards
+
+  animation:
+    text .45s
+    cubic-bezier(.18,1.5,.3,1)
+    .25s forwards;
 }
+
 
 @keyframes text{
 
   to{
+
     opacity:1;
-    transform:none
+
+    transform:none;
   }
 
 }
 
 
-/* PRESS */
+/* =========================
+   PRESS
+========================= */
 
 .s1card:active,
 .s1item:active{
-  scale:.97
+
+  scale:.97;
 }
 
 
-/* SAWANTWADI NOW */
+/* ==================================================
+   FLOATING ROUNDED BUTTON
+   EDIT POSITION HERE
+================================================== */
 
-.s1now{
+.s1trigger{
+
+  /* ===== POSITION ===== */
+
+  top:47%;
+  right:20px;
+
+  /* =================== */
+
   position:fixed;
-  top:92px;
-  right:12px;
+
   z-index:1002;
 
+  width:58px;
+  height:58px;
+
+  padding:0;
+
+  border:0;
+
+  border-radius:24px;
+
+  background:#fff;
+
+  box-shadow:
+    0 8px 25px #0002;
+
   display:flex;
+
   align-items:center;
-  gap:8px;
 
-  padding:10px 14px;
+  justify-content:center;
 
-  border-radius:99px;
-
-  background:#fffd;
-
-  backdrop-filter:blur(14px);
-
-  box-shadow:0 8px 25px #0002;
-
-  font:600 13px system-ui;
+  cursor:pointer;
 
   opacity:0;
+
   pointer-events:none;
 
-  transform:translateY(-20px) scale(.8);
+  transform:
+    translateY(-50%)
+    translateX(25px)
+    scale(.8);
 
-  transition:.55s cubic-bezier(.18,1.5,.3,1)
+  transition:
+    .55s
+    cubic-bezier(.18,1.5,.3,1);
 }
 
-.s1now.show{
+
+.s1trigger.show{
+
   opacity:1;
+
   pointer-events:auto;
-  transform:none
+
+  transform:
+    translateY(-50%)
+    translateX(0)
+    scale(1);
 }
 
-.s1dot{
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:#111;
-  animation:pulse 1.5s infinite
+
+/* =========================
+   BUTTON ICON
+========================= */
+
+.s1trigger svg{
+
+  width:21px;
+  height:21px;
+
+  fill:none;
+
+  stroke:#111;
+
+  stroke-width:1.8;
+
+  stroke-linecap:round;
+
+  stroke-linejoin:round;
 }
+
+
+/* =========================
+   NOTIFICATION DOT
+========================= */
+
+.s1trigger span{
+
+  position:absolute;
+
+  top:6px;
+  right:6px;
+
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  background:#111;
+
+  animation:
+    pulse 1.5s infinite;
+}
+
+
+/* =========================
+   BUTTON PRESS
+========================= */
+
+.s1trigger:active{
+
+  transform:
+    translateY(-50%)
+    scale(.9);
+}
+
+
+/* =========================
+   PULSE
+========================= */
 
 @keyframes pulse{
+
   50%{
-    scale:1.5;
-    opacity:.45
+
+    transform:scale(1.5);
+
+    opacity:.45;
   }
+
 }
 
 
-/* SUBTLE HINT */
+/* =========================
+   SUBTLE HINT
+========================= */
 
 .s1hint{
+
   position:fixed;
-  top:62px;
-  left:14px;
+
+  top:50%;
+  right:76px;
+
   z-index:998;
 
-  font:12px system-ui;
+  transform:
+    translateY(-50%);
+
+  font:
+    12px system-ui;
+
   color:#777;
 
   pointer-events:none;
 
   opacity:0;
 
-  transition:.4s
+  white-space:nowrap;
+
+  transition:.4s;
 }
+
 
 .s1hint.show{
+
   opacity:.75;
-  animation:hint 1.8s ease-in-out infinite
+
+  animation:
+    hint 1.8s
+    ease-in-out
+    infinite;
 }
+
 
 @keyframes hint{
+
   50%{
-    transform:translateY(5px)
+
+    transform:
+      translateY(
+        calc(-50% + 5px)
+      );
   }
+
 }
 
 
-/* BACKDROP */
+/* =========================
+   BACKDROP
+========================= */
 
 .s1back{
+
   position:fixed;
+
   inset:0;
+
   z-index:1000;
 
   background:transparent;
+
   backdrop-filter:none;
 
   opacity:0;
+
   pointer-events:none;
 
-  transition:.3s
+  transition:.3s;
 }
 
 
@@ -304,6 +547,7 @@ style.textContent=`
 ========================= */
 
 .s1drawer{
+
   position:fixed;
 
   top:10px;
@@ -320,6 +564,7 @@ style.textContent=`
   box-sizing:border-box;
 
   overflow-y:auto;
+
   overscroll-behavior:contain;
 
   background:#fff;
@@ -328,7 +573,9 @@ style.textContent=`
 
   z-index:1001;
 
-  transform:translateY(-105%) scale(.97);
+  transform:
+    translateY(-105%)
+    scale(.97);
 
   transform-origin:top;
 
@@ -337,32 +584,48 @@ style.textContent=`
     cubic-bezier(.16,1.6,.3,1);
 }
 
+
 .s1drawer.open{
-  transform:none
+
+  transform:none;
 }
+
 
 .s1drawer.drag{
-  transition:none
+
+  transition:none;
 }
 
 
-/* HANDLE */
+/* =========================
+   DRAWER HANDLE
+========================= */
 
 .s1handle{
+
   width:55px;
   height:32px;
+
   margin:auto;
+
   display:grid;
+
   place-items:center;
-  touch-action:none
+
+  touch-action:none;
 }
 
+
 .s1handle:after{
+
   content:"";
+
   width:42px;
   height:5px;
+
   border-radius:99px;
-  background:#ddd
+
+  background:#ddd;
 }
 
 
@@ -371,6 +634,7 @@ style.textContent=`
 ========================= */
 
 .s1header{
+
   position:relative;
 
   min-height:82px;
@@ -384,21 +648,30 @@ style.textContent=`
 }
 
 
-/* HEADER TITLE */
+/* =========================
+   HEADER TITLE
+========================= */
 
 .s1head{
-  margin:5px 0 4px;
 
-  font:750 24px system-ui;
+  margin:
+    5px 0 4px;
+
+  font:
+    750 24px system-ui;
 
   line-height:1.1;
 }
 
 
-/* SUBTITLE */
+/* =========================
+   SUBTITLE
+========================= */
 
 .s1sub{
-  font:14px system-ui;
+
+  font:
+    14px system-ui;
 
   color:#777;
 
@@ -411,6 +684,7 @@ style.textContent=`
 ========================= */
 
 .s1date{
+
   position:absolute;
 
   top:0;
@@ -419,7 +693,9 @@ style.textContent=`
   width:88px;
 
   display:flex;
+
   flex-direction:column;
+
   align-items:flex-end;
 
   text-align:right;
@@ -439,9 +715,12 @@ style.textContent=`
 }
 
 
-/* MONTH */
+/* =========================
+   MONTH
+========================= */
 
 .s1month{
+
   font-size:10px;
 
   font-weight:750;
@@ -454,9 +733,12 @@ style.textContent=`
 }
 
 
-/* BIG DATE */
+/* =========================
+   BIG DATE
+========================= */
 
 .s1daynum{
+
   font-size:42px;
 
   font-weight:900;
@@ -467,9 +749,12 @@ style.textContent=`
 }
 
 
-/* DAY */
+/* =========================
+   DAY
+========================= */
 
 .s1weekday{
+
   margin-top:6px;
 
   font-size:11px;
@@ -482,10 +767,14 @@ style.textContent=`
 }
 
 
-/* DRAWER CARD */
+/* =========================
+   DRAWER CARD
+========================= */
 
 .s1item{
+
   width:100%;
+
   margin-bottom:14px;
 
   opacity:0;
@@ -495,24 +784,32 @@ style.textContent=`
     scale(.94);
 
   transition:
-    .55s cubic-bezier(.18,1.5,.3,1)
+    .55s
+    cubic-bezier(.18,1.5,.3,1);
 }
+
 
 .s1item.show{
+
   opacity:1;
-  transform:none
+
+  transform:none;
 }
 
 
-/* REDUCED MOTION */
+/* =========================
+   REDUCED MOTION
+========================= */
 
 @media(prefers-reduced-motion:reduce){
 
   *,
   *:before,
   *:after{
+
     animation-duration:.01ms!important;
-    transition-duration:.01ms!important
+
+    transition-duration:.01ms!important;
   }
 
 }
@@ -522,11 +819,14 @@ style.textContent=`
 document.head.append(style);
 
 
-/* CREATE CARD */
+/* =========================
+   CREATE CARD
+========================= */
 
 function card(d,cls){
 
-  const el=document.createElement("div");
+  const el=
+    document.createElement("div");
 
   el.className=cls;
 
@@ -534,7 +834,10 @@ function card(d,cls){
 
     <div class="s1image">
 
-      <img src="${d.image||""}" alt="">
+      <img
+        src="${d.image||""}"
+        alt=""
+      >
 
       <div class="s1text">
 
@@ -552,12 +855,14 @@ function card(d,cls){
 
   `;
 
+
   el.onclick=()=>{
 
     if(d.link)
       location.href=d.link;
 
   };
+
 
   return el;
 
@@ -569,43 +874,64 @@ function card(d,cls){
 ========================= */
 
 function start(){
-  
+
   /* =========================
-   NOTIFICATION SOUND
-========================= */
+     NOTIFICATION SOUND
+  ========================= */
 
-const notifyAudio = new Audio(
-  "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
-);
+  const notifyAudio=
+    new Audio(
+      "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
+    );
 
-notifyAudio.volume = 0.05;
 
-function playNotificationSound(){
+  notifyAudio.volume=.05;
 
-  notifyAudio.currentTime = 0;
 
-  notifyAudio.play().catch(()=>{});
+  function playNotificationSound(){
 
-}
+    notifyAudio.currentTime=0;
 
-  const data=window.Sho1re1Notifications;
+    notifyAudio.play().catch(()=>{});
+
+  }
+
+
+  const data=
+    window.Sho1re1Notifications;
+
 
   if(!data?.length)return;
 
 
-  const root=document.createElement("div"),
-        stack=document.createElement("div"),
-        now=document.createElement("div"),
-        hint=document.createElement("div"),
-        back=document.createElement("div"),
-        drawer=document.createElement("div");
+  /* =========================
+     CREATE ELEMENTS
+  ========================= */
+
+  const root=
+    document.createElement("div");
+
+  const stack=
+    document.createElement("div");
+
+  const trigger=
+    document.createElement("button");
+
+  const hint=
+    document.createElement("div");
+
+  const back=
+    document.createElement("div");
+
+  const drawer=
+    document.createElement("div");
 
 
   root.className="s1n";
 
   stack.className="s1stack";
 
-  now.className="s1now";
+  trigger.className="s1trigger";
 
   hint.className="s1hint";
 
@@ -614,30 +940,57 @@ function playNotificationSound(){
   drawer.className="s1drawer";
 
 
-  now.innerHTML=`
+  /* =========================
+     TRIGGER ICON
+  ========================= */
 
-    <span class="s1dot"></span>
+  trigger.setAttribute(
+    "aria-label",
+    "Open updates"
+  );
 
-    Sawantwadi Now
+
+  trigger.innerHTML=`
+
+    <svg viewBox="0 0 24 24">
+
+      <path d="
+        M18 8
+        a6 6 0 0 0-12 0
+        c0 7-3 7-3 9
+        h18
+        c0-2-3-2-3-9
+        M10 21h4
+      ">
+
+      </path>
+
+    </svg>
+
+    <span></span>
 
   `;
-
-
-  hint.textContent=
-    "↓ Pull here for updates";
 
 
   root.append(stack);
 
 
+  hint.textContent=
+    "Updates";
+
+
   document.body.append(
     root,
-    now,
+    trigger,
     hint,
     back,
     drawer
   );
 
+
+  /* =========================
+     STATE
+  ========================= */
 
   const cards=[];
 
@@ -655,19 +1008,31 @@ function playNotificationSound(){
 
     cards.forEach((c,i)=>{
 
-      const n=Math.min(i,MAX-1);
+      const n=
+        Math.min(
+          i,
+          MAX-1
+        );
 
-      c.style.zIndex=20-i;
+
+      c.style.zIndex=
+        20-i;
+
 
       c.style.opacity=
         i<MAX?1:0;
 
-      if(!c.classList.contains("enter")){
+
+      if(
+        !c.classList.contains("enter")
+      ){
 
         c.style.transform=`
 
           translateY(${n*11}px)
+
           scale(${1-n*.035})
+
           rotate(${n*.7}deg)
 
         `;
@@ -689,14 +1054,21 @@ function playNotificationSound(){
 
       setTimeout(()=>{
 
-  const c=card(d,"s1card");
+        const c=
+          card(
+            d,
+            "s1card"
+          );
 
-  cards.unshift(c);
-  stack.prepend(c);
 
-  /* PLAY SOUND */
+        cards.unshift(c);
 
-  playNotificationSound();
+        stack.prepend(c);
+
+
+        /* SOUND */
+
+        playNotificationSound();
 
 
         requestAnimationFrame(()=>{
@@ -719,34 +1091,43 @@ function playNotificationSound(){
 
         /* REACT STACK */
 
-        cards.slice(1,MAX).forEach(x=>{
+        cards
+          .slice(1,MAX)
+          .forEach(x=>{
 
-          x.animate(
+            x.animate(
 
-            [
+              [
+
+                {
+                  transform:
+                    x.style.transform
+                },
+
+                {
+                  transform:
+                    "translateY(20px) scale(.97)"
+                },
+
+                {
+                  transform:
+                    x.style.transform
+                }
+
+              ],
+
               {
-                transform:x.style.transform
-              },
 
-              {
-                transform:
-                  "translateY(20px) scale(.97)"
-              },
+                duration:400,
 
-              {
-                transform:x.style.transform
+                easing:
+                  "cubic-bezier(.18,1.5,.3,1)"
+
               }
-            ],
 
-            {
-              duration:400,
-              easing:
-                "cubic-bezier(.18,1.5,.3,1)"
-            }
+            );
 
-          );
-
-        });
+          });
 
 
       },i*INTERVAL);
@@ -754,10 +1135,14 @@ function playNotificationSound(){
     });
 
 
-    /* COLLAPSE AFTER ALL */
+    /* =========================
+       COLLAPSE
+    ========================= */
 
     const end=
-      data.length*INTERVAL+700;
+      data.length*
+      INTERVAL+
+      700;
 
 
     setTimeout(()=>{
@@ -768,12 +1153,14 @@ function playNotificationSound(){
 
           {
             opacity:1,
+
             transform:
               "translateY(0) scale(1)"
           },
 
           {
             opacity:0,
+
             transform:
               "translateY(-20px) scale(.75)"
           }
@@ -781,9 +1168,12 @@ function playNotificationSound(){
         ],
 
         {
+
           duration:500,
+
           easing:
             "cubic-bezier(.2,1.5,.3,1)"
+
         }
 
       );
@@ -793,7 +1183,10 @@ function playNotificationSound(){
 
         root.style.display="none";
 
-        now.classList.add("show");
+
+        /* SHOW BUTTON */
+
+        trigger.classList.add("show");
 
         hint.classList.add("show");
 
@@ -813,24 +1206,34 @@ function playNotificationSound(){
   function updateDate(){
 
     const month=
-      drawer.querySelector(".s1month");
+      drawer.querySelector(
+        ".s1month"
+      );
 
     const daynum=
-      drawer.querySelector(".s1daynum");
+      drawer.querySelector(
+        ".s1daynum"
+      );
 
     const weekday=
-      drawer.querySelector(".s1weekday");
+      drawer.querySelector(
+        ".s1weekday"
+      );
+
 
     if(!month)return;
 
 
-    const today=new Date();
+    const today=
+      new Date();
 
 
     month.textContent=
       today.toLocaleDateString(
         "en-IN",
-        {month:"long"}
+        {
+          month:"long"
+        }
       );
 
 
@@ -841,7 +1244,9 @@ function playNotificationSound(){
     weekday.textContent=
       today.toLocaleDateString(
         "en-IN",
-        {weekday:"long"}
+        {
+          weekday:"long"
+        }
       );
 
   }
@@ -866,7 +1271,7 @@ function playNotificationSound(){
           </div>
 
           <div class="s1sub">
-            What's happening around today 
+            What's happening around today
           </div>
 
         </div>
@@ -887,12 +1292,16 @@ function playNotificationSound(){
     `;
 
 
-    /* INITIAL DATE */
+    /* =========================
+       DATE
+    ========================= */
 
     updateDate();
 
 
-    /* KEEP DATE LIVE */
+    /* =========================
+       LIVE DATE TIMER
+    ========================= */
 
     if(!window.Sho1re1DateTimer){
 
@@ -905,10 +1314,18 @@ function playNotificationSound(){
     }
 
 
+    /* =========================
+       CARDS
+    ========================= */
+
     data.forEach((d,i)=>{
 
       const item=
-        card(d,"s1item");
+        card(
+          d,
+          "s1item"
+        );
+
 
       drawer.append(item);
 
@@ -924,8 +1341,14 @@ function playNotificationSound(){
     });
 
 
+    /* =========================
+       HANDLE
+    ========================= */
+
     const handle=
-      drawer.querySelector(".s1handle");
+      drawer.querySelector(
+        ".s1handle"
+      );
 
 
     handle.addEventListener(
@@ -934,11 +1357,13 @@ function playNotificationSound(){
       {passive:true}
     );
 
+
     handle.addEventListener(
       "touchmove",
       closeMove,
       {passive:true}
     );
+
 
     handle.addEventListener(
       "touchend",
@@ -957,23 +1382,34 @@ function playNotificationSound(){
 
     if(opened)return;
 
+
     opened=true;
+
 
     build();
 
 
-    now.classList.remove("show");
+    trigger.classList.remove(
+      "show"
+    );
 
-    hint.classList.remove("show");
+    hint.classList.remove(
+      "show"
+    );
 
 
     back.style.opacity=1;
 
-    back.style.pointerEvents="auto";
+    back.style.pointerEvents=
+      "auto";
 
 
     requestAnimationFrame(
-      ()=>drawer.classList.add("open")
+      ()=>{
+        drawer.classList.add(
+          "open"
+        );
+      }
     );
 
   }
@@ -987,31 +1423,41 @@ function playNotificationSound(){
 
     if(!opened)return;
 
+
     opened=false;
 
 
-    drawer.classList.remove("open");
+    drawer.classList.remove(
+      "open"
+    );
 
 
     back.style.opacity=0;
 
-    back.style.pointerEvents="none";
+    back.style.pointerEvents=
+      "none";
 
 
-    now.classList.add("show");
+    trigger.classList.add(
+      "show"
+    );
 
-    hint.classList.add("show");
+    hint.classList.add(
+      "show"
+    );
 
   }
 
 
-  /* TAP NOW */
+  /* =========================
+     TAP BUTTON
+  ========================= */
 
-  now.onclick=open;
+  trigger.onclick=open;
 
 
   /* =========================
-     PULL FROM TOP LEFT
+     PULL FROM TOP
   ========================= */
 
   document.addEventListener(
@@ -1020,7 +1466,8 @@ function playNotificationSound(){
 
     e=>{
 
-      const t=e.touches[0];
+      const t=
+        e.touches[0];
 
 
       if(
@@ -1029,15 +1476,12 @@ function playNotificationSound(){
 
         &&
 
-        t.clientX<150
-
-        &&
-
-        t.clientY<100
+        t.clientY<90
 
       ){
 
-        sy=t.clientY;
+        sy=
+          t.clientY;
 
         pulling=true;
 
@@ -1060,7 +1504,8 @@ function playNotificationSound(){
 
 
       const dy=
-        e.touches[0].clientY-sy;
+        e.touches[0].clientY-
+        sy;
 
 
       if(dy<=0)return;
@@ -1069,20 +1514,24 @@ function playNotificationSound(){
       const h=
         drawer.offsetHeight;
 
+
       const p=
         Math.min(dy,h)/h;
 
 
-      drawer.classList.add("drag");
+      drawer.classList.add(
+        "drag"
+      );
 
 
       drawer.style.transform=
 
         `translateY(${-h+h*p}px)
-        scale(${.97+p*.03})`;
+         scale(${.97+p*.03})`;
 
 
-      back.style.opacity=p*.6;
+      back.style.opacity=
+        p*.6;
 
     },
 
@@ -1099,14 +1548,19 @@ function playNotificationSound(){
 
       if(!pulling)return;
 
+
       pulling=false;
 
 
-      drawer.classList.remove("drag");
+      drawer.classList.remove(
+        "drag"
+      );
 
 
       const top=
-        drawer.getBoundingClientRect().top;
+        drawer
+          .getBoundingClientRect()
+          .top;
 
 
       drawer.style.transform="";
@@ -1119,7 +1573,9 @@ function playNotificationSound(){
 
         open();
 
-      }else{
+      }
+
+      else{
 
         back.style.opacity=0;
 
@@ -1145,7 +1601,10 @@ function playNotificationSound(){
 
     cm=0;
 
-    drawer.classList.add("drag");
+
+    drawer.classList.add(
+      "drag"
+    );
 
   }
 
@@ -1153,7 +1612,9 @@ function playNotificationSound(){
   function closeMove(e){
 
     cm=
-      e.touches[0].clientY-cy;
+      e.touches[0].clientY-
+      cy;
+
 
     if(cm>=0)return;
 
@@ -1166,7 +1627,9 @@ function playNotificationSound(){
 
   function closeEnd(){
 
-    drawer.classList.remove("drag");
+    drawer.classList.remove(
+      "drag"
+    );
 
 
     if(cm<-80){
@@ -1181,12 +1644,18 @@ function playNotificationSound(){
 
       drawer.style.transform="";
 
-      drawer.classList.add("open");
+      drawer.classList.add(
+        "open"
+      );
 
     }
 
   }
 
+
+  /* =========================
+     BACKDROP
+  ========================= */
 
   back.onclick=close;
 
