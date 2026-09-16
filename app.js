@@ -1,6 +1,8 @@
 /* ============================================================
-   SAWANTWADI DIGITAL - PLAN VISIBILITY DATABASE
-   + UNIVERSAL POST SHARING / DEEP LINK SYSTEM
+   SAWANTWADI DIGITAL
+   RANDOM UI CARD ORDER
+   + PLAN VISIBILITY
+   + UNIVERSAL POST SHARING / DEEP LINK
    ============================================================ */
 
 
@@ -45,7 +47,8 @@ window.Sho1re1Places = [
     link: "welcome.html",
     plan: "FREE"
   },
-   {
+
+  {
     id: 2,
     title: "welcome",
     topic: "Scenic Drives",
@@ -83,7 +86,71 @@ window.Sho1re1Places = [
     link: "",
     plan: "PRO"
   }
+
 ];
+
+
+/* ============================================================
+   SAVE ORIGINAL DATABASE
+   ============================================================ */
+
+window.Sho1re1OriginalPlaces =
+  window.Sho1re1Places.slice();
+
+
+/* ============================================================
+   RANDOM SHUFFLE
+   ============================================================ */
+
+function Sho1re1RandomShuffle(array) {
+
+  for (
+    var i = array.length - 1;
+    i > 0;
+    i--
+  ) {
+
+    var random =
+      Math.floor(
+        Math.random() * (i + 1)
+      );
+
+
+    var temp =
+      array[i];
+
+
+    array[i] =
+      array[random];
+
+
+    array[random] =
+      temp;
+
+  }
+
+
+  return array;
+
+}
+
+
+/* ============================================================
+   IMPORTANT
+   SHUFFLE THE ACTUAL DATABASE
+   ============================================================ */
+
+/*
+   Your UI may directly use:
+
+   Sho1re1Places
+
+   Therefore we shuffle THAT array itself.
+*/
+
+Sho1re1RandomShuffle(
+  window.Sho1re1Places
+);
 
 
 /* ============================================================
@@ -99,18 +166,40 @@ window.Sho1re1VisiblePlaces = [];
 
 function Sho1re1IsActive(plan) {
 
-  plan = String(plan || "FREE").toUpperCase();
+  plan =
+    String(
+      plan || "FREE"
+    ).toUpperCase();
+
 
   var rule =
     window.Sho1re1Settings[plan];
 
-  if (!rule || rule.enabled !== true) {
+
+  if (
+    !rule ||
+    rule.enabled !== true
+  ) {
+
     return false;
+
   }
 
 
+  /* FREE */
+
   if (
-    plan === "FREE" ||
+    plan === "FREE"
+  ) {
+
+    return true;
+
+  }
+
+
+  /* PREMIUM */
+
+  if (
     plan === "PREMIUM"
   ) {
 
@@ -119,19 +208,27 @@ function Sho1re1IsActive(plan) {
   }
 
 
-  if (plan === "PRO") {
+  /* PRO */
+
+  if (
+    plan === "PRO"
+  ) {
 
     var hour =
       new Date().getHours();
 
+
     var start =
       rule.startHour;
+
 
     var end =
       rule.endHour;
 
 
-    if (start < end) {
+    if (
+      start < end
+    ) {
 
       return (
         hour >= start &&
@@ -141,7 +238,9 @@ function Sho1re1IsActive(plan) {
     }
 
 
-    if (start > end) {
+    if (
+      start > end
+    ) {
 
       return (
         hour >= start ||
@@ -162,13 +261,20 @@ function Sho1re1IsActive(plan) {
 
 
 /* ============================================================
-   BUILD DATABASE
+   BUILD VISIBLE DATABASE
    ============================================================ */
 
 function Sho1re1BuildDatabase() {
 
   var visible = [];
 
+
+  /*
+     IMPORTANT:
+
+     We iterate through Sho1re1Places,
+     which has ALREADY been shuffled.
+  */
 
   for (
     var i = 0;
@@ -181,15 +287,23 @@ function Sho1re1BuildDatabase() {
 
 
     if (
-      Sho1re1IsActive(place.plan)
+      Sho1re1IsActive(
+        place.plan
+      )
     ) {
 
-      visible.push(place);
+      visible.push(
+        place
+      );
 
     }
 
   }
 
+
+  /*
+     Keep the SAME shuffled order.
+  */
 
   window.Sho1re1VisiblePlaces =
     visible;
@@ -220,7 +334,7 @@ window.Sho1re1GetPlaces =
 
 
 /* ============================================================
-   UNIVERSAL POST LINK
+   UNIVERSAL POST URL
    ============================================================ */
 
 window.Sho1re1GetPostURL =
@@ -232,16 +346,8 @@ window.Sho1re1GetPostURL =
       );
 
 
-    /*
-      Remove existing parameters
-    */
-
     url.search = "";
 
-
-    /*
-      Add post ID
-    */
 
     url.searchParams.set(
       "post",
@@ -255,7 +361,7 @@ window.Sho1re1GetPostURL =
 
 
 /* ============================================================
-   GET POST ID FROM CURRENT URL
+   GET SHARED POST ID
    ============================================================ */
 
 function Sho1re1GetSharedPostID() {
@@ -266,7 +372,9 @@ function Sho1re1GetSharedPostID() {
     );
 
 
-  return params.get("post");
+  return params.get(
+    "post"
+  );
 
 }
 
@@ -282,8 +390,15 @@ function Sho1re1FindPost(id) {
   }
 
 
+  /*
+     Search ORIGINAL database.
+
+     This does NOT depend on card order.
+  */
+
   var places =
-    window.Sho1re1VisiblePlaces || [];
+    window.Sho1re1OriginalPlaces ||
+    [];
 
 
   for (
@@ -293,11 +408,24 @@ function Sho1re1FindPost(id) {
   ) {
 
     if (
-      String(places[i].id) ===
+      String(
+        places[i].id
+      ) ===
       String(id)
     ) {
 
-      return places[i];
+      if (
+        Sho1re1IsActive(
+          places[i].plan
+        )
+      ) {
+
+        return places[i];
+
+      }
+
+
+      return null;
 
     }
 
@@ -310,7 +438,7 @@ function Sho1re1FindPost(id) {
 
 
 /* ============================================================
-   COPY LINK
+   COPY
    ============================================================ */
 
 function Sho1re1Copy(text) {
@@ -327,10 +455,6 @@ function Sho1re1Copy(text) {
   }
 
 
-  /*
-    Older browser fallback
-  */
-
   return new Promise(
     function (resolve) {
 
@@ -340,10 +464,13 @@ function Sho1re1Copy(text) {
         );
 
 
-      input.value = text;
+      input.value =
+        text;
+
 
       input.style.position =
         "fixed";
+
 
       input.style.opacity =
         "0";
@@ -356,12 +483,14 @@ function Sho1re1Copy(text) {
 
       input.select();
 
+
       document.execCommand(
         "copy"
       );
 
 
       input.remove();
+
 
       resolve();
 
@@ -389,10 +518,6 @@ window.Sho1re1SharePost =
       );
 
 
-    /*
-      Native mobile share
-    */
-
     if (
       navigator.share
     ) {
@@ -419,11 +544,6 @@ window.Sho1re1SharePost =
 
       catch (error) {
 
-        /*
-          User cancelled share.
-          Do nothing.
-        */
-
         if (
           error &&
           error.name ===
@@ -439,13 +559,12 @@ window.Sho1re1SharePost =
     }
 
 
-    /*
-      Clipboard fallback
-    */
-
     try {
 
-      await Sho1re1Copy(url);
+      await Sho1re1Copy(
+        url
+      );
+
 
       Sho1re1ShowToast(
         "Post link copied"
@@ -454,10 +573,6 @@ window.Sho1re1SharePost =
     }
 
     catch (error) {
-
-      /*
-        Last fallback
-      */
 
       window.prompt(
         "Copy this post link:",
@@ -503,32 +618,42 @@ function Sho1re1ShowToast(message) {
   toast.style.position =
     "fixed";
 
+
   toast.style.left =
     "50%";
+
 
   toast.style.bottom =
     "25px";
 
+
   toast.style.transform =
     "translateX(-50%)";
+
 
   toast.style.zIndex =
     "999999";
 
+
   toast.style.padding =
     "12px 18px";
+
 
   toast.style.borderRadius =
     "999px";
 
+
   toast.style.background =
     "#111";
+
 
   toast.style.color =
     "#fff";
 
+
   toast.style.fontSize =
     "14px";
+
 
   toast.style.boxShadow =
     "0 8px 30px rgba(0,0,0,.35)";
@@ -552,7 +677,7 @@ function Sho1re1ShowToast(message) {
 
 
 /* ============================================================
-   EXIT SHARED POST MODE
+   EXIT SHARED POST
    ============================================================ */
 
 window.Sho1re1ExitSharedPost =
@@ -569,10 +694,6 @@ window.Sho1re1ExitSharedPost =
     );
 
 
-    /*
-      Replace URL without reload
-    */
-
     history.pushState(
       {},
       "",
@@ -581,10 +702,6 @@ window.Sho1re1ExitSharedPost =
       url.hash
     );
 
-
-    /*
-      Remove shared mode
-    */
 
     Sho1re1ShowAllPosts();
 
@@ -614,9 +731,11 @@ function Sho1re1ShowAllPosts() {
         "data-sho1re1-original-display"
       ) || "";
 
+
     elements[i].removeAttribute(
       "data-sho1re1-hidden"
     );
+
 
     elements[i].removeAttribute(
       "data-sho1re1-original-display"
@@ -639,7 +758,7 @@ function Sho1re1ShowAllPosts() {
 
 
 /* ============================================================
-   CREATE EXIT BUTTON
+   EXIT BUTTON
    ============================================================ */
 
 function Sho1re1CreateExitButton() {
@@ -676,38 +795,50 @@ function Sho1re1CreateExitButton() {
   button.style.position =
     "fixed";
 
+
   button.style.top =
     "15px";
+
 
   button.style.left =
     "15px";
 
+
   button.style.zIndex =
     "999999";
+
 
   button.style.padding =
     "10px 16px";
 
+
   button.style.border =
     "0";
+
 
   button.style.borderRadius =
     "999px";
 
+
   button.style.background =
     "#111";
+
 
   button.style.color =
     "#fff";
 
+
   button.style.fontSize =
     "14px";
+
 
   button.style.fontWeight =
     "600";
 
+
   button.style.cursor =
     "pointer";
+
 
   button.style.boxShadow =
     "0 5px 20px rgba(0,0,0,.25)";
@@ -737,9 +868,7 @@ function Sho1re1CreateExitButton() {
    FIND POST ELEMENTS
    ============================================================ */
 
-function Sho1re1FindElementsForPost(
-  post
-) {
+function Sho1re1FindElementsForPost(post) {
 
   var all =
     document.querySelectorAll(
@@ -759,10 +888,6 @@ function Sho1re1FindElementsForPost(
     var element =
       all[i];
 
-
-    /*
-      Check common ID/data attributes
-    */
 
     var possibleID =
       element.getAttribute(
@@ -786,15 +911,11 @@ function Sho1re1FindElementsForPost(
         element
       );
 
+
       continue;
 
     }
 
-
-    /*
-      Check links pointing to the
-      post's existing page
-    */
 
     if (
       element.tagName ===
@@ -830,7 +951,7 @@ function Sho1re1FindElementsForPost(
 
 
 /* ============================================================
-   ADD SHARE BUTTON TO ELEMENT
+   ADD SHARE BUTTON
    ============================================================ */
 
 function Sho1re1AddShareButton(
@@ -842,10 +963,6 @@ function Sho1re1AddShareButton(
     return;
   }
 
-
-  /*
-    Prevent duplicates
-  */
 
   if (
     element.querySelector(
@@ -879,23 +996,30 @@ function Sho1re1AddShareButton(
   button.style.padding =
     "8px 14px";
 
+
   button.style.border =
     "0";
+
 
   button.style.borderRadius =
     "999px";
 
+
   button.style.background =
     "#111";
+
 
   button.style.color =
     "#fff";
 
+
   button.style.fontSize =
     "14px";
 
+
   button.style.cursor =
     "pointer";
+
 
   button.style.margin =
     "8px";
@@ -909,6 +1033,7 @@ function Sho1re1AddShareButton(
 
       event.stopPropagation();
 
+
       window.Sho1re1SharePost(
         post
       );
@@ -916,11 +1041,6 @@ function Sho1re1AddShareButton(
     }
   );
 
-
-  /*
-    Put button inside the
-    existing element.
-  */
 
   element.appendChild(
     button
@@ -930,13 +1050,14 @@ function Sho1re1AddShareButton(
 
 
 /* ============================================================
-   SCAN CURRENT UI
+   SCAN UI
    ============================================================ */
 
 function Sho1re1ScanUI() {
 
   var posts =
-    window.Sho1re1VisiblePlaces || [];
+    window.Sho1re1VisiblePlaces ||
+    [];
 
 
   for (
@@ -974,7 +1095,7 @@ function Sho1re1ScanUI() {
 
 
 /* ============================================================
-   SHARED POST MODE
+   OPEN SHARED POST
    ============================================================ */
 
 function Sho1re1OpenSharedPost() {
@@ -1001,22 +1122,14 @@ function Sho1re1OpenSharedPost() {
       sharedID
     );
 
+
     return;
 
   }
 
 
-  /*
-    Create Exit button
-  */
-
   Sho1re1CreateExitButton();
 
-
-  /*
-    Find existing UI element
-    for this post.
-  */
 
   var selectedElements =
     Sho1re1FindElementsForPost(
@@ -1024,13 +1137,9 @@ function Sho1re1OpenSharedPost() {
     );
 
 
-  /*
-    Hide other identifiable
-    post elements.
-  */
-
   var posts =
-    window.Sho1re1VisiblePlaces || [];
+    window.Sho1re1VisiblePlaces ||
+    [];
 
 
   for (
@@ -1097,11 +1206,6 @@ function Sho1re1OpenSharedPost() {
   }
 
 
-  /*
-    Scroll selected post
-    into view.
-  */
-
   if (
     selectedElements.length
   ) {
@@ -1122,10 +1226,6 @@ function Sho1re1OpenSharedPost() {
   }
 
 
-  /*
-    Change browser title
-  */
-
   if (post.title) {
 
     document.title =
@@ -1137,31 +1237,15 @@ function Sho1re1OpenSharedPost() {
 
 
 /* ============================================================
-   INITIAL UI SETUP
+   INITIALIZE
    ============================================================ */
 
 function Sho1re1InitializeSharing() {
 
-  /*
-    Wait until existing UI has
-    rendered its posts.
-  */
-
   Sho1re1ScanUI();
-
-
-  /*
-    Then handle shared URL.
-  */
 
   Sho1re1OpenSharedPost();
 
-
-  /*
-    Keep checking because your
-    existing app may render cards
-    dynamically.
-  */
 
   setInterval(
     function () {
@@ -1176,24 +1260,14 @@ function Sho1re1InitializeSharing() {
 
 
 /* ============================================================
-   HANDLE BROWSER BACK / FORWARD
+   BACK / FORWARD
    ============================================================ */
 
 window.addEventListener(
   "popstate",
   function () {
 
-    /*
-      Remove current shared mode
-    */
-
     Sho1re1ShowAllPosts();
-
-
-    /*
-      If URL contains another post,
-      open it.
-    */
 
     Sho1re1OpenSharedPost();
 
@@ -1202,7 +1276,7 @@ window.addEventListener(
 
 
 /* ============================================================
-   START AFTER PAGE LOAD
+   START
    ============================================================ */
 
 if (
@@ -1234,33 +1308,35 @@ else {
 
 
 /* ============================================================
-   REFRESH VISIBILITY DATABASE
+   REFRESH PLAN VISIBILITY
    ============================================================ */
 
 setInterval(
   function () {
 
-    var beforeIds =
-      window.Sho1re1VisiblePlaces
+    var before =
+      (window.Sho1re1VisiblePlaces || [])
         .map(function (p) {
           return p.id;
         })
+        .sort()
         .join(",");
 
 
     Sho1re1BuildDatabase();
 
 
-    var afterIds =
-      window.Sho1re1VisiblePlaces
+    var after =
+      (window.Sho1re1VisiblePlaces || [])
         .map(function (p) {
           return p.id;
         })
+        .sort()
         .join(",");
 
 
     if (
-      beforeIds !== afterIds
+      before !== after
     ) {
 
       window.dispatchEvent(
@@ -1269,11 +1345,6 @@ setInterval(
         )
       );
 
-
-      /*
-        Re-scan UI after visibility
-        changes.
-      */
 
       setTimeout(
         function () {
@@ -1291,3 +1362,4 @@ setInterval(
   },
   30000
 );
+
