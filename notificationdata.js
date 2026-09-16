@@ -1,22 +1,8 @@
 window.Sho1re1Notifications = [
 
-  {
-    id:"n1",
-    image:"https://images.unsplash.com/photo-1500534623283-312aade485b7?w=300",
-    title:"New Place",
-    message:"Explore something interesting.",
-    link:"explore.html",
-    createdAt:"2026-09-15T00:30:00+05:30"
-  },
+  
 
-  {
-    id:"n2",
-    image:"https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300",
-    title:"New Update",
-    message:"Something new is available.",
-    link:"index.html",
-    createdAt:"2026-09-14T22:00:00+05:30"
-  },
+  
 
   
 
@@ -24,14 +10,7 @@ window.Sho1re1Notifications = [
 
   
 
-  {
-    id:"n6",
-    image:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=300",
-    title:"Fresh Story",
-    message:"A new story just dropped.",
-    link:"explore.html",
-    createdAt:"2026-09-15T01:10:00+05:30"
-  },
+  
 
   
 
