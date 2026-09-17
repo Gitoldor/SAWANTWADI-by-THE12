@@ -1,29 +1,5 @@
 window.Sho1re1Notifications = [
 
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
   {
     id:"n1",
     image:"https://images.unsplash.com/photo-1500534623283-312aade485b7",
