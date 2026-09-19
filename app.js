@@ -105,6 +105,20 @@ window.Sho1re1Places = [
     "plan": "PREMIUM",
     "plan2": "30D",
     "createdOn": "2026-09-19T15:34:25+05:30"
+  },
+  {
+    "id": 6,
+    "title": "Sexually",
+    "topic": "T",
+    "type": "",
+    "subtype": "",
+    "lat": 9,
+    "lng": 9,
+    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
+    "link": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
+    "plan": "PRO",
+    "plan2": "14D",
+    "createdOn": "2026-09-19T15:52:49+05:30"
   }
 ];;
 
