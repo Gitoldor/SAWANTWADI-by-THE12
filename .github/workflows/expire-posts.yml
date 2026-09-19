@@ -1,7 +1,6 @@
 name: Expire Posts
 
 on:
-
   schedule:
     - cron: "0 0 * * *"
 
@@ -9,7 +8,6 @@ on:
 
 permissions:
   contents: write
-
 
 jobs:
 
@@ -24,8 +22,6 @@ jobs:
 
 
       - name: Remove expired posts
-        env:
-          TZ: Asia/Kolkata
         run: |
 
           node <<'NODE'
@@ -42,68 +38,193 @@ jobs:
             );
 
 
+          /* -----------------------------------------------
+             FIND DATABASE
+          ------------------------------------------------ */
+
           const marker =
             "window.Sho1re1Places =";
 
-
-          const start =
+          const markerStart =
             source.indexOf(
               marker
             );
 
-
-          const arrayStart =
-            source.indexOf(
-              "[",
-              start
-            );
-
-
-          const endMarker =
-            "window.Sho1re1OriginalPlaces";
-
-
-          const arrayEnd =
-            source.indexOf(
-              endMarker,
-              arrayStart
-            );
-
-
           if (
-            start === -1 ||
-            arrayStart === -1 ||
-            arrayEnd === -1
+            markerStart === -1
           ) {
 
             throw new Error(
-              "Could not locate Sho1re1Places."
+              "window.Sho1re1Places not found."
             );
 
           }
 
 
+          const arrayStart =
+            source.indexOf(
+              "[",
+              markerStart
+            );
+
+          if (
+            arrayStart === -1
+          ) {
+
+            throw new Error(
+              "Opening [ not found."
+            );
+
+          }
+
+
+          /* -----------------------------------------------
+             FIND MATCHING ]
+          ------------------------------------------------ */
+
+          let depth = 0;
+          let quote = null;
+          let escaped = false;
+          let arrayEnd = -1;
+
+
+          for (
+            let i = arrayStart;
+            i < source.length;
+            i++
+          ) {
+
+            const char =
+              source[i];
+
+
+            if (
+              quote !== null
+            ) {
+
+              if (
+                escaped
+              ) {
+
+                escaped = false;
+
+                continue;
+
+              }
+
+
+              if (
+                char === "\\"
+              ) {
+
+                escaped = true;
+
+                continue;
+
+              }
+
+
+              if (
+                char === quote
+              ) {
+
+                quote = null;
+
+              }
+
+              continue;
+
+            }
+
+
+            if (
+              char === '"' ||
+              char === "'" ||
+              char === "`"
+            ) {
+
+              quote = char;
+
+              continue;
+
+            }
+
+
+            if (
+              char === "["
+            ) {
+
+              depth++;
+
+            }
+
+
+            if (
+              char === "]"
+            ) {
+
+              depth--;
+
+              if (
+                depth === 0
+              ) {
+
+                arrayEnd =
+                  i + 1;
+
+                break;
+
+              }
+
+            }
+
+          }
+
+
+          if (
+            arrayEnd === -1
+          ) {
+
+            throw new Error(
+              "Closing ] not found."
+            );
+
+          }
+
+
+          /* -----------------------------------------------
+             READ POSTS
+          ------------------------------------------------ */
+
           const arraySource =
             source.slice(
               arrayStart,
               arrayEnd
-            )
-            .replace(
-              /;\s*$/,
-              ""
-            )
-            .trim();
-
-
-          const sandbox = {};
-
-          const places =
-            vm.runInNewContext(
-              "(" +
-              arraySource +
-              ")",
-              sandbox
             );
+
+
+          let places;
+
+
+          try {
+
+            places =
+              vm.runInNewContext(
+                "(" +
+                arraySource +
+                ")"
+              );
+
+          } catch (
+            error
+          ) {
+
+            throw new Error(
+              "Could not parse Sho1re1Places:\n" +
+              error.message
+            );
+
+          }
 
 
           if (
@@ -119,28 +240,48 @@ jobs:
           }
 
 
-          const now =
-            Date.now();
-
+          /* -----------------------------------------------
+             LIFETIMES
+          ------------------------------------------------ */
 
           const durations = {
 
             "7D":
-              7 * 24 * 60 * 60 * 1000,
+              7 *
+              24 *
+              60 *
+              60 *
+              1000,
 
             "14D":
-              14 * 24 * 60 * 60 * 1000,
+              14 *
+              24 *
+              60 *
+              60 *
+              1000,
 
             "30D":
-              30 * 24 * 60 * 60 * 1000
+              30 *
+              24 *
+              60 *
+              60 *
+              1000
 
           };
+
+
+          const now =
+            Date.now();
 
 
           const remaining = [];
 
           const removed = [];
 
+
+          /* -----------------------------------------------
+             CHECK EVERY POST
+          ------------------------------------------------ */
 
           for (
             const post of places
@@ -159,6 +300,11 @@ jobs:
                 ).toUpperCase()
               ];
 
+
+            /*
+              Missing or invalid expiry data:
+              KEEP THE POST.
+            */
 
             if (
               !Number.isFinite(
@@ -182,7 +328,8 @@ jobs:
 
 
             if (
-              now >= expiresAt
+              now >=
+              expiresAt
             ) {
 
               removed.push(
@@ -200,6 +347,10 @@ jobs:
           }
 
 
+          /* -----------------------------------------------
+             NOTHING TO DELETE
+          ------------------------------------------------ */
+
           if (
             removed.length === 0
           ) {
@@ -213,6 +364,10 @@ jobs:
           }
 
 
+          /* -----------------------------------------------
+             REBUILD DATABASE
+          ------------------------------------------------ */
+
           const newDatabase =
             "window.Sho1re1Places = " +
             JSON.stringify(
@@ -220,15 +375,17 @@ jobs:
               null,
               2
             ) +
-            ";\n\n\n";
+            ";";
 
 
           const newSource =
             source.slice(
               0,
-              arrayStart
+              markerStart
             ) +
+
             newDatabase +
+
             source.slice(
               arrayEnd
             );
@@ -241,7 +398,7 @@ jobs:
 
 
           console.log(
-            "Removed expired posts:",
+            "Expired posts removed:",
             removed.join(", ")
           );
 
@@ -254,7 +411,7 @@ jobs:
           NODE
 
 
-      - name: Commit expired-post cleanup
+      - name: Commit changes
         run: |
 
           if git diff --quiet; then
