@@ -2,6 +2,7 @@
    SAWANTWADI DIGITAL
    RANDOM UI CARD ORDER
    + PLAN VISIBILITY
+   + POST EXPIRY
    ============================================================ */
 
 
@@ -30,71 +31,72 @@ window.Sho1re1Settings = {
 
 /* ============================================================
    DATABASE
+   plan2 = POST LIFETIME
+   createdOn = AUTOMATIC POST CREATION TIME
    ============================================================ */
 
 window.Sho1re1Places = [
+
   {
-    "id": 1,
-    "title": "welcome",
-    "topic": "Scenic Drives",
-    "type": "",
-    "subtype": "",
-    "lat": 15.9041,
-    "lng": 73.8219,
-    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "link": "welcome.html",
-    "plan": "FREE"
+    id: 1,
+    title: "welcome",
+    topic: "Scenic Drives",
+    type: "",
+    subtype: "",
+    lat: 15.9041,
+    lng: 73.8219,
+    image: "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
+    link: "welcome.html",
+    plan: "FREE",
+    plan2: "30D",
+    createdOn: "2026-09-19T00:00:00+05:30"
   },
+
   {
-    "id": 2,
-    "title": "welcome",
-    "topic": "Scenic Drives",
-    "type": "",
-    "subtype": "",
-    "lat": 15.9041,
-    "lng": 73.8219,
-    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "link": "welcome.html",
-    "plan": "FREE"
+    id: 2,
+    title: "welcome",
+    topic: "Scenic Drives",
+    type: "",
+    subtype: "",
+    lat: 15.9041,
+    lng: 73.8219,
+    image: "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
+    link: "welcome.html",
+    plan: "FREE",
+    plan2: "30D",
+    createdOn: "2026-09-19T00:00:00+05:30"
   },
+
   {
-    "id": 3,
-    "title": "welcome",
-    "topic": "Scenic Drives",
-    "type": "",
-    "subtype": "",
-    "lat": 15.9541,
-    "lng": 73.8219,
-    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "link": "welcome.html",
-    "plan": "PREMIUM"
+    id: 3,
+    title: "welcome",
+    topic: "Scenic Drives",
+    type: "",
+    subtype: "",
+    lat: 15.9541,
+    lng: 73.8219,
+    image: "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
+    link: "welcome.html",
+    plan: "PREMIUM",
+    plan2: "30D",
+    createdOn: "2026-09-19T00:00:00+05:30"
   },
+
   {
-    "id": 4,
-    "title": "K",
-    "topic": "K",
-    "type": "M",
-    "subtype": "N",
-    "lat": 90,
-    "lng": 90,
-    "image": "",
-    "link": "",
-    "plan": "PRO"
-  },
-  {
-    "id": 5,
-    "title": "Yo",
-    "topic": "Yo",
-    "type": "Yi",
-    "subtype": "Io",
-    "lat": 9,
-    "lng": 9,
-    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "link": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "plan": "PREMIUM",
-    "plan2": "30D",
-    "createdOn": "2026-09-19T15:15:41+05:30"
+    id: 4,
+    title: "K",
+    topic: "K",
+    type: "M",
+    subtype: "N",
+    lat: 90,
+    lng: 90,
+    image: "",
+    link: "",
+    plan: "PRO",
+    plan2: "7D",
+    createdOn: "2026-09-19T00:00:00+05:30"
   }
+
 ];
 
 
@@ -123,20 +125,16 @@ function Sho1re1RandomShuffle(array) {
         Math.random() * (i + 1)
       );
 
-
     var temp =
       array[i];
 
-
     array[i] =
       array[random];
-
 
     array[random] =
       temp;
 
   }
-
 
   return array;
 
@@ -170,10 +168,8 @@ function Sho1re1IsActive(plan) {
       plan || "FREE"
     ).toUpperCase();
 
-
   var rule =
     window.Sho1re1Settings[plan];
-
 
   if (
     !rule ||
@@ -185,8 +181,6 @@ function Sho1re1IsActive(plan) {
   }
 
 
-  /* FREE */
-
   if (
     plan === "FREE"
   ) {
@@ -195,8 +189,6 @@ function Sho1re1IsActive(plan) {
 
   }
 
-
-  /* PREMIUM */
 
   if (
     plan === "PREMIUM"
@@ -207,8 +199,6 @@ function Sho1re1IsActive(plan) {
   }
 
 
-  /* PRO */
-
   if (
     plan === "PRO"
   ) {
@@ -216,10 +206,8 @@ function Sho1re1IsActive(plan) {
     var hour =
       new Date().getHours();
 
-
     var start =
       rule.startHour;
-
 
     var end =
       rule.endHour;
