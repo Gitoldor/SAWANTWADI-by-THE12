@@ -3,29 +3,41 @@
 
 <head>
 
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0,
-maximum-scale=1.0,user-scalable=no" />
+<meta
+  name="viewport"
+  content="
+    width=device-width,
+    initial-scale=1,
+    maximum-scale=1,
+    user-scalable=no
+">
 
 <title>Communities & Feeds</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
-<link rel="preconnect"
-href="https://fonts.gstatic.com"
-crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+  rel="stylesheet"
+>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-rel="stylesheet">
+
+<!-- =========================================================
+     HTML2CANVAS
+     Used only to capture the real page content for
+     the pixel-glass sampling layer.
+========================================================= -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 
 <style>
 
-/* =====================================================
+/* =========================================================
    RESET
-===================================================== */
+========================================================= */
 
 *{
   margin:0;
@@ -35,11 +47,9 @@ rel="stylesheet">
   -webkit-tap-highlight-color:transparent;
 }
 
-
 html{
   background:#fcfcfc;
 }
-
 
 body{
 
@@ -47,200 +57,296 @@ body{
   min-height:100vh;
 
   background:#fcfcfc;
+
   color:#000;
 
-  font-family:'Inter',
-  -apple-system,
-  BlinkMacSystemFont,
-  sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 
-  overflow-y:auto;
   overflow-x:hidden;
+  overflow-y:auto;
 
-  padding:24px 16px 48px;
+  padding:
+    0
+    16px
+    48px;
 
   scrollbar-width:none;
-
 }
-
 
 body::-webkit-scrollbar{
   display:none;
 }
 
 
-/* =====================================================
-   PAGE ENTER
-===================================================== */
+/* =========================================================
+   CONFIG
+========================================================= */
 
-body{
-  animation:
-  pageEnter .55s
-  cubic-bezier(.22,1,.36,1)
-  both;
+:root{
+
+  /*
+    EXACT IMAGE HEIGHT
+  */
+
+  --community-header-height:130px;
+
+  /*
+    Pixel size used by the glass.
+    Larger = chunkier pixels.
+  */
+
+  --pixel-size:7px;
+
 }
 
+
+/* =========================================================
+   PAGE ENTER
+========================================================= */
+
+body{
+
+  animation:
+    pageEnter
+    .55s
+    cubic-bezier(.22,1,.36,1)
+    both;
+
+}
 
 @keyframes pageEnter{
 
   from{
+
     opacity:0;
-    transform:translateY(10px);
+
+    transform:
+      translate3d(
+        0,
+        10px,
+        0
+      );
+
   }
 
   to{
+
     opacity:1;
-    transform:translateY(0);
+
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      );
+
   }
 
 }
 
 
-/* =====================================================
+/* =========================================================
    HEADER
-===================================================== */
+========================================================= */
 
-.page-header{
+.community-header{
 
-  display:flex;
+  position:sticky;
 
-  align-items:center;
+  top:0;
 
-  gap:13px;
+  left:0;
 
-  margin-bottom:26px;
+  width:
+    calc(100% + 32px);
 
-  animation:
-  headerEnter .6s
-  cubic-bezier(.22,1,.36,1)
-  both;
+  height:
+    var(--community-header-height);
 
-}
+  margin-left:-16px;
+  margin-right:-16px;
 
-
-@keyframes headerEnter{
-
-  from{
-    opacity:0;
-    transform:
-    translateY(-12px);
-  }
-
-  to{
-    opacity:1;
-    transform:
-    translateY(0);
-  }
-
-}
-
-
-/* =====================================================
-   BACK BUTTON
-===================================================== */
-
-.back-btn{
-
-  width:38px;
-  height:38px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
+  z-index:1000;
 
   background:transparent;
 
-  border:none;
+  overflow:visible;
 
-  border-radius:50%;
+  pointer-events:none;
 
-  cursor:pointer;
-
-  text-decoration:none;
-
-  flex-shrink:0;
-
-  transition:
-  background .2s ease,
-  transform .2s
-  cubic-bezier(.22,1,.36,1);
-
-}
-
-
-.back-btn:hover{
-
-  background:#f0f0f0;
+  isolation:isolate;
 
   transform:
-  translateX(-2px);
+    translate3d(
+      0,
+      var(--header-y,0px),
+      0
+    );
+
+  will-change:transform;
 
 }
 
 
-.back-btn:active{
+/* =========================================================
+   PIXEL GLASS CONTAINER
+   ---------------------------------------------------------
+   SAME DIMENSIONS AS IMAGE
+
+   CONTENT
+      ↓
+   THIS
+      ↓
+   IMAGE
+========================================================= */
+
+#pixelGlass{
+
+  position:absolute;
+
+  left:0;
+  top:0;
+
+  width:100%;
+
+  height:
+    var(--community-header-height);
+
+  z-index:2;
+
+  display:block;
+
+  pointer-events:none;
+
+  background:transparent;
+
+  overflow:hidden;
+
+  opacity:
+    var(--pixel-opacity,1);
 
   transform:
-  scale(.86)
-  translateX(-2px);
+    translate3d(
+      0,
+      var(--pixel-y,0px),
+      0
+    );
+
+  will-change:
+    transform;
 
 }
 
 
-.back-btn svg{
+/* =========================================================
+   IMAGE CONTAINER
+   ---------------------------------------------------------
+   IMAGE IS ABOVE PIXEL GLASS
+========================================================= */
 
-  width:25px;
-  height:25px;
+.community-image-layer{
 
-  fill:none;
+  position:absolute;
 
-  stroke:#000;
+  left:0;
+  right:0;
+  top:0;
 
-  stroke-width:2.5;
+  width:100%;
 
-  stroke-linecap:round;
-  stroke-linejoin:round;
+  height:
+    var(--community-header-height);
 
-  transition:
-  transform .2s
-  cubic-bezier(.22,1,.36,1);
+  z-index:3;
+
+  overflow:hidden;
+
+  background:transparent;
+
+  pointer-events:none;
 
 }
 
 
-.back-btn:hover svg{
+/* =========================================================
+   ACTUAL IMAGE
+
+   FULLY OPAQUE
+========================================================= */
+
+.community-image-layer img{
+
+  width:100%;
+  height:100%;
+
+  display:block;
+
+  object-fit:cover;
+
+  object-position:center;
+
+  opacity:1;
 
   transform:
-  translateX(-2px);
+    translate3d(
+      0,
+      var(--image-y,0px),
+      0
+    )
+    scale(
+      var(--image-scale,1)
+    );
+
+  will-change:transform;
 
 }
 
 
-/* =====================================================
-   TITLE
-===================================================== */
+/* =========================================================
+   IMAGE EDGE
+========================================================= */
 
-.main-title{
+.community-header::after{
 
-  font-size:2rem;
+  content:"";
 
-  font-weight:900;
+  position:absolute;
 
-  letter-spacing:-1px;
+  left:0;
+  right:0;
 
-  color:#000;
+  bottom:0;
 
-  line-height:1;
+  height:1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.8),
+      transparent
+    );
+
+  opacity:.4;
+
+  z-index:4;
 
 }
 
 
-/* =====================================================
-   SECTION
-===================================================== */
+/* =========================================================
+   CONTENT
+========================================================= */
 
 .section-header{
+
+  position:relative;
+
+  z-index:1;
 
   display:flex;
 
@@ -248,58 +354,23 @@ body{
 
   justify-content:space-between;
 
-  margin-top:24px;
+  margin-top:26px;
 
   margin-bottom:15px;
 
   gap:8px;
 
-  opacity:0;
+  transform:
+    translate3d(
+      0,
+      var(--content-y,0px),
+      0
+    );
 
-  animation:
-  sectionEnter .55s
-  cubic-bezier(.22,1,.36,1)
-  forwards;
-
-}
-
-
-.section-header:nth-of-type(2){
-  animation-delay:.08s;
-}
-
-
-.section-header:nth-of-type(3){
-  animation-delay:.22s;
-}
-
-
-@keyframes sectionEnter{
-
-  from{
-
-    opacity:0;
-
-    transform:
-    translateY(8px);
-
-  }
-
-  to{
-
-    opacity:1;
-
-    transform:
-    translateY(0);
-
-  }
+  will-change:transform;
 
 }
 
-
-/* =====================================================
-   SECTION LABEL
-===================================================== */
 
 .section-label{
 
@@ -309,16 +380,8 @@ body{
 
   color:#96969b;
 
-  letter-spacing:-.1px;
-
-  line-height:1.1;
-
 }
 
-
-/* =====================================================
-   SEE ALL
-===================================================== */
 
 .see-all-btn{
 
@@ -330,41 +393,18 @@ body{
 
   text-decoration:none;
 
-  white-space:nowrap;
-
-  flex-shrink:0;
-
-  transition:
-
-  color .2s ease,
-  transform .2s ease;
-
 }
 
 
-.see-all-btn:hover{
-
-  color:#000;
-
-  transform:
-  translateX(2px);
-
-}
-
-
-.see-all-btn:active{
-
-  transform:
-  scale(.95);
-
-}
-
-
-/* =====================================================
+/* =========================================================
    LIST
-===================================================== */
+========================================================= */
 
 .list-group{
+
+  position:relative;
+
+  z-index:1;
 
   display:flex;
 
@@ -374,14 +414,25 @@ body{
 
   margin-bottom:30px;
 
+  transform:
+    translate3d(
+      0,
+      var(--content-y,0px),
+      0
+    );
+
+  will-change:transform;
+
 }
 
 
-/* =====================================================
-   LIST ITEM
-===================================================== */
+/* =========================================================
+   ROW
+========================================================= */
 
 .list-item{
+
+  position:relative;
 
   display:flex;
 
@@ -395,10 +446,6 @@ body{
 
   color:inherit;
 
-  cursor:pointer;
-
-  background:transparent;
-
   border-radius:18px;
 
   padding:7px 8px;
@@ -408,26 +455,22 @@ body{
   opacity:0;
 
   transform:
-  translateY(12px);
+    translate3d(
+      0,
+      12px,
+      0
+    );
 
   animation:
-  itemEnter .5s
-  cubic-bezier(.22,1,.36,1)
-  forwards;
+    itemEnter
+    .5s
+    cubic-bezier(.22,1,.36,1)
+    forwards;
 
-  transition:
-
-  background .2s ease,
-
-  transform .18s
-  cubic-bezier(.22,1,.36,1),
-
-  opacity .18s ease;
+  will-change:transform;
 
 }
 
-
-/* ANIMATION */
 
 @keyframes itemEnter{
 
@@ -436,7 +479,11 @@ body{
     opacity:0;
 
     transform:
-    translateY(12px);
+      translate3d(
+        0,
+        12px,
+        0
+      );
 
   }
 
@@ -445,49 +492,24 @@ body{
     opacity:1;
 
     transform:
-    translateY(0);
+      translate3d(
+        0,
+        0,
+        0
+      );
 
   }
 
 }
 
 
-/* DESKTOP */
-
-@media (hover:hover){
-
-  .list-item:hover{
-
-    background:#f4f4f4;
-
-    transform:
-    translateX(3px);
-
-  }
-
-}
-
-
-/* MOBILE PRESS */
-
-.list-item:active{
-
-  background:#eeeeee;
-
-  transform:
-  scale(.975);
-
-}
-
-
-/* =====================================================
-   COMMUNITY IMAGE
-===================================================== */
+/* =========================================================
+   ICON
+========================================================= */
 
 .icon-wrapper{
 
   width:46px;
-
   height:46px;
 
   flex-shrink:0;
@@ -498,72 +520,28 @@ body{
 
   background:#eee;
 
-  transform:
-  translateZ(0);
-
-  transition:
-
-  transform .3s
-  cubic-bezier(.22,1,.36,1),
-
-  box-shadow .3s ease;
-
 }
 
-
-.list-item:hover .icon-wrapper{
-
-  transform:
-  scale(1.06);
-
-}
-
-
-.list-item:active .icon-wrapper{
-
-  transform:
-  scale(.93);
-
-}
-
-
-/* IMAGE */
 
 .community-image{
 
   width:100%;
-
   height:100%;
-
-  display:block;
 
   object-fit:cover;
 
-  transition:
-
-  transform .5s
-  cubic-bezier(.22,1,.36,1);
+  display:block;
 
 }
 
 
-.list-item:hover
-.community-image{
-
-  transform:
-  scale(1.08);
-
-}
-
-
-/* =====================================================
+/* =========================================================
    FEED ICON
-===================================================== */
+========================================================= */
 
 .feed-icon{
 
   width:46px;
-
   height:46px;
 
   flex-shrink:0;
@@ -571,16 +549,9 @@ body{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
   border-radius:50%;
-
-  transition:
-
-  background .25s ease,
-  transform .25s
-  cubic-bezier(.22,1,.36,1);
 
 }
 
@@ -588,7 +559,6 @@ body{
 .feed-icon svg{
 
   width:82%;
-
   height:82%;
 
   fill:none;
@@ -601,37 +571,12 @@ body{
 
   stroke-linejoin:round;
 
-  transition:
-
-  transform .25s
-  cubic-bezier(.22,1,.36,1);
-
 }
 
 
-.list-item:hover
-.feed-icon{
-
-  background:#e9e9e9;
-
-  transform:
-  scale(1.05);
-
-}
-
-
-.list-item:hover
-.feed-icon svg{
-
-  transform:
-  scale(1.05);
-
-}
-
-
-/* =====================================================
+/* =========================================================
    TITLE
-===================================================== */
+========================================================= */
 
 .item-title{
 
@@ -645,80 +590,20 @@ body{
 
   line-height:1.15;
 
-  word-break:break-word;
-
-  overflow-wrap:break-word;
-
 }
 
 
-/* =====================================================
-   STAGGER
-===================================================== */
-
-#suggestedList
-.list-item:nth-child(1){
-  animation-delay:.12s;
-}
-
-#suggestedList
-.list-item:nth-child(2){
-  animation-delay:.18s;
-}
-
-#suggestedList
-.list-item:nth-child(3){
-  animation-delay:.24s;
-}
-
-#suggestedList
-.list-item:nth-child(4){
-  animation-delay:.30s;
-}
-
-#suggestedList
-.list-item:nth-child(5){
-  animation-delay:.36s;
-}
-
-
-/* OTHER FEEDS */
-
-.list-group:not(#suggestedList)
-.list-item:nth-child(1){
-  animation-delay:.32s;
-}
-
-.list-group:not(#suggestedList)
-.list-item:nth-child(2){
-  animation-delay:.38s;
-}
-
-.list-group:not(#suggestedList)
-.list-item:nth-child(3){
-  animation-delay:.44s;
-}
-
-.list-group:not(#suggestedList)
-.list-item:nth-child(4){
-  animation-delay:.50s;
-}
-
-
-/* =====================================================
+/* =========================================================
    REDUCED MOTION
-===================================================== */
+========================================================= */
 
-@media
-(prefers-reduced-motion:reduce){
+@media(prefers-reduced-motion:reduce){
 
   *,
   *::before,
   *::after{
 
     animation-duration:.01ms !important;
-
-    animation-iteration-count:1 !important;
 
     transition-duration:.01ms !important;
 
@@ -734,39 +619,53 @@ body{
 <body>
 
 
-<!-- =========================
-     HEADER
-========================= -->
+<!-- =======================================================
+     IMAGE + PIXEL GLASS SYSTEM
 
-<div class="page-header">
+     CONTENT
+        ↓
+     PIXEL GLASS
+        ↓
+     IMAGE
+======================================================= -->
 
-  <a
-    href="index.html"
-    target="_top"
-    class="back-btn"
-    aria-label="Go back"
-  >
-
-    <svg viewBox="0 0 24 24">
-
-      <path d="M15 18l-6-6 6-6"/>
-
-    </svg>
-
-  </a>
+<div class="community-header">
 
 
-  <h1 class="main-title">
-    Communities
-  </h1>
+  <!-- =====================================================
+       PIXEL GLASS
+
+       EXACT SAME SIZE AS IMAGE
+  ====================================================== -->
+
+  <canvas
+    id="pixelGlass">
+  </canvas>
+
+
+  <!-- =====================================================
+       REAL IMAGE
+
+       ALWAYS ABOVE PIXEL GLASS
+  ====================================================== -->
+
+  <div class="community-image-layer">
+
+    <img
+      src="https://i.ibb.co/1frFJvCz/1000001666-removebg-preview.png"
+      alt="Communities"
+    >
+
+  </div>
+
 
 </div>
 
 
 
-<!-- =========================
+<!-- =======================================================
      SUGGESTED
-========================= -->
+======================================================= -->
 
 <div class="section-header">
 
@@ -786,9 +685,6 @@ body{
 </div>
 
 
-
-<!-- DYNAMIC SUGGESTED LIST -->
-
 <div
   class="list-group"
   id="suggestedList"
@@ -797,9 +693,9 @@ body{
 
 
 
-<!-- =========================
+<!-- =======================================================
      OTHER FEEDS
-========================= -->
+======================================================= -->
 
 <div class="section-header">
 
@@ -810,11 +706,12 @@ body{
 </div>
 
 
-
 <div class="list-group">
 
 
-  <!-- UPDATES -->
+  <!-- =====================================================
+       UPDATES
+  ====================================================== -->
 
   <a
     href="news.html"
@@ -826,19 +723,27 @@ body{
 
       <svg viewBox="0 0 24 24">
 
-        <path d="M4 5a2 2 0 0 1 2-2h14v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+        <path
+          d="
+            M4 5
+            a2 2 0 0 1 2-2
+            h14
+            v16
+            a2 2 0 0 1-2 2
+            H6
+            a2 2 0 0 1-2-2
+            V5z
+          "
+        />
 
         <path d="M8 7h8"/>
-
         <path d="M8 11h8"/>
-
         <path d="M8 15h5"/>
-
-        <path d="M17 15h1"/>
 
       </svg>
 
     </div>
+
 
     <span class="item-title">
       Updates
@@ -847,8 +752,9 @@ body{
   </a>
 
 
-
-  <!-- SAVED -->
+  <!-- =====================================================
+       SAVED
+  ====================================================== -->
 
   <a
     href="saved.html"
@@ -860,11 +766,23 @@ body{
 
       <svg viewBox="0 0 24 24">
 
-        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        <path
+          d="
+            M19 21
+            l-7-5
+            -7 5
+            V5
+            a2 2 0 0 1 2-2
+            h10
+            a2 2 0 0 1 2 2
+            z
+          "
+        />
 
       </svg>
 
     </div>
+
 
     <span class="item-title">
       Saved
@@ -873,8 +791,9 @@ body{
   </a>
 
 
-
-  <!-- LIKED -->
+  <!-- =====================================================
+       LIKED
+  ====================================================== -->
 
   <a
     href="liked.html"
@@ -886,11 +805,26 @@ body{
 
       <svg viewBox="0 0 24 24">
 
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        <path
+          d="
+            M20.84 4.61
+            a5.5 5.5 0 0 0-7.78 0
+            L12 5.67
+            l-1.06-1.06
+            a5.5 5.5 0 0 0-7.78 7.78
+            l1.06 1.06
+            L12 21.23
+            l7.78-7.78
+            1.06-1.06
+            a5.5 5.5 0 0 0 0-7.78
+            z
+          "
+        />
 
       </svg>
 
     </div>
+
 
     <span class="item-title">
       Liked
@@ -899,8 +833,9 @@ body{
   </a>
 
 
-
-  <!-- GHOST POSTS -->
+  <!-- =====================================================
+       GHOST POSTS
+  ====================================================== -->
 
   <a
     href="ghost-posts.html"
@@ -912,11 +847,27 @@ body{
 
       <svg viewBox="0 0 24 24">
 
-        <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+        <path
+          d="
+            M9 10h.01
+            M15 10h.01
+            M12 2
+            a8 8 0 0 0-8 8
+            v12
+            l3-3
+            2.5 2.5
+            L17 19
+            l3 3
+            V10
+            a8 8 0 0 0-8-8
+            z
+          "
+        />
 
       </svg>
 
     </div>
+
 
     <span class="item-title">
       Ghost posts
@@ -928,97 +879,1418 @@ body{
 </div>
 
 
-
-<!-- =========================
-     COMMUNITIES DATA
-========================= -->
+<!-- =======================================================
+     YOUR EXISTING DATA FILE
+======================================================= -->
 
 <script src="communities-data.js"></script>
 
 
-
-<!-- =========================
-     RENDER SUGGESTED
-========================= -->
+<!-- =======================================================
+     SUGGESTED COMMUNITIES
+======================================================= -->
 
 <script>
 
-const suggestedList =
-document.getElementById("suggestedList");
+(function(){
+
+  "use strict";
 
 
-const communities =
-Array.isArray(window.communitiesData)
-? window.communitiesData
-: [];
+  const list =
+    document.getElementById(
+      "suggestedList"
+    );
 
 
-/* GET FIRST 5 */
-
-const suggested =
-communities.slice(0,5);
-
-
-/* RENDER */
-
-suggested.forEach((community,index)=>{
+  if(!list){
+    return;
+  }
 
 
-  const item =
-  document.createElement("a");
+  function renderCommunities(){
+
+    if(
+      !window.communitiesData ||
+      !Array.isArray(
+        window.communitiesData
+      )
+    ){
+      return;
+    }
 
 
-  item.className =
-  "list-item";
+    list.innerHTML = "";
 
 
-  item.href =
-  community.href ||
-  "#";
+    window.communitiesData
+      .slice(0,5)
+      .forEach(
+        (community,index) => {
 
 
-  item.target =
-  "_top";
+          const item =
+            document.createElement(
+              "a"
+            );
 
 
-  /* Dynamic stagger */
-
-  item.style.animationDelay =
-  `${0.12 + (index * 0.06)}s`;
+          item.className =
+            "list-item";
 
 
-  item.innerHTML = `
-
-    <div class="icon-wrapper">
-
-      <img
-        src="${community.image}"
-        alt="${community.title}"
-        class="community-image"
-        loading="lazy"
-      >
-
-    </div>
+          item.href =
+            community.href || "#";
 
 
-    <span class="item-title">
-
-      ${community.title}
-
-    </span>
-
-  `;
+          item.target =
+            "_top";
 
 
-  suggestedList
-  .appendChild(item);
+          item.style.animationDelay =
+            `${.12 + index*.06}s`;
 
 
-});
+          item.innerHTML = `
+
+            <div class="icon-wrapper">
+
+              <img
+                src="${community.image || ""}"
+                alt=""
+                class="community-image"
+                loading="lazy"
+              >
+
+            </div>
+
+
+            <span class="item-title">
+
+              ${community.title || "Community"}
+
+            </span>
+
+          `;
+
+
+          list.appendChild(item);
+
+        }
+      );
+
+  }
+
+
+  renderCommunities();
+
+
+  window.addEventListener(
+    "load",
+    renderCommunities,
+    {
+      once:true
+    }
+  );
+
+})();
 
 </script>
 
 
-</body>
+<!-- =======================================================
+     SEGMENT 2 BELOW
+======================================================= -->
+<script>
 
+/* =========================================================
+   SHO1RE1 MENU PIXEL GLASS
+   ---------------------------------------------------------
+   REAL STRUCTURE:
+
+        ACTUAL MENU CONTENT
+                 ↓
+        CAPTURED INTO BUFFER
+                 ↓
+        DOWNSAMPLED
+                 ↓
+        REFRACTED / PIXELATED
+                 ↓
+        PIXEL GLASS CANVAS
+                 ↓
+        REAL IMAGE ON TOP
+========================================================= */
+
+(function(){
+
+"use strict";
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const canvas =
+  document.getElementById(
+    "pixelGlass"
+  );
+
+
+const header =
+  document.querySelector(
+    ".community-header"
+  );
+
+
+const image =
+  document.querySelector(
+    ".community-image-layer img"
+  );
+
+
+const content =
+  document.querySelectorAll(
+    ".section-header,.list-group"
+  );
+
+
+if(
+  !canvas ||
+  !header ||
+  !image
+){
+  return;
+}
+
+
+const ctx =
+  canvas.getContext(
+    "2d",
+    {
+      alpha:true,
+      desynchronized:true
+    }
+  );
+
+
+/* =========================================================
+   OFFSCREEN CANVASES
+========================================================= */
+
+
+/*
+  Captured page.
+*/
+
+let capturedCanvas =
+  null;
+
+
+/*
+  Small pixel buffer.
+
+  This is the important part from
+  your Pixel Glass chat.
+
+  REAL CONTENT
+       ↓
+  SMALL BUFFER
+       ↓
+  CHUNKY PIXELS
+*/
+
+const pixelCanvas =
+  document.createElement(
+    "canvas"
+  );
+
+
+const pixelCtx =
+  pixelCanvas.getContext(
+    "2d",
+    {
+      alpha:true
+    }
+  );
+
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+let W = 0;
+let H = 0;
+let DPR = 1;
+
+let captureBusy =
+  false;
+
+let captureTimer =
+  null;
+
+let animationFrame =
+  null;
+
+
+/* =========================================================
+   PHYSICS
+========================================================= */
+
+let lastScroll =
+  window.scrollY;
+
+let velocity =
+  0;
+
+let targetVelocity =
+  0;
+
+let imageY =
+  0;
+
+let imageScale =
+  1;
+
+let pixelY =
+  0;
+
+let contentY =
+  0;
+
+let contentScale =
+  1;
+
+
+const MAX_VELOCITY =
+  35;
+
+
+/* =========================================================
+   LERP
+========================================================= */
+
+function lerp(
+  a,
+  b,
+  amount
+){
+
+  return (
+    a +
+    (b-a) *
+    amount
+  );
+
+}
+
+
+/* =========================================================
+   CLAMP
+========================================================= */
+
+function clamp(
+  value,
+  min,
+  max
+){
+
+  return Math.max(
+    min,
+    Math.min(
+      max,
+      value
+    )
+  );
+
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+function resize(){
+
+  DPR =
+    Math.min(
+      window.devicePixelRatio || 1,
+      1.5
+    );
+
+
+  const rect =
+    header.getBoundingClientRect();
+
+
+  W =
+    Math.max(
+      1,
+      Math.round(
+        rect.width * DPR
+      )
+    );
+
+
+  H =
+    Math.max(
+      1,
+      Math.round(
+        rect.height * DPR
+      )
+    );
+
+
+  canvas.width =
+    W;
+
+
+  canvas.height =
+    H;
+
+
+  canvas.style.width =
+    rect.width + "px";
+
+
+  canvas.style.height =
+    rect.height + "px";
+
+
+  /*
+    Small buffer.
+
+    7px-ish visible pixels.
+  */
+
+  const pixelSize =
+    window.innerWidth < 600
+      ? 7
+      : 8;
+
+
+  pixelCanvas.width =
+    Math.max(
+      1,
+      Math.round(
+        W /
+        (pixelSize * DPR)
+      )
+    );
+
+
+  pixelCanvas.height =
+    Math.max(
+      1,
+      Math.round(
+        H /
+        (pixelSize * DPR)
+      )
+    );
+
+
+  pixelCtx.imageSmoothingEnabled =
+    false;
+
+
+  ctx.imageSmoothingEnabled =
+    false;
+
+}
+
+
+resize();
+
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    resize();
+
+    requestCapture();
+
+  },
+  {
+    passive:true
+  }
+);
+
+
+/* =========================================================
+   HIDE GLASS WHILE CAPTURING
+   ---------------------------------------------------------
+   Otherwise the canvas would capture itself.
+========================================================= */
+
+function setGlassVisible(
+  visible
+){
+
+  canvas.style.visibility =
+    visible
+      ? "visible"
+      : "hidden";
+
+}
+
+
+/* =========================================================
+   CAPTURE ACTUAL CONTENT
+========================================================= */
+
+async function capturePage(){
+
+  if(
+    captureBusy ||
+    typeof html2canvas !==
+      "function"
+  ){
+
+    return;
+  }
+
+
+  captureBusy =
+    true;
+
+
+  /*
+    Hide our own glass first.
+
+    The image is also hidden so the
+    captured source contains ONLY the
+    content behind the glass.
+  */
+
+  const oldCanvasVisibility =
+    canvas.style.visibility;
+
+  const oldImageVisibility =
+    image.style.visibility;
+
+
+  canvas.style.visibility =
+    "hidden";
+
+
+  image.style.visibility =
+    "hidden";
+
+
+  try{
+
+    capturedCanvas =
+      await html2canvas(
+        document.body,
+        {
+
+          /*
+            We need the real page.
+          */
+
+          backgroundColor:
+            "#fcfcfc",
+
+          /*
+            Low scale keeps this light
+            enough for mobile.
+          */
+
+          scale:
+            Math.min(
+              window.devicePixelRatio || 1,
+              .75
+            ),
+
+          /*
+            Do not include our glass/image
+            in the source.
+          */
+
+          ignoreElements:
+            element => {
+
+              return (
+                element === canvas ||
+                element === header
+              );
+
+          },
+
+          /*
+            Don't animate the screenshot.
+          */
+
+          useCORS:true,
+
+          allowTaint:true,
+
+          logging:false
+
+        }
+      );
+
+  }
+  catch(error){
+
+    /*
+      Keep normal page working if
+      screenshot capture fails.
+    */
+
+    capturedCanvas =
+      null;
+
+  }
+
+
+  canvas.style.visibility =
+    oldCanvasVisibility ||
+    "visible";
+
+
+  image.style.visibility =
+    oldImageVisibility ||
+    "visible";
+
+
+  captureBusy =
+    false;
+
+
+  drawGlass();
+
+}
+
+
+/* =========================================================
+   CAPTURE SCHEDULER
+========================================================= */
+
+function requestCapture(){
+
+  clearTimeout(
+    captureTimer
+  );
+
+
+  captureTimer =
+    setTimeout(
+      capturePage,
+      90
+    );
+
+}
+
+
+/* =========================================================
+   INITIAL CAPTURE
+========================================================= */
+
+if(
+  typeof html2canvas ===
+  "function"
+){
+
+  requestCapture();
+
+}
+
+
+/* =========================================================
+   ROUNDED RECT
+========================================================= */
+
+function roundedRect(
+  context,
+  x,
+  y,
+  w,
+  h,
+  r
+){
+
+  r =
+    Math.min(
+      r,
+      w/2,
+      h/2
+    );
+
+
+  context.beginPath();
+
+
+  context.moveTo(
+    x+r,
+    y
+  );
+
+
+  context.lineTo(
+    x+w-r,
+    y
+  );
+
+
+  context.quadraticCurveTo(
+    x+w,
+    y,
+    x+w,
+    y+r
+  );
+
+
+  context.lineTo(
+    x+w,
+    y+h-r
+  );
+
+
+  context.quadraticCurveTo(
+    x+w,
+    y+h,
+    x+w-r,
+    y+h
+  );
+
+
+  context.lineTo(
+    x+r,
+    y+h
+  );
+
+
+  context.quadraticCurveTo(
+    x,
+    y+h,
+    x,
+    y+h-r
+  );
+
+
+  context.lineTo(
+    x,
+    y+r
+  );
+
+
+  context.quadraticCurveTo(
+    x,
+    y,
+    x+r,
+    y
+  );
+
+
+  context.closePath();
+
+}
+
+
+/* =========================================================
+   DRAW ACTUAL PIXEL GLASS
+========================================================= */
+
+function drawGlass(){
+
+  ctx.clearRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+
+  if(!capturedCanvas){
+
+    return;
+
+  }
+
+
+  /*
+    -------------------------------------------------------
+    IMPORTANT
+
+    The captured page is in DOCUMENT coordinates.
+
+    The header is sticky.
+
+    Therefore we sample the section of the
+    page that is physically underneath the
+    sticky image right now.
+    -------------------------------------------------------
+  */
+
+
+  const scroll =
+    window.scrollY;
+
+
+  const headerRect =
+    header.getBoundingClientRect();
+
+
+  /*
+    Document Y underneath the header.
+  */
+
+  const sourceY =
+    scroll;
+
+
+  const sourceX =
+    0;
+
+
+  const sourceW =
+    Math.min(
+      capturedCanvas.width,
+      Math.max(
+        1,
+        Math.round(
+          window.innerWidth *
+          Math.min(
+            window.devicePixelRatio || 1,
+            .75
+          )
+        )
+      )
+    );
+
+
+  const sourceH =
+    Math.min(
+      capturedCanvas.height,
+      Math.max(
+        1,
+        Math.round(
+          headerRect.height *
+          Math.min(
+            window.devicePixelRatio || 1,
+            .75
+          )
+        )
+      )
+    );
+
+
+  /*
+    -------------------------------------------------------
+    PIXELATE THE REAL CONTENT
+    -------------------------------------------------------
+  */
+
+
+  const pixelW =
+    pixelCanvas.width;
+
+
+  const pixelH =
+    pixelCanvas.height;
+
+
+  pixelCtx.clearRect(
+    0,
+    0,
+    pixelW,
+    pixelH
+  );
+
+
+  pixelCtx.imageSmoothingEnabled =
+    false;
+
+
+  /*
+    Draw actual menu content
+    into tiny buffer.
+
+    THIS is the same concept
+    as the text-card pixel glass.
+  */
+
+  pixelCtx.drawImage(
+
+    capturedCanvas,
+
+    sourceX,
+    sourceY,
+
+    sourceW,
+    sourceH,
+
+    0,
+    0,
+
+    pixelW,
+    pixelH
+
+  );
+
+
+  /*
+    Clear output.
+  */
+
+  ctx.clearRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+
+  /*
+    -------------------------------------------------------
+    REFRACTION PHYSICS
+    -------------------------------------------------------
+  */
+
+  const v =
+    clamp(
+      velocity,
+      -MAX_VELOCITY,
+      MAX_VELOCITY
+    );
+
+
+  const abs =
+    Math.abs(v);
+
+
+  /*
+    Pixel glass shifts opposite
+    the image very slightly.
+  */
+
+  const refractX =
+    v * .16;
+
+
+  const refractY =
+    v * .10;
+
+
+  /*
+    Draw only inside the exact
+    image-sized rounded/rect area.
+  */
+
+  ctx.save();
+
+
+  /*
+    Image is rectangular, so use
+    almost-zero radius.
+
+    Change to 18 if your image
+    itself has rounded corners.
+  */
+
+  roundedRect(
+    ctx,
+    0,
+    0,
+    W,
+    H,
+    0
+  );
+
+
+  ctx.clip();
+
+
+  /*
+    -------------------------------------------------------
+    THE ACTUAL PIXELATED CONTENT
+    -------------------------------------------------------
+  */
+
+  ctx.imageSmoothingEnabled =
+    false;
+
+
+  ctx.globalAlpha =
+    .98;
+
+
+  ctx.drawImage(
+
+    pixelCanvas,
+
+    refractX,
+    refractY,
+
+    W,
+    H
+
+  );
+
+
+  /*
+    -------------------------------------------------------
+    SUBTLE GLASS LIGHT
+    -------------------------------------------------------
+  */
+
+  ctx.globalAlpha =
+    .12;
+
+
+  const light =
+    ctx.createLinearGradient(
+      0,
+      0,
+      W,
+      H
+    );
+
+
+  light.addColorStop(
+    0,
+    "rgba(255,255,255,.22)"
+  );
+
+
+  light.addColorStop(
+    .28,
+    "rgba(255,255,255,.035)"
+  );
+
+
+  light.addColorStop(
+    .7,
+    "rgba(255,255,255,.015)"
+  );
+
+
+  light.addColorStop(
+    1,
+    "rgba(255,255,255,.08)"
+  );
+
+
+  ctx.fillStyle =
+    light;
+
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+
+  /*
+    -------------------------------------------------------
+    MOVING SPECULAR EDGE
+    -------------------------------------------------------
+  */
+
+  ctx.globalAlpha =
+    .20 +
+    abs * .004;
+
+
+  const edge =
+    ctx.createLinearGradient(
+      0,
+      0,
+      W,
+      0
+    );
+
+
+  edge.addColorStop(
+    0,
+    "rgba(255,255,255,0)"
+  );
+
+
+  edge.addColorStop(
+    .45,
+    "rgba(255,255,255,.12)"
+  );
+
+
+  edge.addColorStop(
+    .55,
+    "rgba(255,255,255,.04)"
+  );
+
+
+  edge.addColorStop(
+    1,
+    "rgba(255,255,255,0)"
+  );
+
+
+  ctx.fillStyle =
+    edge;
+
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+
+  ctx.restore();
+
+
+  /*
+    -------------------------------------------------------
+    VERY SUBTLE BORDER
+    -------------------------------------------------------
+  */
+
+  ctx.save();
+
+
+  ctx.strokeStyle =
+    "rgba(255,255,255,.14)";
+
+
+  ctx.lineWidth =
+    DPR;
+
+
+  roundedRect(
+    ctx,
+    .5 * DPR,
+    .5 * DPR,
+    W - DPR,
+    H - DPR,
+    1
+  );
+
+
+  ctx.stroke();
+
+
+  ctx.restore();
+
+}
+
+
+/* =========================================================
+   SCROLL
+========================================================= */
+
+function onScroll(){
+
+  const current =
+    window.scrollY;
+
+
+  const delta =
+    current -
+    lastScroll;
+
+
+  lastScroll =
+    current;
+
+
+  targetVelocity =
+    clamp(
+      delta,
+      -MAX_VELOCITY,
+      MAX_VELOCITY
+    );
+
+
+  /*
+    Capture the new content position
+    shortly after the scroll.
+  */
+
+  requestCapture();
+
+
+  if(!animationFrame){
+
+    animationFrame =
+      requestAnimationFrame(
+        animate
+      );
+
+  }
+
+}
+
+
+window.addEventListener(
+  "scroll",
+  onScroll,
+  {
+    passive:true
+  }
+);
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+function animate(){
+
+  animationFrame =
+    null;
+
+
+  /*
+    Smooth velocity.
+  */
+
+  velocity =
+    lerp(
+      velocity,
+      targetVelocity,
+      .20
+    );
+
+
+  targetVelocity *=
+    .78;
+
+
+  const v =
+    clamp(
+      velocity,
+      -MAX_VELOCITY,
+      MAX_VELOCITY
+    );
+
+
+  const abs =
+    Math.abs(v);
+
+
+  /* =====================================================
+     IMAGE
+  ====================================================== */
+
+  const targetImageY =
+    -v * .22;
+
+
+  const targetImageScale =
+    1 +
+    abs * .0018;
+
+
+  imageY =
+    lerp(
+      imageY,
+      targetImageY,
+      .18
+    );
+
+
+  imageScale =
+    lerp(
+      imageScale,
+      targetImageScale,
+      .18
+    );
+
+
+  image.style.transform =
+    `
+      translate3d(
+        0,
+        ${imageY.toFixed(2)}px,
+        0
+      )
+      scale(
+        ${imageScale.toFixed(4)}
+      )
+    `;
+
+
+  /* =====================================================
+     PIXEL GLASS
+
+     Slightly different movement from
+     image = physical refraction feeling.
+  ====================================================== */
+
+  const targetPixelY =
+    -v * .10;
+
+
+  pixelY =
+    lerp(
+      pixelY,
+      targetPixelY,
+      .20
+    );
+
+
+  canvas.style.transform =
+    `
+      translate3d(
+        0,
+        ${pixelY.toFixed(2)}px,
+        0
+      )
+    `;
+
+
+  /* =====================================================
+     CONTENT
+
+     Content physically swipes underneath.
+  ====================================================== */
+
+  const targetContentY =
+    v * .055;
+
+
+  const targetContentScale =
+    1 -
+    abs * .0003;
+
+
+  contentY =
+    lerp(
+      contentY,
+      targetContentY,
+      .16
+    );
+
+
+  contentScale =
+    lerp(
+      contentScale,
+      targetContentScale,
+      .16
+    );
+
+
+  content.forEach(
+    element => {
+
+      element.style.transform =
+        `
+          translate3d(
+            0,
+            ${contentY.toFixed(2)}px,
+            0
+          )
+          scale(
+            ${contentScale.toFixed(4)}
+          )
+        `;
+
+    }
+  );
+
+
+  /*
+    Redraw pixel refraction
+    immediately for the smooth
+    physical movement.
+  */
+
+  drawGlass();
+
+
+  if(
+    Math.abs(velocity) > .03 ||
+    Math.abs(targetVelocity) > .03
+  ){
+
+    animationFrame =
+      requestAnimationFrame(
+        animate
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+requestAnimationFrame(
+  () => {
+
+    resize();
+
+    drawGlass();
+
+    requestCapture();
+
+  }
+);
+
+
+/* =========================================================
+   KEEP CAPTURE FRESH
+   ---------------------------------------------------------
+   Captures are intentionally NOT done
+   every animation frame.
+
+   The canvas itself runs smoothly;
+   the expensive DOM capture refreshes
+   only when needed.
+========================================================= */
+
+setInterval(
+  () => {
+
+    if(
+      !captureBusy
+    ){
+
+      capturePage();
+
+    }
+
+  },
+  500
+);
+
+
+/* =========================================================
+   CLEANUP
+========================================================= */
+
+window.addEventListener(
+  "pagehide",
+  () => {
+
+    if(animationFrame){
+
+      cancelAnimationFrame(
+        animationFrame
+      );
+
+      animationFrame =
+        null;
+
+    }
+
+
+    clearTimeout(
+      captureTimer
+    );
+
+  }
+);
+
+})();
+</script>
+
+
+</body>
 </html>
