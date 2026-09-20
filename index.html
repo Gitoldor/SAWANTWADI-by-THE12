@@ -123,6 +123,23 @@ body.page-transition-up {
   z-index: 1;
   background: #000;
 }
+#map.cinematic-map .leaflet-tile-pane {
+  filter:
+    saturate(1.22)
+    contrast(1.16)
+    brightness(.96);
+}
+
+/* =========================================================
+   VIBRANT MAP FILTER
+========================================================= */
+
+#map.vibrant-map .leaflet-tile-pane {
+  filter:
+    saturate(1.45)
+    contrast(1.08)
+    brightness(1.06);
+}
 
 /* ============================================================
    BRAND IMAGE
@@ -2241,14 +2258,56 @@ const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/se
 const darkMap = L.tileLayer('https://{s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
 
 satelliteMap.addTo(map);
+
 const modes = [satelliteMap, normalMap, darkMap];
 let currentMode = 0;
 
+/* =========================================================
+   MAP FILTER
+========================================================= */
+
+const mapFilters = [
+  "normal",
+  "vibrant",
+  "cinematic"
+];
+
+let currentFilter = 1; // starts Vibrant
+
+function applyMapFilter() {
+
+  const container = map.getContainer();
+
+  container.classList.remove(
+    "vibrant-map",
+    "cinematic-map"
+  );
+
+  if (mapFilters[currentFilter] === "vibrant") {
+    container.classList.add("vibrant-map");
+  }
+
+  if (mapFilters[currentFilter] === "cinematic") {
+    container.classList.add("cinematic-map");
+  }
+}
+
+/* =========================================================
+   MAP MODE BUTTON
+========================================================= */
+
 toggleBtn.onclick = () => {
+
   map.removeLayer(modes[currentMode]);
+
   currentMode = (currentMode + 1) % modes.length;
+
   modes[currentMode].addTo(map);
+
+  applyMapFilter();
 };
+
+applyMapFilter();
 
 /* Helper for navigating to place link */
 function openPlaceLink(place) {
