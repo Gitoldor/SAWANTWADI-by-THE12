@@ -1,494 +1,199 @@
-/* ============================================================
-   SAWANTWADI NOTIFICATION SHARE
-   ============================================================
 
-   SHARED URL
-   ------------------------------------------------------------
+/* =========================================================
+   SAWANTWADI NOTIFICATION SHARED-LINK SYSTEM
    ?notification=n11
 
-   SHARED-LINK BEHAVIOUR
-   ------------------------------------------------------------
-   1. Page loads
-   2. Notification drawer automatically opens
-   3. Notification cards are detected
-   4. Exact shared notification ID is found
-   5. Shared card moves to the TOP
-   6. Shared card is highlighted
-   7. Drawer scrolls to the TOP
-   8. No page scrolling
-   9. Works with dynamically generated cards
-   10. d.link is never modified
+   SHARED LINK BEHAVIOUR:
+   1. Drawer FORCE OPENS automatically
+   2. Exact notification is found
+   3. Card moves physically to TOP
+   4. Card stays highlighted
+   5. Drawer scrolls to TOP
+   6. Normal notifications stay normal
+   7. d.link is NEVER changed
+========================================================= */
 
-   NORMAL BEHAVIOUR
-   ------------------------------------------------------------
-   • Normal notifications remain in their normal order
-   • Share button remains inside its own card
-   ============================================================ */
+(function () {
 
+  "use strict";
 
-/* ============================================================
-   CONFIG
-   ============================================================ */
+  /* =======================================================
+     CONFIG
+  ======================================================= */
 
-const S1_SHARE_PARAM =
-  "notification";
+  const SHARE_PARAM = "notification";
 
-const S1_SHARE_BUTTON_CLASS =
-  "s1ShareButton";
+  const SHARE_BUTTON_CLASS = "s1ShareButton";
 
-const S1_SHARED_CLASS =
-  "s1SharedNotification";
+  const SHARED_CLASS = "s1SharedNotification";
+
+  let sharedID = null;
+  let sharedHandled = false;
 
 
-/* ============================================================
-   READ SHARED NOTIFICATION ID
-   ============================================================ */
+  /* =======================================================
+     GET SHARED NOTIFICATION ID
+  ======================================================= */
 
-function s1GetSharedID(){
+  function getSharedID() {
 
-  try{
+    try {
 
-    const params =
-      new URLSearchParams(
+      const params = new URLSearchParams(
         window.location.search
       );
 
-    const id =
-      params.get(
-        S1_SHARE_PARAM
-      );
+      const id = params.get(SHARE_PARAM);
 
-    if(
-      id === null ||
-      id === ""
-    ){
+      if (!id) return null;
+
+      return id.trim();
+
+    } catch (e) {
 
       return null;
 
     }
 
-
-    return String(id);
-
   }
 
-  catch(error){
 
-    return null;
+  /* =======================================================
+     SHARE URL
+  ======================================================= */
 
-  }
+  function getShareURL(id) {
 
-}
+    const url =
+      new URL(window.location.href);
 
+    url.search = "";
 
-const S1_SHARED_ID =
-  s1GetSharedID();
+    url.hash = "";
 
+    url.searchParams.set(
+      SHARE_PARAM,
+      id
+    );
 
-/* ============================================================
-   STYLE
-   ============================================================ */
-
-(function(){
-
-  if(
-    document.getElementById(
-      "s1NotificationShareStyle"
-    )
-  ){
-
-    return;
+    return url.toString();
 
   }
 
 
-  const style =
-    document.createElement(
-      "style"
-    );
-
-
-  style.id =
-    "s1NotificationShareStyle";
-
-
-  style.textContent = `
-
-    /* ======================================================
-       NOTIFICATION CARD
-       ====================================================== */
-
-    .s1item{
-
-      position:relative !important;
-
-    }
-
-
-    /* ======================================================
-       SHARE BUTTON
-       ====================================================== */
-
-    .${S1_SHARE_BUTTON_CLASS}{
-
-      position:absolute !important;
-
-      right:16px !important;
-
-      bottom:16px !important;
-
-      left:auto !important;
-
-      top:auto !important;
-
-      width:42px !important;
-
-      height:42px !important;
-
-      min-width:42px !important;
-
-      min-height:42px !important;
-
-      max-width:42px !important;
-
-      max-height:42px !important;
-
-      margin:0 !important;
-
-      padding:0 !important;
-
-      border:0 !important;
-
-      border-radius:50% !important;
-
-      display:grid !important;
-
-      place-items:center !important;
-
-      background:#ffffffe8 !important;
-
-      color:#111 !important;
-
-      backdrop-filter:blur(12px);
-
-      -webkit-backdrop-filter:blur(12px);
-
-      box-shadow:
-        0 8px 25px #0002;
-
-      cursor:pointer;
-
-      z-index:100 !important;
-
-      overflow:hidden;
-
-      -webkit-tap-highlight-color:transparent;
-
-      transform:none;
-
-      transition:
-        transform .25s
-        cubic-bezier(.18,1.5,.3,1);
-
-    }
-
-
-    .${S1_SHARE_BUTTON_CLASS}:active{
-
-      transform:
-        scale(.82) !important;
-
-    }
-
-
-    .${S1_SHARE_BUTTON_CLASS} svg{
-
-      width:19px !important;
-
-      height:19px !important;
-
-      min-width:19px !important;
-
-      min-height:19px !important;
-
-      display:block !important;
-
-      fill:none !important;
-
-      stroke:currentColor !important;
-
-      stroke-width:2 !important;
-
-      stroke-linecap:round !important;
-
-      stroke-linejoin:round !important;
-
-      pointer-events:none;
-
-    }
-
-
-    /* ======================================================
-       SHARED NOTIFICATION
-       ====================================================== */
-
-    .${S1_SHARED_CLASS}{
-
-      position:relative !important;
-
-      z-index:50 !important;
-
-      box-shadow:
-        0 0 0 3px #111,
-        0 18px 50px #0003 !important;
-
-      transform:
-        scale(1.015) !important;
-
-    }
-
-
-    /* ======================================================
-       COPIED MESSAGE
-       ====================================================== */
-
-    .s1ShareCopied{
-
-      position:fixed;
-
-      left:50%;
-
-      bottom:25px;
-
-      transform:
-        translate(-50%,20px)
-        scale(.9);
-
-      z-index:999999;
-
-      padding:10px 16px;
-
-      border-radius:999px;
-
-      background:#111;
-
-      color:#fff;
-
-      font:600 13px system-ui;
-
-      opacity:0;
-
-      pointer-events:none;
-
-      transition:
-        .35s cubic-bezier(.18,1.5,.3,1);
-
-    }
-
-
-    .s1ShareCopied.show{
-
-      opacity:1;
-
-      transform:
-        translate(-50%,0)
-        scale(1);
-
-    }
-
-  `;
-
-
-  document.head.appendChild(
-    style
-  );
-
-})();
-
-
-/* ============================================================
-   SHARE ICON
-   ============================================================ */
-
-function s1ShareIcon(){
-
-  return `
-
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-
-      <circle
-        cx="18"
-        cy="5"
-        r="2.5"
-      ></circle>
-
-      <circle
-        cx="6"
-        cy="12"
-        r="2.5"
-      ></circle>
-
-      <circle
-        cx="18"
-        cy="19"
-        r="2.5"
-      ></circle>
-
-      <path
-        d="M8.2 13.2 15.8 17.8"
-      ></path>
-
-      <path
-        d="M15.8 6.2 8.2 10.8"
-      ></path>
-
-    </svg>
-
-  `;
-
-}
-
-
-/* ============================================================
-   CREATE SHARE URL
-   ============================================================ */
-
-function s1GetShareURL(id){
-
-  const url =
-    new URL(
-      window.location.href
-    );
-
-
-  url.searchParams.set(
-    S1_SHARE_PARAM,
-    String(id)
-  );
-
-
-  /*
-     Never carry the current hash.
-  */
-
-  url.hash = "";
-
-
-  return url.toString();
-
-}
-
-
-/* ============================================================
-   COPIED MESSAGE
-   ============================================================ */
-
-function s1ShowCopied(){
-
-  let box =
-    document.querySelector(
-      ".s1ShareCopied"
-    );
-
-
-  if(!box){
-
-    box =
-      document.createElement(
-        "div"
+  /* =======================================================
+     SHARE ICON
+  ======================================================= */
+
+  function shareIcon() {
+
+    return `
+      <svg
+        viewBox="0 0 24 24"
+        width="19"
+        height="19"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="18" cy="5" r="2.5"></circle>
+        <circle cx="6" cy="12" r="2.5"></circle>
+        <circle cx="18" cy="19" r="2.5"></circle>
+
+        <path d="M8.2 10.8 15.8 6.2"></path>
+        <path d="M8.2 13.2 15.8 17.8"></path>
+      </svg>
+    `;
+
+  }
+
+
+  /* =======================================================
+     COPY FEEDBACK
+  ======================================================= */
+
+  function showCopied(button) {
+
+    if (!button) return;
+
+    const oldHTML = button.innerHTML;
+
+    button.innerHTML = `
+      <svg
+        viewBox="0 0 24 24"
+        width="18"
+        height="18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m5 12 4 4L19 6"></path>
+      </svg>
+    `;
+
+    button.classList.add("s1ShareCopied");
+
+    setTimeout(function () {
+
+      button.innerHTML = oldHTML;
+
+      button.classList.remove(
+        "s1ShareCopied"
       );
 
-
-    box.className =
-      "s1ShareCopied";
-
-
-    box.textContent =
-      "Link copied";
-
-
-    document.body.appendChild(
-      box
-    );
+    }, 1200);
 
   }
 
 
-  box.classList.add(
-    "show"
-  );
+  /* =======================================================
+     SHARE NOTIFICATION
+  ======================================================= */
 
+  async function shareNotification(id, button) {
 
-  clearTimeout(
-    box._timer
-  );
+    const shareURL =
+      getShareURL(id);
 
+    try {
 
-  box._timer =
-    setTimeout(()=>{
+      if (
+        navigator.share &&
+        typeof navigator.share === "function"
+      ) {
 
-      box.classList.remove(
-        "show"
-      );
+        await navigator.share({
 
-    },1800);
+          title: "Sawantwadi",
 
-}
+          text: "Check this notification",
 
+          url: shareURL
 
-/* ============================================================
-   SHARE NOTIFICATION
-   ============================================================ */
+        });
 
-async function s1ShareNotification(id){
+        showCopied(button);
 
-  const shareURL =
-    s1GetShareURL(id);
+        return;
 
+      }
 
-  /* ========================================================
-     NATIVE SHARE
-     ======================================================== */
-
-  if(
-    typeof navigator.share ===
-    "function"
-  ){
-
-    try{
-
-      await navigator.share({
-
-        title:
-          "Sawantwadi",
-
-        text:
-          "Check this Sawantwadi update",
-
-        url:
-          shareURL
-
-      });
-
-
-      return;
-
-    }
-
-    catch(error){
+    } catch (e) {
 
       /*
-         User cancelled the share sheet.
+        User cancelled native share.
+        Don't copy in that case.
       */
 
-      if(
-        error &&
-        error.name ===
-        "AbortError"
-      ){
+      if (
+        e &&
+        e.name === "AbortError"
+      ) {
 
         return;
 
@@ -496,979 +201,1058 @@ async function s1ShareNotification(id){
 
     }
 
-  }
+
+    /* =====================================================
+       CLIPBOARD FALLBACK
+    ===================================================== */
+
+    try {
+
+      if (
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+      ) {
+
+        await navigator.clipboard.writeText(
+          shareURL
+        );
+
+        showCopied(button);
+
+        return;
+
+      }
+
+    } catch (e) {}
 
 
-  /* ========================================================
-     CLIPBOARD
-     ======================================================== */
+    /* =====================================================
+       OLD BROWSER FALLBACK
+    ===================================================== */
 
-  try{
+    try {
 
-    await navigator.clipboard.writeText(
-      shareURL
-    );
+      const input =
+        document.createElement("input");
 
+      input.value = shareURL;
 
-    s1ShowCopied();
+      input.style.position = "fixed";
 
+      input.style.left = "-9999px";
 
-    return;
+      document.body.appendChild(input);
 
-  }
+      input.select();
 
-  catch(error){}
+      document.execCommand("copy");
 
+      input.remove();
 
-  /* ========================================================
-     OLD BROWSER FALLBACK
-     ======================================================== */
+      showCopied(button);
 
-  const input =
-    document.createElement(
-      "input"
-    );
-
-
-  input.value =
-    shareURL;
-
-
-  input.style.position =
-    "fixed";
-
-
-  input.style.opacity =
-    "0";
-
-
-  document.body.appendChild(
-    input
-  );
-
-
-  input.select();
-
-
-  try{
-
-    document.execCommand(
-      "copy"
-    );
-
-  }
-
-  catch(error){}
-
-
-  input.remove();
-
-
-  s1ShowCopied();
-
-}
-
-
-/* ============================================================
-   INSTALL SHARE BUTTON
-   ============================================================ */
-
-function s1InstallButton(
-  card,
-  id
-){
-
-  if(!card)
-    return;
-
-
-  if(
-    id === undefined ||
-    id === null ||
-    id === ""
-  ){
-
-    return;
+    } catch (e) {}
 
   }
 
 
-  /*
-     Always remember the notification ID.
-  */
+  /* =======================================================
+     INSTALL SHARE BUTTON
+  ======================================================= */
 
-  card.dataset.notificationId =
-    String(id);
+  function installShareButton(card, id) {
 
+    if (!card || !id) return;
 
-  /*
-     Don't create duplicate buttons.
-  */
-
-  if(
-    card.querySelector(
-      "." +
-      S1_SHARE_BUTTON_CLASS
-    )
-  ){
-
-    return;
-
-  }
-
-
-  const button =
-    document.createElement(
-      "button"
-    );
-
-
-  button.className =
-    S1_SHARE_BUTTON_CLASS;
-
-
-  button.type =
-    "button";
-
-
-  button.setAttribute(
-    "aria-label",
-    "Share notification"
-  );
-
-
-  button.innerHTML =
-    s1ShareIcon();
-
-
-  /* ========================================================
-     POINTER
-     ======================================================== */
-
-  button.addEventListener(
-    "pointerdown",
-    event=>{
-
-      event.stopPropagation();
-
-    },
-    {
-      passive:true
-    }
-  );
-
-
-  /* ========================================================
-     TOUCH
-     ======================================================== */
-
-  button.addEventListener(
-    "touchstart",
-    event=>{
-
-      event.stopPropagation();
-
-    },
-    {
-      passive:true
-    }
-  );
-
-
-  /* ========================================================
-     CLICK
-     ======================================================== */
-
-  button.addEventListener(
-    "click",
-    event=>{
-
-      event.preventDefault();
-
-      event.stopPropagation();
-
-
-      s1ShareNotification(
-        String(id)
+    let button =
+      card.querySelector(
+        "." + SHARE_BUTTON_CLASS
       );
 
+    if (button) {
+
+      button.dataset.notificationId =
+        id;
+
+      return;
+
     }
-  );
 
 
-  card.appendChild(
-    button
-  );
+    button =
+      document.createElement("button");
 
-}
+    button.type = "button";
+
+    button.className =
+      SHARE_BUTTON_CLASS;
+
+    button.dataset.notificationId =
+      id;
+
+    button.setAttribute(
+      "aria-label",
+      "Share notification"
+    );
+
+    button.innerHTML =
+      shareIcon();
 
 
-/* ============================================================
-   GET NOTIFICATION DATA
-   ============================================================ */
+    button.addEventListener(
+      "click",
+      function (event) {
 
-function s1GetNotificationData(){
+        event.preventDefault();
 
-  const data =
-    window.Sho1re1Notifications;
+        event.stopPropagation();
+
+        shareNotification(
+          id,
+          button
+        );
+
+      },
+      {
+        passive: false
+      }
+    );
 
 
-  if(
-    !Array.isArray(data)
-  ){
+    card.appendChild(button);
+
+  }
+
+
+  /* =======================================================
+     STYLES
+  ======================================================= */
+
+  function installStyles() {
+
+    if (
+      document.getElementById(
+        "s1SharedNotificationStyles"
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    const style =
+      document.createElement("style");
+
+    style.id =
+      "s1SharedNotificationStyles";
+
+
+    style.textContent = `
+
+      /* ===============================================
+         CARD
+      =============================================== */
+
+      .s1item {
+
+        position: relative;
+
+      }
+
+
+      /* ===============================================
+         SHARE BUTTON
+      =============================================== */
+
+      .s1ShareButton {
+
+        position: absolute;
+
+        right: 12px;
+
+        bottom: 12px;
+
+        width: 38px;
+
+        height: 38px;
+
+        border: 0;
+
+        border-radius: 50%;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        padding: 0;
+
+        background:
+          rgba(255,255,255,.72);
+
+        color:
+          rgba(20,20,20,.86);
+
+        backdrop-filter:
+          blur(18px)
+          saturate(150%);
+
+        -webkit-backdrop-filter:
+          blur(18px)
+          saturate(150%);
+
+        box-shadow:
+          0 4px 18px
+          rgba(0,0,0,.10),
+
+          inset 0 1px 0
+          rgba(255,255,255,.8);
+
+        cursor: pointer;
+
+        z-index: 50;
+
+        transition:
+          transform .22s cubic-bezier(.2,.8,.2,1),
+          background .22s ease,
+          box-shadow .22s ease;
+
+        -webkit-tap-highlight-color:
+          transparent;
+
+      }
+
+
+      .s1ShareButton:active {
+
+        transform:
+          scale(.88);
+
+      }
+
+
+      .s1ShareButton svg {
+
+        display: block;
+
+        pointer-events: none;
+
+      }
+
+
+      .s1ShareCopied {
+
+        transform:
+          scale(1.08);
+
+      }
+
+
+      /* ===============================================
+         SHARED CARD
+      =============================================== */
+
+      .s1SharedNotification {
+
+        position: relative;
+
+        z-index: 20;
+
+        animation:
+          s1SharedPulse 1.8s ease-in-out infinite;
+
+        box-shadow:
+          0 0 0 2px
+          rgba(255,255,255,.95),
+
+          0 0 35px
+          rgba(255,255,255,.65),
+
+          0 15px 45px
+          rgba(0,0,0,.14);
+
+      }
+
+
+      .s1SharedNotification::after {
+
+        content: "";
+
+        position: absolute;
+
+        inset: 0;
+
+        pointer-events: none;
+
+        border-radius: inherit;
+
+        box-shadow:
+          inset 0 0 0 1px
+          rgba(255,255,255,.85);
+
+      }
+
+
+      @keyframes s1SharedPulse {
+
+        0% {
+
+          transform:
+            scale(1);
+
+          box-shadow:
+            0 0 0 2px
+            rgba(255,255,255,.92),
+
+            0 0 24px
+            rgba(255,255,255,.42),
+
+            0 15px 45px
+            rgba(0,0,0,.12);
+
+        }
+
+        50% {
+
+          transform:
+            scale(1.012);
+
+          box-shadow:
+            0 0 0 2px
+            rgba(255,255,255,1),
+
+            0 0 42px
+            rgba(255,255,255,.78),
+
+            0 18px 50px
+            rgba(0,0,0,.16);
+
+        }
+
+        100% {
+
+          transform:
+            scale(1);
+
+          box-shadow:
+            0 0 0 2px
+            rgba(255,255,255,.92),
+
+            0 0 24px
+            rgba(255,255,255,.42),
+
+            0 15px 45px
+            rgba(0,0,0,.12);
+
+        }
+
+      }
+
+    `;
+
+
+    document.head.appendChild(style);
+
+  }
+
+
+  /* =======================================================
+     GET NOTIFICATION DATA
+  ======================================================= */
+
+  function getNotificationData() {
+
+    if (
+      Array.isArray(
+        window.Sho1re1Notifications
+      )
+    ) {
+
+      return window.Sho1re1Notifications;
+
+    }
 
     return [];
 
   }
 
 
-  return data;
+  /* =======================================================
+     PROCESS DYNAMIC CARDS
+  ======================================================= */
 
-}
+  function processCards() {
 
-
-/* ============================================================
-   PROCESS NOTIFICATION CARDS
-   ============================================================ */
-
-function s1ProcessCards(){
-
-  const drawer =
-    document.querySelector(
-      ".s1drawer"
-    );
+    const cards =
+      Array.from(
+        document.querySelectorAll(
+          ".s1item"
+        )
+      );
 
 
-  if(!drawer)
-    return;
-
-
-  const data =
-    s1GetNotificationData();
-
-
-  if(!data.length)
-    return;
-
-
-  const cards =
-    Array.from(
-      drawer.querySelectorAll(
-        ".s1item"
-      )
-    );
-
-
-  if(!cards.length)
-    return;
-
-
-  /*
-     IMPORTANT
-
-     The notification renderer normally
-     creates cards in the same order as
-     Sho1re1Notifications.
-
-     We only assign IDs here.
-
-     We DO NOT reorder anything here.
-  */
-
-  let dataIndex = 0;
-
-
-  cards.forEach(card=>{
-
-    /*
-       Already identified.
-    */
-
-    if(
-      card.dataset.notificationId
-    ){
+    if (!cards.length) {
 
       return;
 
     }
 
 
+    const data =
+      getNotificationData();
+
+
     /*
-       Find next valid data item.
+      If cards already have IDs,
+      NEVER overwrite them.
     */
 
-    while(
-      dataIndex < data.length &&
-      (
-        !data[dataIndex] ||
-        data[dataIndex].id === undefined ||
-        data[dataIndex].id === null
-      )
-    ){
+    cards.forEach(function (card, index) {
 
-      dataIndex++;
-
-    }
+      let id =
+        card.dataset.notificationId;
 
 
-    const item =
-      data[dataIndex];
+      /*
+        If renderer already supplied
+        data-notification-id, use it.
+      */
+
+      if (!id) {
+
+        /*
+          Fallback mapping.
+
+          This keeps compatibility with
+          the existing notification renderer.
+        */
+
+        const item =
+          data[index];
+
+        if (item && item.id) {
+
+          id =
+            String(item.id);
+
+          card.dataset.notificationId =
+            id;
+
+        }
+
+      }
 
 
-    if(!item){
+      if (id) {
 
-      return;
-
-    }
-
-
-    s1InstallButton(
-      card,
-      item.id
-    );
-
-
-    dataIndex++;
-
-  });
-
-}
-
-
-/* ============================================================
-   FIND SHARED CARD
-   ============================================================ */
-
-function s1FindSharedCard(){
-
-  if(!S1_SHARED_ID)
-    return null;
-
-
-  const drawer =
-    document.querySelector(
-      ".s1drawer"
-    );
-
-
-  if(!drawer)
-    return null;
-
-
-  /*
-     First make sure cards have IDs.
-  */
-
-  s1ProcessCards();
-
-
-  const cards =
-    Array.from(
-      drawer.querySelectorAll(
-        ".s1item"
-      )
-    );
-
-
-  for(
-    let i = 0;
-    i < cards.length;
-    i++
-  ){
-
-    const card =
-      cards[i];
-
-
-    if(
-      String(
-        card.dataset.notificationId
-      ) ===
-      String(
-        S1_SHARED_ID
-      )
-    ){
-
-      return card;
-
-    }
-
-  }
-
-
-  return null;
-
-}
-
-
-/* ============================================================
-   MOVE SHARED CARD TO TOP
-   ============================================================ */
-
-function s1MoveSharedCardToTop(){
-
-  const drawer =
-    document.querySelector(
-      ".s1drawer"
-    );
-
-
-  if(!drawer)
-    return false;
-
-
-  const target =
-    s1FindSharedCard();
-
-
-  if(!target)
-    return false;
-
-
-  /*
-     Remove previous shared highlight.
-  */
-
-  drawer
-    .querySelectorAll(
-      "." +
-      S1_SHARED_CLASS
-    )
-    .forEach(card=>{
-
-      if(card !== target){
-
-        card.classList.remove(
-          S1_SHARED_CLASS
+        installShareButton(
+          card,
+          id
         );
 
       }
 
     });
 
-
-  /* ========================================================
-     FIND THE CORRECT TOP POSITION
-     ======================================================== */
-
-  const header =
-    drawer.querySelector(
-      ".s1header"
-    );
+  }
 
 
-  const handle =
-    drawer.querySelector(
-      ".s1handle"
-    );
+  /* =======================================================
+     FIND EXACT SHARED CARD
+  ======================================================= */
+
+  function findSharedCard() {
+
+    if (!sharedID) {
+
+      return null;
+
+    }
 
 
-  /*
-     Header gets priority.
-  */
+    const exact =
+      document.querySelector(
+        '.s1item[data-notification-id="' +
+        CSS.escape(sharedID) +
+        '"]'
+      );
 
-  if(header){
+
+    if (exact) {
+
+      return exact;
+
+    }
+
 
     /*
-       Don't move if already directly
-       underneath the header.
+      Extra fallback for browsers where
+      CSS.escape is unavailable.
     */
 
-    if(
-      target.previousElementSibling !==
-      header
-    ){
-
-      header.after(
-        target
+    const cards =
+      Array.from(
+        document.querySelectorAll(
+          ".s1item"
+        )
       );
+
+
+    for (
+      let i = 0;
+      i < cards.length;
+      i++
+    ) {
+
+      if (
+        String(
+          cards[i].dataset.notificationId
+        ) === String(sharedID)
+      ) {
+
+        return cards[i];
+
+      }
 
     }
 
+
+    return null;
+
   }
 
-  /*
-     Otherwise use handle.
-  */
 
-  else if(handle){
+  /* =======================================================
+     FORCE OPEN DRAWER
+  ======================================================= */
 
-    if(
-      target.previousElementSibling !==
-      handle
-    ){
+  function forceOpenDrawer() {
 
-      handle.after(
-        target
+    const openButton =
+      document.querySelector(
+        ".s1now"
       );
+
+
+    if (!openButton) {
+
+      return false;
 
     }
 
-  }
 
-  /*
-     Otherwise place at beginning.
-  */
+    /*
+      IMPORTANT:
 
-  else{
+      On a shared link we DO NOT try to
+      guess whether the drawer is open.
 
-    if(
-      drawer.firstElementChild !==
-      target
-    ){
+      We simply activate the same button
+      the user normally presses.
 
-      drawer.prepend(
-        target
-      );
+      This fixes transform/display based
+      drawer implementations.
+    */
 
-    }
+    try {
 
-  }
-
-
-  /* ========================================================
-     HIGHLIGHT
-     ======================================================== */
-
-  target.classList.add(
-    S1_SHARED_CLASS
-  );
-
-
-  /*
-     Make sure drawer itself is
-     positioned at the top.
-
-     This scrolls ONLY the drawer.
-  */
-
-  requestAnimationFrame(()=>{
-
-    drawer.scrollTo({
-
-      top:0,
-
-      behavior:
-        "smooth"
-
-    });
-
-  });
-
-
-  return true;
-
-}
-
-
-/* ============================================================
-   CHECK WHETHER DRAWER IS VISUALLY OPEN
-   ============================================================ */
-
-function s1IsDrawerOpen(){
-
-  const drawer =
-    document.querySelector(
-      ".s1drawer"
-    );
-
-
-  if(!drawer)
-    return false;
-
-
-  /*
-     Common hidden states.
-  */
-
-  const style =
-    window.getComputedStyle(
-      drawer
-    );
-
-
-  if(
-    style.display ===
-    "none"
-  ){
-
-    return false;
-
-  }
-
-
-  if(
-    style.visibility ===
-    "hidden"
-  ){
-
-    return false;
-
-  }
-
-
-  if(
-    parseFloat(
-      style.opacity
-    ) === 0
-  ){
-
-    return false;
-
-  }
-
-
-  /*
-     If it has dimensions, consider
-     it available/open.
-  */
-
-  const rect =
-    drawer.getBoundingClientRect();
-
-
-  return(
-    rect.width > 0 &&
-    rect.height > 0
-  );
-
-}
-
-
-/* ============================================================
-   OPEN DRAWER
-   ============================================================ */
-
-function s1OpenDrawer(){
-
-  /*
-     If drawer exists and is already
-     visibly open, don't click again.
-  */
-
-  if(
-    s1IsDrawerOpen()
-  ){
-
-    return true;
-
-  }
-
-
-  const now =
-    document.querySelector(
-      ".s1now"
-    );
-
-
-  if(!now)
-    return false;
-
-
-  /*
-     Use the original notification
-     button's click behaviour.
-  */
-
-  try{
-
-    now.click();
-
-    return true;
-
-  }
-
-  catch(error){}
-
-
-  /*
-     Fallback to onclick if needed.
-  */
-
-  if(
-    typeof now.onclick ===
-    "function"
-  ){
-
-    try{
-
-      now.onclick();
+      openButton.click();
 
       return true;
 
-    }
+    } catch (e) {
 
-    catch(error){}
+      /*
+        Fallback for unusual button handlers.
+      */
+
+      try {
+
+        openButton.dispatchEvent(
+          new MouseEvent(
+            "click",
+            {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            }
+          )
+        );
+
+        return true;
+
+      } catch (err) {
+
+        return false;
+
+      }
+
+    }
 
   }
 
 
-  return false;
+  /* =======================================================
+     FIND ACTUAL SCROLL CONTAINER
+  ======================================================= */
 
-}
+  function findScrollContainer(card) {
 
+    let current =
+      card;
 
-/* ============================================================
-   OPEN DRAWER + FIND SHARED CARD
-   ============================================================ */
+    while (
+      current &&
+      current !== document.body &&
+      current !== document.documentElement
+    ) {
 
-function s1StartSharedLink(){
-
-  if(!S1_SHARED_ID)
-    return;
-
-
-  let attempts = 0;
-
-
-  const MAX_ATTEMPTS =
-    300;
-
-
-  const timer =
-    setInterval(()=>{
-
-      attempts++;
-
-
-      const drawer =
-        document.querySelector(
-          ".s1drawer"
+      const style =
+        window.getComputedStyle(
+          current
         );
 
-
-      const now =
-        document.querySelector(
-          ".s1now"
-        );
+      const overflowY =
+        style.overflowY;
 
 
-      /*
-         =====================================================
-         STEP 1
-         MAKE SURE DRAWER IS OPEN
-         =====================================================
-      */
+      if (
+        (
+          overflowY === "auto" ||
+          overflowY === "scroll" ||
+          overflowY === "overlay"
+        ) &&
+        current.scrollHeight >
+        current.clientHeight
+      ) {
 
-      if(
-        !drawer ||
-        !s1IsDrawerOpen()
-      ){
-
-        if(now){
-
-          s1OpenDrawer();
-
-        }
-
-
-        if(
-          attempts >=
-          MAX_ATTEMPTS
-        ){
-
-          clearInterval(
-            timer
-          );
-
-        }
-
-
-        return;
+        return current;
 
       }
 
 
-      /*
-         =====================================================
-         STEP 2
-         CARDS ARE NOW AVAILABLE
-         =====================================================
-      */
+      current =
+        current.parentElement;
 
-      s1ProcessCards();
-
-
-      /*
-         =====================================================
-         STEP 3
-         FIND EXACT SHARED CARD
-         =====================================================
-      */
-
-      const target =
-        s1FindSharedCard();
-
-
-      if(!target){
-
-        if(
-          attempts >=
-          MAX_ATTEMPTS
-        ){
-
-          clearInterval(
-            timer
-          );
-
-        }
-
-
-        return;
-
-      }
-
-
-      /*
-         =====================================================
-         STEP 4
-         MOVE EXACT CARD TO TOP
-         =====================================================
-      */
-
-      const moved =
-        s1MoveSharedCardToTop();
-
-
-      if(moved){
-
-        clearInterval(
-          timer
-        );
-
-        return;
-
-      }
-
-
-      if(
-        attempts >=
-        MAX_ATTEMPTS
-      ){
-
-        clearInterval(
-          timer
-        );
-
-      }
-
-    },50);
-
-}
-
-
-/* ============================================================
-   NORMAL DYNAMIC CARD WATCH
-   ============================================================ */
-
-function s1WatchDrawer(){
-
-  const observer =
-    new MutationObserver(()=>{
-
-      const drawer =
-        document.querySelector(
-          ".s1drawer"
-        );
-
-
-      if(drawer){
-
-        s1ProcessCards();
-
-      }
-
-    });
-
-
-  observer.observe(
-    document.documentElement,
-    {
-      childList:true,
-      subtree:true
     }
-  );
 
 
-  /*
-     Process drawer if it already exists.
-  */
+    /*
+      Try drawer itself.
+    */
 
-  const drawer =
-    document.querySelector(
-      ".s1drawer"
+    const drawer =
+      document.querySelector(
+        ".s1drawer"
+      );
+
+
+    if (drawer) {
+
+      return drawer;
+
+    }
+
+
+    return null;
+
+  }
+
+
+  /* =======================================================
+     MOVE SHARED CARD TO TOP
+  ======================================================= */
+
+  function moveSharedCardToTop() {
+
+    const card =
+      findSharedCard();
+
+
+    if (!card) {
+
+      return false;
+
+    }
+
+
+    const drawer =
+      document.querySelector(
+        ".s1drawer"
+      );
+
+
+    if (!drawer) {
+
+      return false;
+
+    }
+
+
+    /*
+      Remove old highlight first.
+    */
+
+    document
+      .querySelectorAll(
+        ".s1SharedNotification"
+      )
+      .forEach(function (item) {
+
+        item.classList.remove(
+          SHARED_CLASS
+        );
+
+      });
+
+
+    /*
+      Find the notification list.
+
+      Prefer the element that contains
+      the shared card.
+    */
+
+    let list =
+      card.parentElement;
+
+
+    /*
+      If the parent is a wrapper that
+      contains the header, that's fine.
+
+      We physically prepend the card to
+      its current list.
+
+      This guarantees the shared card
+      becomes the FIRST notification.
+    */
+
+    if (list) {
+
+      list.insertBefore(
+        card,
+        list.firstElementChild
+      );
+
+    }
+
+
+    /*
+      Highlight AFTER moving.
+    */
+
+    card.classList.add(
+      SHARED_CLASS
     );
 
 
-  if(drawer){
-
-    s1ProcessCards();
-
-  }
-
-}
-
-
-/* ============================================================
-   START
-   ============================================================ */
-
-(function(){
-
-  function start(){
-
     /*
-       Always watch notification cards.
+      Scroll the drawer/list to the top.
     */
 
-    s1WatchDrawer();
+    const scrollContainer =
+      findScrollContainer(card);
 
 
-    /*
-       Shared URL behaviour.
-    */
+    if (scrollContainer) {
 
-    if(S1_SHARED_ID){
+      scrollContainer.scrollTo({
 
-      /*
-         Give the main notification
-         system a tiny amount of time
-         to initialize.
+        top: 0,
 
-         Then automatically open
-         the drawer and locate the card.
-      */
+        behavior: "smooth"
 
-      setTimeout(()=>{
-
-        s1StartSharedLink();
-
-      },100);
+      });
 
     }
 
+
+    /*
+      Also make sure the card itself
+      is at the visible top.
+
+      This is a fallback for drawers
+      where scrolling happens on a
+      nested container.
+    */
+
+    requestAnimationFrame(
+      function () {
+
+        try {
+
+          card.scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "start"
+
+          });
+
+        } catch (e) {}
+
+      }
+    );
+
+
+    sharedHandled = true;
+
+
+    return true;
+
   }
 
 
-  if(
+  /* =======================================================
+     SHARED LINK BOOT
+  ======================================================= */
+
+  function startSharedLink() {
+
+    sharedID =
+      getSharedID();
+
+
+    /*
+      Normal page:
+      do absolutely nothing.
+    */
+
+    if (!sharedID) {
+
+      return;
+
+    }
+
+
+    installStyles();
+
+
+    /*
+      FORCE OPEN ONCE.
+
+      We intentionally don't check
+      display / opacity / transform.
+    */
+
+    let opened = false;
+
+
+    const tryOpen =
+      setInterval(function () {
+
+        const button =
+          document.querySelector(
+            ".s1now"
+          );
+
+
+        if (!button) {
+
+          return;
+
+        }
+
+
+        if (!opened) {
+
+          opened = true;
+
+          forceOpenDrawer();
+
+        }
+
+
+      }, 100);
+
+
+    /*
+      Stop the opening poll.
+    */
+
+    setTimeout(function () {
+
+      clearInterval(
+        tryOpen
+      );
+
+    }, 5000);
+
+
+    /*
+      Look for dynamically generated
+      notification cards.
+    */
+
+    let attempts = 0;
+
+
+    const finder =
+      setInterval(function () {
+
+        attempts++;
+
+
+        /*
+          Cards may have just been created.
+        */
+
+        processCards();
+
+
+        const card =
+          findSharedCard();
+
+
+        if (card) {
+
+          clearInterval(
+            finder
+          );
+
+
+          /*
+            Move immediately.
+          */
+
+          moveSharedCardToTop();
+
+
+          /*
+            Re-run once after layout settles.
+          */
+
+          setTimeout(function () {
+
+            processCards();
+
+            moveSharedCardToTop();
+
+          }, 250);
+
+
+          setTimeout(function () {
+
+            moveSharedCardToTop();
+
+          }, 700);
+
+
+          return;
+
+        }
+
+
+        /*
+          Keep trying because notification
+          cards are dynamically created.
+        */
+
+        if (attempts >= 200) {
+
+          clearInterval(
+            finder
+          );
+
+        }
+
+      }, 50);
+
+  }
+
+
+  /* =======================================================
+     WATCH DYNAMIC NOTIFICATION CREATION
+  ======================================================= */
+
+  function watchNotifications() {
+
+    if (
+      !window.MutationObserver
+    ) {
+
+      return;
+
+    }
+
+
+    const observer =
+      new MutationObserver(
+        function () {
+
+          processCards();
+
+
+          if (
+            sharedID &&
+            !sharedHandled
+          ) {
+
+            const card =
+              findSharedCard();
+
+
+            if (card) {
+
+              moveSharedCardToTop();
+
+            }
+
+          }
+
+        }
+      );
+
+
+    observer.observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     START
+  ======================================================= */
+
+  function start() {
+
+    installStyles();
+
+    processCards();
+
+    watchNotifications();
+
+    startSharedLink();
+
+  }
+
+
+  if (
     document.readyState ===
     "loading"
-  ){
+  ) {
 
     document.addEventListener(
       "DOMContentLoaded",
       start,
       {
-        once:true
+        once: true
       }
     );
 
-  }
-
-  else{
+  } else {
 
     start();
 
   }
+
 
 })();
