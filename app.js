@@ -79,20 +79,6 @@ window.Sho1re1Places = [
     "createdOn": "2026-09-19T00:00:00+05:30"
   },
   {
-    "id": 4,
-    "title": "K",
-    "topic": "K",
-    "type": "M",
-    "subtype": "N",
-    "lat": 90,
-    "lng": 90,
-    "image": "",
-    "link": "",
-    "plan": "PRO",
-    "plan2": "7D",
-    "createdOn": "2026-09-19T00:00:00+05:30"
-  },
-  {
     "id": 5,
     "title": "Yo",
     "topic": "Yi",
@@ -120,7 +106,7 @@ window.Sho1re1Places = [
     "plan2": "14D",
     "createdOn": "2026-09-19T15:52:49+05:30"
   }
-];;
+];;;
 
 
 /* ============================================================
