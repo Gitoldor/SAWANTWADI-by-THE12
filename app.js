@@ -35,22 +35,7 @@ window.Sho1re1Settings = {
    createdOn = AUTOMATIC POST CREATION TIME
    ============================================================ */
 
-window.Sho1re1Places = [
-  {
-    "id": 5,
-    "title": "Yo",
-    "topic": "Yi",
-    "type": "Uo",
-    "subtype": "8",
-    "lat": 9,
-    "lng": 9,
-    "image": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "link": "https://i.ibb.co/chqGP3bQ/SAWANT-WADI-20260831-173946-0000.png",
-    "plan": "PREMIUM",
-    "plan2": "30D",
-    "createdOn": "2026-09-19T15:34:25+05:30"
-  }
-];;;;;
+window.Sho1re1Places = [];;;;;;
 
 
 /* ============================================================
