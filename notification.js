@@ -1,7 +1,7 @@
 (()=>{
 
 const DATA="notificationdata.js",
-      START=2000,
+      START=5000,
       INTERVAL=1000,
       MAX=3;
 
@@ -49,7 +49,7 @@ style.textContent=`
   left:12px;
   right:12px;
 
-  z-index:999;
+  z-index:999999999999;
 
   pointer-events:none;
 
@@ -1267,11 +1267,11 @@ function start(){
         <div>
 
           <div class="s1head">
-            Sawantwadi on
+            
           </div>
 
           <div class="s1sub">
-            What's happening around today
+            
           </div>
 
         </div>
