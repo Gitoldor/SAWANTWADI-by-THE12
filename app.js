@@ -35,7 +35,22 @@ window.Sho1re1Settings = {
    createdOn = AUTOMATIC POST CREATION TIME
    ============================================================ */
 
-window.Sho1re1Places = [];;;;;;
+window.Sho1re1Places = [
+  {
+    "id": 1,
+    "title": "Y0 chat",
+    "topic": "Fuck",
+    "type": "Fuck",
+    "subtype": "Fuck",
+    "plan": "PREMIUM",
+    "lat": 15.894817,
+    "lng": 73.819888,
+    "image": "https://github.com/Gitoldor/LiquidGlassAPK",
+    "link": "https://github.com/Gitoldor/LiquidGlassAPK",
+    "plan2": "14D",
+    "createdOn": "2026-10-23T13:20:04+05:30"
+  }
+];;;;;;
 
 
 /* ============================================================
