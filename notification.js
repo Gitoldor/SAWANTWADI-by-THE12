@@ -332,7 +332,7 @@ style.textContent=`
 
   /* ===== POSITION ===== */
 
-  top:47%;
+  top:50%;
   right:15px;
 
   /* =================== */
