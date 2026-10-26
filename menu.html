@@ -509,12 +509,12 @@ body{
 
 .icon-wrapper{
 
-  width:46px;
-  height:46px;
+  width:75px;
+  height:75px;
 
   flex-shrink:0;
 
-  border-radius:50%;
+  border-radius:30px;
 
   overflow:hidden;
 
@@ -883,118 +883,112 @@ body{
      YOUR EXISTING DATA FILE
 ======================================================= -->
 
-<script src="communities-data.js"></script>
-
+<script src="explore.js"></script>
 
 <!-- =======================================================
      SUGGESTED COMMUNITIES
 ======================================================= -->
-
 <script>
-
-(function(){
-
+(function () {
   "use strict";
 
+  function renderSuggested() {
+    const list = document.getElementById("suggestedList");
+    if (!list) return;
 
-  const list =
-    document.getElementById(
-      "suggestedList"
-    );
+    const data = Array.isArray(window.exploreData)
+      ? window.exploreData
+      : [];
 
+    const items = data
+      .filter(item => item && typeof item === "object")
+      .slice(0, 5);
 
-  if(!list){
-    return;
+    const fragment = document.createDocumentFragment();
+
+    items.forEach((item, index) => {
+      const link = document.createElement("a");
+      link.className = "list-item";
+      link.href = "explore.html";
+      link.style.animationDelay = `${0.12 + index * 0.06}s`;
+
+      const icon = document.createElement("div");
+      icon.className = "icon-wrapper";
+
+      const img = document.createElement("img");
+      img.className = "community-image";
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+
+      if (typeof item.image === "string" && item.image.trim()) {
+        try {
+          const imageURL = new URL(item.image.trim(), document.baseURI);
+
+          if (
+            imageURL.protocol === "https:" ||
+            imageURL.protocol === "http:"
+          ) {
+            img.src = imageURL.href;
+          }
+        } catch (error) {
+          console.warn("Invalid suggested image URL:", error);
+        }
+      }
+
+      img.addEventListener("error", function () {
+        img.removeAttribute("src");
+      }, { once: true });
+
+      icon.appendChild(img);
+
+      const title = document.createElement("span");
+      title.className = "item-title";
+      title.textContent =
+        typeof item.title === "string" && item.title.trim()
+          ? item.title.trim()
+          : "Community";
+
+      link.appendChild(icon);
+      link.appendChild(title);
+      fragment.appendChild(link);
+    });
+
+    list.replaceChildren(fragment);
   }
 
-
-  function renderCommunities(){
-
-    if(
-      !window.communitiesData ||
-      !Array.isArray(
-        window.communitiesData
-      )
-    ){
+  function start() {
+    if (Array.isArray(window.exploreData)) {
+      renderSuggested();
       return;
     }
 
+    const exploreScript = document.querySelector(
+      'script[src$="explore.js"]'
+    );
 
-    list.innerHTML = "";
-
-
-    window.communitiesData
-      .slice(0,5)
-      .forEach(
-        (community,index) => {
-
-
-          const item =
-            document.createElement(
-              "a"
-            );
-
-
-          item.className =
-            "list-item";
-
-
-          item.href =
-            community.href || "#";
-
-
-          item.target =
-            "_top";
-
-
-          item.style.animationDelay =
-            `${.12 + index*.06}s`;
-
-
-          item.innerHTML = `
-
-            <div class="icon-wrapper">
-
-              <img
-                src="${community.image || ""}"
-                alt=""
-                class="community-image"
-                loading="lazy"
-              >
-
-            </div>
-
-
-            <span class="item-title">
-
-              ${community.title || "Community"}
-
-            </span>
-
-          `;
-
-
-          list.appendChild(item);
-
-        }
+    if (exploreScript) {
+      exploreScript.addEventListener("load", renderSuggested, {
+        once: true
+      });
+      exploreScript.addEventListener("error", function () {
+        console.error("Could not load explore.js");
+      }, { once: true });
+    } else {
+      console.error(
+        "explore.js must be loaded before the Suggested renderer."
       );
-
+    }
   }
 
-
-  renderCommunities();
-
-
-  window.addEventListener(
-    "load",
-    renderCommunities,
-    {
-      once:true
-    }
-  );
-
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, {
+      once: true
+    });
+  } else {
+    start();
+  }
 })();
-
 </script>
 
 
