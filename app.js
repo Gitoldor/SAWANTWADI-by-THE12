@@ -37,6 +37,20 @@ window.Sho1re1Settings = {
 
 window.Sho1re1Places = [
   {
+    "id": 3,
+    "title": "Fouch",
+    "topic": "Tovk",
+    "type": "Uiib",
+    "subtype": "Jkj",
+    "plan": "PRO",
+    "lat": 15.895677,
+    "lng": 73.819299,
+    "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
+    "link": "https://github.com/Gitoldor/LiquidGlassAPK",
+    "plan2": "30D",
+    "createdOn": "2026-11-07T12:39:17+05:30"
+  },
+  {
     "id": 2,
     "title": "Fick",
     "topic": "Fuck",
