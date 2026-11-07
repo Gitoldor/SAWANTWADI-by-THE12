@@ -48,22 +48,8 @@ window.Sho1re1Places = [
     "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
     "link": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
     "createdOn": "2026-10-23T13:25:44+05:30"
-  },
-  {
-    "id": 1,
-    "title": "Y0 chat",
-    "topic": "Fuck",
-    "type": "Fuck",
-    "subtype": "Fuck",
-    "plan": "PREMIUM",
-    "lat": 15.894817,
-    "lng": 73.819888,
-    "image": "https://github.com/Gitoldor/LiquidGlassAPK",
-    "link": "https://github.com/Gitoldor/LiquidGlassAPK",
-    "plan2": "14D",
-    "createdOn": "2026-10-23T13:20:04+05:30"
   }
-];;;;;;
+];;;;;;;
 
 
 /* ============================================================
