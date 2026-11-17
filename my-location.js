@@ -1,199 +1,221 @@
 
-/* ==========================================
-   SHO1RE1 — AUTO USER LOCATION
-   Independent map location controller
-========================================== */
+(() => {
+  'use strict';
 
-(function () {
-  "use strict";
-
-  // Access the existing Leaflet map
   let mapInstance;
 
   try {
     mapInstance = map;
-  } catch (error) {
-    console.error("[Location] Map not accessible.");
+  } catch (e) {
+    console.error('Sho1re1: Map not found');
     return;
   }
 
-  if (!mapInstance || !window.L) {
-    console.error("[Location] Leaflet map unavailable.");
-    return;
-  }
+  if (!mapInstance || !window.L) return;
 
+  let userLocation = null;
   let userMarker = null;
   let accuracyCircle = null;
 
-  /* ==========================================
-     LOCATION MARKER STYLE
-  ========================================== */
+  const THRESHOLD = 40;
 
-  const style = document.createElement("style");
+  // Create button
+  const button = document.createElement('button');
 
-  style.textContent = `
-    .sho1re1-location-icon {
-      background: transparent;
-      border: none;
-    }
-
-    .sho1re1-location-dot {
-      display: block;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #1685ff;
-      border: 3px solid white;
-      box-shadow:
-        0 0 0 6px rgba(22,133,255,.18),
-        0 2px 8px rgba(0,0,0,.3);
-    }
+  button.type = 'button';
+  button.innerHTML = `
+    <svg width="19" height="19" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    </svg>
+    <span>Recenter</span>
   `;
 
-  document.head.appendChild(style);
+  button.style.cssText = `
+    position: absolute !important;
+    right: 70px !important;
+    bottom: 255px !important;
+    z-index: 999999 !important;
 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
 
-  /* ==========================================
-     DISPLAY USER LOCATION
-  ========================================== */
+    padding: 12px 17px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    background: white;
+    color: #171717;
 
-  function displayLocation(position) {
+    font: 600 13px Arial, sans-serif;
+    box-shadow: 0 3px 15px rgba(0,0,0,.22);
 
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    const accuracy = position.coords.accuracy;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: .2s ease;
+    cursor: pointer;
+  `;
 
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng)
-    ) return;
+  const mapContainer = mapInstance.getContainer();
 
-    const location = [lat, lng];
+  mapContainer.appendChild(button);
 
-    // Remove previous location layers
-    if (userMarker) {
-      mapInstance.removeLayer(userMarker);
-    }
+  // Show/hide button
+  function updateButton() {
+    if (!userLocation) return;
 
-    if (accuracyCircle) {
-      mapInstance.removeLayer(accuracyCircle);
-    }
-
-    // Accuracy radius
-    accuracyCircle = L.circle(location, {
-
-      radius: Math.max(accuracy || 25, 15),
-
-      color: "#1685ff",
-      weight: 1,
-
-      fillColor: "#1685ff",
-      fillOpacity: 0.12,
-
-      interactive: false
-
-    }).addTo(mapInstance);
-
-
-    // Blue user location dot
-    const locationIcon = L.divIcon({
-
-      className: "sho1re1-location-icon",
-
-      html: `
-        <span class="sho1re1-location-dot"></span>
-      `,
-
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-
-    });
-
-
-    userMarker = L.marker(location, {
-
-      icon: locationIcon,
-
-      title: "Your location",
-
-      zIndexOffset: 10000,
-
-      keyboard: false
-
-    }).addTo(mapInstance);
-
-
-    // Move existing map to user
-    const zoom = Math.max(
-      mapInstance.getZoom(),
-      16
+    const distance = mapInstance.distance(
+      mapInstance.getCenter(),
+      userLocation
     );
 
-    mapInstance.flyTo(location, zoom, {
-      animate: true,
-      duration: 1.2
-    });
+    const shouldShow = distance > THRESHOLD;
 
-    console.log(
-      "[Location] Updated:",
-      lat,
-      lng,
-      "Accuracy:",
-      accuracy
-    );
+    button.style.opacity = shouldShow ? '1' : '0';
+    button.style.visibility = shouldShow ? 'visible' : 'hidden';
+    button.style.pointerEvents = shouldShow ? 'auto' : 'none';
+    button.style.transform = shouldShow
+      ? 'translateY(0)'
+      : 'translateY(8px)';
   }
 
+  // Update location marker
+  function setUserLocation(position) {
+    userLocation = L.latLng(
+      position.coords.latitude,
+      position.coords.longitude
+    );
 
-  /* ==========================================
-     REQUEST LOCATION
-  ========================================== */
+    const accuracy = position.coords.accuracy || 30;
 
-  function locateUser() {
+    if (!userMarker) {
+      userMarker = L.marker(userLocation, {
+        icon: L.divIcon({
+          className: '',
+          html: `
+            <div style="
+              width:18px;
+              height:18px;
+              background:#2588ff;
+              border:3px solid white;
+              border-radius:50%;
+              box-shadow:0 0 0 7px #2588ff30, 0 2px 8px #0005;
+            "></div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        }),
+        zIndexOffset: 1000
+      }).addTo(mapInstance);
 
-    if (!navigator.geolocation) {
+      accuracyCircle = L.circle(userLocation, {
+        radius: accuracy,
+        color: '#2588ff',
+        weight: 1,
+        fillColor: '#2588ff',
+        fillOpacity: 0.10
+      }).addTo(mapInstance);
 
-      console.error(
-        "[Location] Geolocation unavailable."
-      );
-
-      return;
+    } else {
+      userMarker.setLatLng(userLocation);
+      accuracyCircle.setLatLng(userLocation);
+      accuracyCircle.setRadius(accuracy);
     }
 
+    updateButton();
+  }
+
+  // Recenter action
+  function recenter() {
+    if (!navigator.geolocation) return;
+
+    button.disabled = true;
+    button.querySelector('span').textContent = 'Locating...';
+
     navigator.geolocation.getCurrentPosition(
+      position => {
+        setUserLocation(position);
 
-      displayLocation,
-
-      function (error) {
-
-        console.warn(
-          "[Location] Could not get location:",
-          error.message
+        mapInstance.flyTo(
+          userLocation,
+          Math.max(mapInstance.getZoom(), 16),
+          {
+            animate: true,
+            duration: 1.2
+          }
         );
 
-        // Existing Sawantwadi map remains unchanged.
+        button.disabled = false;
+        button.querySelector('span').textContent = 'Recenter';
+
+        setTimeout(updateButton, 1300);
+      },
+
+      error => {
+        console.warn('Location error:', error.message);
+
+        if (userLocation) {
+          mapInstance.flyTo(
+            userLocation,
+            Math.max(mapInstance.getZoom(), 16),
+            { animate: true, duration: 1.2 }
+          );
+        }
+
+        button.disabled = false;
+        button.querySelector('span').textContent = 'Recenter';
       },
 
       {
-
         enableHighAccuracy: true,
-
         timeout: 20000,
-
-        maximumAge: 30000
-
+        maximumAge: 10000
       }
-
     );
   }
 
+  button.addEventListener('click', recenter);
 
-  /* ==========================================
-     PUBLIC CONTROLLER
-  ========================================== */
+  // Detect map movement
+  mapInstance.on('move', updateButton);
+  mapInstance.on('moveend', updateButton);
+  mapInstance.on('dragend', updateButton);
 
-  window.Sho1re1LocateMe = locateUser;
+  // Initial GPS location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setUserLocation(position);
 
-  // Automatically locate on startup
-  locateUser();
+        mapInstance.flyTo(
+          userLocation,
+          Math.max(mapInstance.getZoom(), 16),
+          {
+            animate: true,
+            duration: 1.2
+          }
+        );
+
+        setTimeout(updateButton, 1300);
+      },
+
+      error => console.warn('GPS:', error.message),
+
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 30000
+      }
+    );
+  }
+
+  window.Sho1re1LocateMe = recenter;
 
 })();
