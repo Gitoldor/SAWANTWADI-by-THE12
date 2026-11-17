@@ -1,6 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* Sho1re1: disable and clear legacy offline service-worker caches. */
+(async () => {
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+    }
+    if ("caches" in window) {
+      const names = await caches.keys();
+      await Promise.all(names
+        .filter(name => name.startsWith("sho1re1-") || name === "my-app-v1")
+        .map(name => caches.delete(name)));
+    }
+  } catch (error) {
+    console.warn("Offline cache cleanup could not complete:", error);
+  }
+})();
+</script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Feature Not Yet Available</title>
