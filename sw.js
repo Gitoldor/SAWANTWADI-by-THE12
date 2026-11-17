@@ -1,5 +1,15 @@
-const CACHE_NAME = "sho1re1-v2";
+const CACHE_NAME = "sho1re1-v3";
+const EXTERNAL_CACHE_NAME = "sho1re1-external-v1";
 const OLD_CACHE_NAMES = ["my-app-v1"];
+
+// Only cache external hosts that this app deliberately uses.
+const OFFLINE_EXTERNAL_HOSTS = new Set([
+  "cdnjs.cloudflare.com",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+  "i.ibb.co",
+  "images.unsplash.com"
+]);
 
 self.addEventListener("install", event => {
   self.skipWaiting();
@@ -8,13 +18,14 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     (async () => {
+      const keep = new Set([CACHE_NAME, EXTERNAL_CACHE_NAME]);
       const cacheNames = await caches.keys();
 
       await Promise.all(
         cacheNames
           .filter(name =>
             OLD_CACHE_NAMES.includes(name) ||
-            (name.startsWith("sho1re1-") && name !== CACHE_NAME)
+            (name.startsWith("sho1re1-") && !keep.has(name))
           )
           .map(name => caches.delete(name))
       );
@@ -31,10 +42,44 @@ self.addEventListener("fetch", event => {
   if (request.headers.has("range")) return;
 
   const requestUrl = new URL(request.url);
-
-  // Leave external requests and non-web schemes to the browser.
-  if (requestUrl.origin !== self.location.origin) return;
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") return;
+
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+  const isApprovedExternal =
+    OFFLINE_EXTERNAL_HOSTS.has(requestUrl.hostname);
+
+  // Cache only the external CDNs/images/fonts the app uses.
+  // This lets menu.html and its visual assets work after they have
+  // been successfully loaded once while online.
+  if (!isSameOrigin) {
+    if (!isApprovedExternal) return;
+
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(EXTERNAL_CACHE_NAME);
+        const cached = await cache.match(request);
+
+        if (cached) return cached;
+
+        try {
+          const response = await fetch(request);
+
+          // Opaque responses are expected for classic no-CORS assets.
+          if (response.ok || response.type === "opaque") {
+            await cache.put(request, response.clone()).catch(() => {});
+          }
+
+          return response;
+        } catch (error) {
+          const fallback = await cache.match(request);
+          if (fallback) return fallback;
+          throw error;
+        }
+      })()
+    );
+
+    return;
+  }
 
   if (request.mode === "navigate") {
     // Prefer fresh HTML, but keep a successful copy for offline visits.
@@ -66,7 +111,6 @@ self.addEventListener("fetch", event => {
   }
 
   // Cache successful same-origin files after the first network request.
-  // Existing cached files are returned immediately for faster repeat visits.
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
