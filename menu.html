@@ -2229,29 +2229,22 @@ requestAnimationFrame(
 
 
 /* =========================================================
-   KEEP CAPTURE FRESH
+   EVENT-DRIVEN CAPTURE REFRESH
    ---------------------------------------------------------
-   Captures are intentionally NOT done
-   every animation frame.
-
-   The canvas itself runs smoothly;
-   the expensive DOM capture refreshes
-   only when needed.
+   DOM screenshots are expensive on mobile.
+   Capture on meaningful page events instead
+   of repeatedly screenshotting every 500ms.
 ========================================================= */
 
-setInterval(
-  () => {
+window.addEventListener(
+  "load",
+  requestCapture,
+  { once:true }
+);
 
-    if(
-      !captureBusy
-    ){
-
-      capturePage();
-
-    }
-
-  },
-  500
+window.addEventListener(
+  "pageshow",
+  requestCapture
 );
 
 
