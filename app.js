@@ -77,7 +77,57 @@ window.Sho1re1Places = [
     "link": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
     "createdOn": "2026-10-23T13:25:44+05:30"
   }
-];;;;;;;
+
+  ,
+  {
+    "id": 5,
+    "title": "Sawantwadi Palace",
+    "topic": "Heritage",
+    "type": "Landmark",
+    "subtype": "Royal Palace",
+    "plan": "FREE",
+    "lat": 15.90662,
+    "lng": 73.82459,
+    "image": "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=800",
+    "link": "https://www.google.com/maps/search/?api=1&query=Sawantwadi+Palace+Sawantwadi"
+  },
+  {
+    "id": 6,
+    "title": "Moti Talao",
+    "topic": "Nature",
+    "type": "Nature",
+    "subtype": "Lake",
+    "plan": "FREE",
+    "lat": 15.90521,
+    "lng": 73.82247,
+    "image": "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=800",
+    "link": "https://www.google.com/maps/search/?api=1&query=Moti+Talao+Sawantwadi"
+  },
+  {
+    "id": 7,
+    "title": "Aatmeshwar Mandir",
+    "topic": "Worship",
+    "type": "Temple",
+    "subtype": "Shiva Temple",
+    "plan": "FREE",
+    "lat": 15.91061,
+    "lng": 73.81666,
+    "image": "https://images.unsplash.com/photo-1606293926075-69a00dbbert?auto=format&w=800",
+    "link": "https://www.google.com/maps/search/?api=1&query=Aatmeshwar+Mandir+Sawantwadi"
+  },
+  {
+    "id": 8,
+    "title": "Aapla Bazar",
+    "topic": "Shopping",
+    "type": "Shopping",
+    "subtype": "Shopping Centre",
+    "plan": "FREE",
+    "lat": 15.91057,
+    "lng": 73.82241,
+    "image": "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800",
+    "link": "https://www.google.com/maps/search/?api=1&query=Aapla+Bazar+Sawantwadi"
+  }
+];
 
 
 /* ============================================================
