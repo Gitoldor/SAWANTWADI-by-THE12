@@ -112,7 +112,7 @@ window.Sho1re1Places = [
     "plan": "FREE",
     "lat": 15.91061,
     "lng": 73.81666,
-    "image": "https://images.unsplash.com/photo-1606293926075-69a00dbbert?auto=format&w=800",
+    "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
     "link": "https://www.google.com/maps/search/?api=1&query=Aatmeshwar+Mandir+Sawantwadi"
   },
   {
