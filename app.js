@@ -382,3 +382,25 @@ setInterval(
   },
   30000
 );
+
+
+/* ============================================================
+   COMMUNITY STORY MARKERS
+   Inspired by verified Google Maps contribution milestones.
+   Separate from Sho1re1Places so these landmarks never enter the
+   posting/plan/shuffle database.
+   ============================================================ */
+
+window.Sho1re1LocalMarkers = [
+  {
+    id: "maps-milestone-selfie-point",
+    title: "Sawantwadi Selfie Point",
+    category: "Community landmark",
+    story: "This landmark name edit was made by a Sho1re1 creator and later reached 20,000+ Google Maps views.",
+    lat: 15.90618,
+    lng: 73.82129,
+    coordinatesApproximate: true,
+    source: "Google Maps contribution milestone email, September 2026",
+    link: "https://www.google.com/maps/place/Sawantwadi+Selfie+Point/"
+  }
+];
