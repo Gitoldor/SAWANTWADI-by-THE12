@@ -17,8 +17,8 @@
       Math.abs(sharedLat) <= 90 && Math.abs(sharedLng) <= 180;
   }
 
-  var HOLD_MS = 3000, MOVE_LIMIT = 12;
-  var mapRef = null, timer = null, start = null, didShare = false, marker = null, toastTimer;
+  var HOLD_MS = 3000, MOVE_LIMIT = 12, EXIT_DISTANCE_METERS = 300;
+  var mapRef = null, timer = null, start = null, didShare = false, marker = null, toastTimer, sharedCenter = null, boundaryCheck = null;
 
   // Hook Leaflet's map creation; no changes to map's original code.
   L.Map.addInitHook(function () {
@@ -37,7 +37,25 @@
     var pair = raw.split(',');
     var lat = Number(pair[0]), lng = Number(pair[1]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+    sharedCenter = L.latLng(lat, lng);
     map.flyTo([lat, lng], Math.max(map.getZoom(), 17), { animate: true, duration: 1 });
+    // Once the user deliberately navigates outside this radius, leave shared mode.
+    boundaryCheck = function () {
+      if (!sharedCenter || map.distance(map.getCenter(), sharedCenter) <= EXIT_DISTANCE_METERS) return;
+      map.off('moveend', boundaryCheck);
+      window.Sho1re1SharedLocationActive = false;
+      sharedCenter = null;
+      // Remove the shared-link marker and clean the URL so the page is back to normal.
+      if (marker) { map.removeLayer(marker); marker = null; }
+      var cleanUrl = new URL(location.href);
+      cleanUrl.searchParams.delete('loc');
+      history.replaceState(null, '', cleanUrl.toString());
+      // The location plugin initially skipped itself while shared mode was active.
+      var gpsScript = document.createElement('script');
+      gpsScript.src = './my-location.js';
+      document.body.appendChild(gpsScript);
+    };
+    map.on('moveend', boundaryCheck);
     marker = L.marker([lat, lng], { title: 'Shared location' }).addTo(map);
     marker.bindPopup('Shared location<br><small>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</small>').openPopup();
   }
