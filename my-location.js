@@ -2,6 +2,9 @@
 (() => {
   'use strict';
 
+  // Shared-coordinate links must not trigger GPS or recentering.
+  if (window.Sho1re1SharedLocationActive) return;
+
   let mapInstance;
 
   try {
