@@ -127,6 +127,20 @@ window.Sho1re1Places = [
     "image": "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800",
     "link": "https://www.google.com/maps/search/?api=1&query=Aapla+Bazar+Sawantwadi"
   }
+  ,
+  {
+    "id": 9,
+    "title": "Your AI coding buddy can now tinker with the backend too 🤖",
+    "topic": "Tech Discovery",
+    "type": "News",
+    "subtype": "AI Tools",
+    "plan": "FREE",
+    "lat": 15.9062,
+    "lng": 73.8213,
+    "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800",
+    "link": "https://supabase.com/blog/ship-changes-to-your-supabase-backend-with-grok-bot"
+  }
+
 ];
 
 
