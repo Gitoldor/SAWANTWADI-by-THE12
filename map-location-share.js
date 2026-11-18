@@ -17,8 +17,8 @@
       Math.abs(sharedLat) <= 90 && Math.abs(sharedLng) <= 180;
   }
 
-  var HOLD_MS = 3000, MOVE_LIMIT = 12, EXIT_DISTANCE_METERS = 300;
-  var mapRef = null, timer = null, start = null, didShare = false, marker = null, toastTimer, sharedCenter = null, boundaryCheck = null;
+  var HOLD_MS = 3000, MOVE_LIMIT = 12, EXIT_DISTANCE_METERS = 300, SHARED_SETTLE_MS = 1600;
+  var mapRef = null, timer = null, start = null, didShare = false, marker = null, toastTimer, sharedCenter = null, boundaryCheck = null, sharedOpenedAt = 0;
 
   // Hook Leaflet's map creation; no changes to map's original code.
   L.Map.addInitHook(function () {
@@ -57,7 +57,7 @@
       gpsScript.src = './my-location.js';
       document.body.appendChild(gpsScript);
     };
-    map.on('moveend', boundaryCheck);
+    map.on('dragend', boundaryCheck);
     marker = L.marker([lat, lng], { title: 'Shared location' }).addTo(map);
     marker.bindPopup('Shared location<br><small>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</small>').openPopup();
   }
