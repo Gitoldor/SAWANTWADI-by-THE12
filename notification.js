@@ -830,6 +830,10 @@ function card(d,cls){
 
   el.className=cls;
 
+  if(d && d.id != null){
+    el.dataset.notificationId=String(d.id);
+  }
+
   el.innerHTML=`
 
     <div class="s1image">
