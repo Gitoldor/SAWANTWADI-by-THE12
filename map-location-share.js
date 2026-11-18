@@ -31,6 +31,26 @@
     });
   });
 
+  function injectSharedMarkerStyle() {
+    if (document.getElementById('s1-shared-marker-style')) return;
+    var style = document.createElement('style');
+    style.id = 's1-shared-marker-style';
+    style.textContent = `
+      .s1-shared-marker-root { position:relative; width:56px; height:66px; display:flex; align-items:flex-start; justify-content:center; }
+      .s1-shared-marker-pulse { position:absolute; top:12px; left:50%; width:34px; height:34px; margin-left:-17px; border-radius:50%; background:rgba(255,255,255,.32); border:1px solid rgba(0,0,0,.18); animation:s1SharedPulse 2.2s ease-out infinite; }
+      .s1-shared-marker-pulse.pulse2 { animation-delay:1.1s; }
+      .s1-shared-marker-core { position:absolute; top:12px; left:50%; width:34px; height:34px; margin-left:-17px; border-radius:50%; background:rgba(255,255,255,.96); border:2px solid #101010; box-shadow:0 5px 16px rgba(0,0,0,.32), inset 0 0 0 4px rgba(0,0,0,.06); display:flex; align-items:center; justify-content:center; }
+      .s1-shared-marker-core:after { content:''; width:9px; height:9px; border-radius:50%; background:#111; box-shadow:0 0 0 3px rgba(0,0,0,.08); }
+      .s1-shared-marker-label { position:absolute; top:48px; left:50%; transform:translateX(-50%); white-space:nowrap; padding:5px 9px; border-radius:999px; background:rgba(14,14,14,.92); color:#fff; font:700 9px/1 Inter,system-ui,sans-serif; letter-spacing:1.15px; box-shadow:0 4px 12px rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.22); }
+      @keyframes s1SharedPulse { 0% { transform:scale(.65); opacity:.65; } 100% { transform:scale(2.1); opacity:0; } }
+      .s1-shared-popup .leaflet-popup-content-wrapper { border-radius:14px; padding:2px; background:#111; color:#fff; box-shadow:0 12px 28px rgba(0,0,0,.3); }
+      .s1-shared-popup .leaflet-popup-content { margin:10px 13px; font:600 11px/1.45 Inter,system-ui,sans-serif; }
+      .s1-shared-popup .leaflet-popup-tip { background:#111; }
+      .s1-shared-popup .leaflet-popup-close-button { color:#fff !important; }
+    `;
+    document.head.appendChild(style);
+  }
+
   function openIncoming(map) {
     var raw = new URLSearchParams(location.search).get('loc');
     if (!raw) return;
@@ -58,8 +78,15 @@
       document.body.appendChild(gpsScript);
     };
     map.on('dragend', boundaryCheck);
-    marker = L.marker([lat, lng], { title: 'Shared location' }).addTo(map);
-    marker.bindPopup('Shared location<br><small>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</small>').openPopup();
+    injectSharedMarkerStyle();
+    var sharedIcon = L.divIcon({
+      className: 's1-shared-marker-icon',
+      html: '<div class="s1-shared-marker-root"><span class="s1-shared-marker-pulse"></span><span class="s1-shared-marker-pulse pulse2"></span><span class="s1-shared-marker-core"></span><span class="s1-shared-marker-label">SHARED SPOT</span></div>',
+      iconSize: [56, 66],
+      iconAnchor: [28, 30]
+    });
+    marker = L.marker([lat, lng], { title: 'Shared location', icon: sharedIcon, zIndexOffset: 10000 }).addTo(map);
+    marker.bindPopup('<strong>Shared spot</strong><br><small>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</small>', { className: 's1-shared-popup', closeButton: true }).openPopup();
   }
 
   function bindHold(map) {
