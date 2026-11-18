@@ -1454,6 +1454,13 @@ function start(){
 
 
   /* =========================
+     EXTERNAL SHARED-LINK API
+  ========================= */
+
+  window.Sho1re1OpenNotifications = open;
+
+
+  /* =========================
      TAP BUTTON
   ========================= */
 
