@@ -7,6 +7,16 @@
   'use strict';
   if (!window.L || !L.Map) return;
 
+  // Mark valid shared-coordinate sessions before the live-location plugin loads.
+  var sharedQuery = new URLSearchParams(location.search).get('loc');
+  if (sharedQuery) {
+    var sharedPair = sharedQuery.split(',');
+    var sharedLat = Number(sharedPair[0]), sharedLng = Number(sharedPair[1]);
+    window.Sho1re1SharedLocationActive =
+      Number.isFinite(sharedLat) && Number.isFinite(sharedLng) &&
+      Math.abs(sharedLat) <= 90 && Math.abs(sharedLng) <= 180;
+  }
+
   var HOLD_MS = 3000, MOVE_LIMIT = 12;
   var mapRef = null, timer = null, start = null, didShare = false, marker = null, toastTimer;
 
