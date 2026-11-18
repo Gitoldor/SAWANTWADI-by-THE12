@@ -37,8 +37,8 @@
 
   button.style.cssText = `
     position: absolute !important;
-    right: 70px !important;
-    bottom: 255px !important;
+    right: 140px !important;
+    bottom: 275px !important;
     z-index: 999999 !important;
 
     display: flex;
