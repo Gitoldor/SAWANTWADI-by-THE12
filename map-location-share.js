@@ -38,11 +38,13 @@
     var lat = Number(pair[0]), lng = Number(pair[1]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
     sharedCenter = L.latLng(lat, lng);
+    sharedOpenedAt = Date.now();
     map.flyTo([lat, lng], Math.max(map.getZoom(), 17), { animate: true, duration: 1 });
-    // Once the user deliberately navigates outside this radius, leave shared mode.
+    // Only check after a user drag; initial flyTo/animation movements are ignored.
     boundaryCheck = function () {
+      if (Date.now() - sharedOpenedAt < SHARED_SETTLE_MS) return;
       if (!sharedCenter || map.distance(map.getCenter(), sharedCenter) <= EXIT_DISTANCE_METERS) return;
-      map.off('moveend', boundaryCheck);
+      map.off('dragend', boundaryCheck);
       window.Sho1re1SharedLocationActive = false;
       sharedCenter = null;
       // Remove the shared-link marker and clean the URL so the page is back to normal.
