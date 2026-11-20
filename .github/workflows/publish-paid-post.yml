@@ -1,8 +1,28 @@
-name: Publish verified Sho1re1 post
+name: Publish Sho1re1 browser-submitted post
 
 on:
-  repository_dispatch:
-    types: [sho1re1_paid_post]
+  workflow_dispatch:
+    inputs:
+      post_json:
+        description: "Post data JSON"
+        required: true
+        type: string
+      order_id:
+        description: "FamGateway order ID"
+        required: true
+        type: string
+      utr:
+        description: "FamGateway verified UTR"
+        required: true
+        type: string
+      amount:
+        description: "Verified amount in INR"
+        required: true
+        type: string
+      post_code:
+        description: "Generated Sho1re1 post code"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -20,26 +40,28 @@ jobs:
         with:
           ref: main
 
-      - name: Validate payment and append post
+      - name: Validate and append post
         env:
-          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          POST_JSON: ${{ inputs.post_json }}
+          ORDER_ID: ${{ inputs.order_id }}
+          UTR: ${{ inputs.utr }}
+          AMOUNT: ${{ inputs.amount }}
+          POST_CODE: ${{ inputs.post_code }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
           const vm = require('node:vm');
-          const payload = JSON.parse(process.env.PAYLOAD || '{}');
-          const post = payload.post || {};
-          const payment = payload.payment || {};
-          if (payment.status !== 'success' || Number(payment.amount) !== 10 || !payment.orderId || !payment.utr) {
-            throw new Error('Payment is not verified or does not match the ₹10 post fee.');
-          }
+          const post = JSON.parse(process.env.POST_JSON || '{}');
+          const orderId = process.env.ORDER_ID || '';
+          const utr = process.env.UTR || '';
+          const amount = Number(process.env.AMOUNT);
+          if (!orderId || !utr || amount !== 10) throw new Error('Missing payment reference or amount is not ₹10.');
           for (const key of ['title', 'topic', 'type', 'subtype']) {
             if (typeof post[key] !== 'string' || !post[key].trim()) throw new Error('Missing post field: ' + key);
           }
           const lat = Number(post.lat), lng = Number(post.lng);
           if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) throw new Error('Invalid coordinates.');
-          const file = 'app.js';
-          let source = fs.readFileSync(file, 'utf8');
+          const source = fs.readFileSync('app.js', 'utf8');
           const marker = 'window.Sho1re1Places =';
           const markerStart = source.indexOf(marker);
           if (markerStart < 0) throw new Error('Sho1re1Places database not found.');
@@ -49,7 +71,7 @@ jobs:
             const ch = source[i];
             if (quote !== null) {
               if (escaped) { escaped = false; continue; }
-              if (ch === '\\') { escaped = true; continue; }
+              if (ch === '\\\\') { escaped = true; continue; }
               if (ch === quote) quote = null;
               continue;
             }
@@ -60,32 +82,31 @@ jobs:
           if (arrayEnd < 0) throw new Error('Could not locate database end.');
           const places = vm.runInNewContext('(' + source.slice(arrayStart, arrayEnd) + ')');
           if (!Array.isArray(places)) throw new Error('Post database is invalid.');
-          if (places.some(p => p.paymentOrderId === payment.orderId)) {
-            console.log('This payment order was already published.');
+          if (places.some(p => p.paymentOrderId === orderId)) {
+            console.log('This order was already published.');
             process.exit(0);
           }
-          const numericIds = places.map(p => Number(p.id)).filter(Number.isFinite);
+          const ids = places.map(p => Number(p.id)).filter(Number.isFinite);
           const record = {
-            id: Math.max(0, ...numericIds) + 1,
-            title: String(post.title).trim().slice(0, 100),
-            topic: String(post.topic).trim().slice(0, 60),
-            type: String(post.type).trim().slice(0, 60),
-            subtype: String(post.subtype).trim().slice(0, 60),
-            plan: ['FREE', 'PRO', 'PREMIUM'].includes(String(post.plan).toUpperCase()) ? String(post.plan).toUpperCase() : 'FREE',
+            id: Math.max(0, ...ids) + 1,
+            title: post.title.trim().slice(0,100),
+            topic: post.topic.trim().slice(0,60),
+            type: post.type.trim().slice(0,60),
+            subtype: post.subtype.trim().slice(0,60),
+            plan: ['FREE','PRO','PREMIUM'].includes(String(post.plan).toUpperCase()) ? String(post.plan).toUpperCase() : 'FREE',
             lat, lng,
             image: typeof post.image === 'string' ? post.image : '',
             link: typeof post.link === 'string' ? post.link : '',
-            plan2: ['7D', '14D', '30D'].includes(String(post.plan2).toUpperCase()) ? String(post.plan2).toUpperCase() : '7D',
+            plan2: ['7D','14D','30D'].includes(String(post.plan2).toUpperCase()) ? String(post.plan2).toUpperCase() : '7D',
             createdOn: new Date().toISOString(),
-            paymentOrderId: String(payment.orderId),
-            paymentUtr: String(payment.utr),
+            paymentOrderId: orderId,
+            paymentUtr: utr,
             paymentAmount: 10,
-            postCode: String(payment.postCode || '')
+            postCode: process.env.POST_CODE || ''
           };
           places.push(record);
-          const rebuilt = 'window.Sho1re1Places = ' + JSON.stringify(places, null, 2) + ';';
-          fs.writeFileSync(file, source.slice(0, markerStart) + rebuilt + source.slice(arrayEnd));
-          console.log('Published paid post:', record.id, record.title, record.paymentOrderId);
+          fs.writeFileSync('app.js', source.slice(0,markerStart) + 'window.Sho1re1Places = ' + JSON.stringify(places,null,2) + ';' + source.slice(arrayEnd));
+          console.log('Added Sho1re1 post:', record.id, record.title);
           NODE
 
       - name: Commit post
@@ -94,8 +115,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app.js
           if ! git diff --cached --quiet; then
-            git commit -m "Publish verified paid Sho1re1 post"
+            git commit -m "Publish Sho1re1 browser post"
             git push
           else
-            echo "No new post to publish."
+            echo "No database changes."
           fi
