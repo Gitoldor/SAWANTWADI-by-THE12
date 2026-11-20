@@ -121,16 +121,20 @@
     blackout.classList.add("active");
     later(() => blackout.classList.remove("active"), 90, 260);
   };
-  function schedule() {
+  function scheduleJank() {
     if (!enabled) return;
     later(() => {
       if (!enabled) return;
       document.body.classList.add("sho2010-jank");
       later(() => document.body.classList.remove("sho2010-jank"), 100, 240);
-      schedule();
+      scheduleJank();
     }, 2200, 6200);
-    later(() => { glitchBurst(); scheduleGlitch(); }, 4500, 11000);
-    later(() => { blackoutBurst(); scheduleBlackout(); }, 9000, 21000);
+  }
+  function schedule() {
+    if (!enabled) return;
+    scheduleJank();
+    scheduleGlitch();
+    scheduleBlackout();
   }
   function scheduleGlitch() {
     if (enabled) later(() => { glitchBurst(); scheduleGlitch(); }, 6500, 17000);
