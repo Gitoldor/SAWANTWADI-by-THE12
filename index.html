@@ -2780,12 +2780,46 @@ function applyFilters() {
   renderMapAndCarousel();
 }
 
+// Remove saved records whose post IDs no longer exist in the current app.js dataset.
+// This runs before saved folders/counts/filters are built, so stale posts disappear everywhere.
+function reconcileSavedPostsWithLiveData() {
+  return new Promise((resolve, reject) => {
+    if (!db || !Array.isArray(rawPlaces)) return resolve([]);
+    const liveIds = new Set(rawPlaces.map(place => String(place.id)));
+    const tx = db.transaction(STORE_PLACES, 'readwrite');
+    const store = tx.objectStore(STORE_PLACES);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const stored = request.result || [];
+      const valid = [];
+      stored.forEach(item => {
+        if (liveIds.has(String(item.id))) {
+          valid.push(item);
+        } else {
+          store.delete(item.id);
+        }
+      });
+      tx.oncomplete = () => resolve(valid);
+    };
+    request.onerror = () => reject(request.error);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 // Startup execution
 initDB().then(() => {
-  getSavedPlacesFromDB().then(savedItems => {
+  reconcileSavedPostsWithLiveData().then(savedItems => {
     savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
     buildFilterChips();
     applyFilters();
+  }).catch(error => {
+    console.error('Could not reconcile saved posts:', error);
+    getSavedPlacesFromDB().then(savedItems => {
+      savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
+      buildFilterChips();
+      applyFilters();
+    });
   });
 });
 </script>
