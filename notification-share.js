@@ -101,7 +101,10 @@
       PARAM,
       id
     );
-
+    const sharedBy = window.Sho1re1SharedBy && window.Sho1re1SharedBy.getName
+      ? window.Sho1re1SharedBy.getName()
+      : "";
+    if (sharedBy) url.searchParams.set("by", sharedBy);
 
     return url.toString();
 
@@ -985,7 +988,10 @@
 
 
     installStyles();
-
+    const incomingBy = new URLSearchParams(window.location.search).get("by");
+    if (incomingBy && window.Sho1re1SharedBy) {
+      window.Sho1re1SharedBy.show(incomingBy);
+    }
 
     /*
       Wait for notification.js
