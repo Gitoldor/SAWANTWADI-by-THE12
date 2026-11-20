@@ -43,16 +43,16 @@
     const data = decodeCredential(response.credential || "");
     if (!data || !data.sub) return;
     const previous = readUser();
+    const returningProfile = previous && previous.sub === data.sub && previous.displayName;
     saveUser({
       sub: data.sub,
       email: data.email || "",
       googleName: data.name || "",
       picture: data.picture || "",
-      displayName: previous && previous.sub === data.sub && previous.displayName
-        ? previous.displayName : (data.name || ""),
+      displayName: returningProfile ? previous.displayName : "",
       signedInAt: Date.now()
     });
-    if (!user.displayName) promptName();
+    if (!returningProfile) promptName();
     else closeWelcome();
   }
   function loadGoogle() {
