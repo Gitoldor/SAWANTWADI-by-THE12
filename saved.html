@@ -422,7 +422,10 @@
       </button>
       <h1 class="main-title" id="pageTitle">Saved</h1>
     </div>
-    <button class="action-btn" id="actionBtn" onclick="openFolderModal()">+ New</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="action-btn" id="shareFolderBtn" onclick="shareCurrentFolder()" style="display:none;background:#ededf0;color:#111;">Share</button>
+      <button class="action-btn" id="actionBtn" onclick="openFolderModal()">+ New</button>
+    </div>
   </div>
 
   <!-- View 1: 2x2 Grid of Folders -->
@@ -572,8 +575,90 @@
     });
   }
 
+  let currentFolderName = null;
+  let currentFolderItems = [];
+  let sharedCollectionMode = false;
+
+  // Create a portable link containing post IDs, not local IndexedDB data.
+  // Anyone opening it resolves those IDs against the current public app.js dataset.
+  function shareCurrentFolder() {
+    if (!currentFolderName || !currentFolderItems.length) {
+      alert('This collection has no posts to share yet.');
+      return;
+    }
+
+    const payload = {
+      v: 1,
+      title: currentFolderName,
+      ids: currentFolderItems.map(place => String(place.id))
+    };
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+      .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+    const url = new URL('saved.html', window.location.href);
+    url.search = '';
+    url.searchParams.set('collection', encoded);
+    const shareUrl = url.toString();
+
+    if (navigator.share) {
+      navigator.share({ title: currentFolderName + ' · Sho1re1', text: 'Check out this Sho1re1 collection', url: shareUrl })
+        .catch(error => {
+          if (error && error.name !== 'AbortError') copyCollectionLink(shareUrl);
+        });
+    } else {
+      copyCollectionLink(shareUrl);
+    }
+  }
+
+  function copyCollectionLink(url) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => alert('Collection link copied!'),
+        () => prompt('Copy your collection link:', url)
+      );
+    } else {
+      prompt('Copy your collection link:', url);
+    }
+  }
+
+  function loadSharedCollection() {
+    const encoded = new URLSearchParams(window.location.search).get('collection');
+    if (!encoded || !Array.isArray(window.Sho1re1Places)) return false;
+
+    try {
+      const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(escape(atob(normalized)));
+      const payload = JSON.parse(json);
+      if (!payload || payload.v !== 1 || !Array.isArray(payload.ids)) throw new Error('Invalid collection');
+
+      const wanted = new Set(payload.ids.map(String));
+      const items = window.Sho1re1Places.filter(place => wanted.has(String(place.id)));
+      sharedCollectionMode = true;
+      document.getElementById('foldersGrid').style.display = 'none';
+      document.getElementById('actionBtn').style.display = 'none';
+      document.getElementById('shareFolderBtn').style.display = 'none';
+      document.getElementById('pageTitle').innerText = payload.title || 'Shared Collection';
+      document.getElementById('backBtn').onclick = () => {
+        window.location.href = 'saved.html';
+      };
+      openFolder(payload.title || 'Shared Collection', items);
+      return true;
+    } catch (error) {
+      console.warn('Shared collection link is invalid:', error);
+      document.getElementById('pageTitle').innerText = 'Collection unavailable';
+      document.getElementById('foldersGrid').style.display = 'none';
+      document.getElementById('postsFeed').style.display = 'grid';
+      document.getElementById('postsFeed').innerHTML = '<div class="empty-state">This collection link is invalid or outdated.</div>';
+      document.getElementById('actionBtn').style.display = 'none';
+      return true;
+    }
+  }
+
   // Open Selected Folder & Render 2x2 Full Image Posts
   function openFolder(folderName, items) {
+    currentFolderName = folderName;
+    currentFolderItems = items.slice();
+    document.getElementById('shareFolderBtn').style.display =
+      (!sharedCollectionMode && items.length) ? 'inline-block' : 'none';
     document.getElementById('foldersGrid').style.display = 'none';
     document.getElementById('postsFeed').style.display = 'grid';
     document.getElementById('actionBtn').style.display = 'none';
@@ -703,8 +788,11 @@
     loadDataFromDB();
   }
 
-  // Initialize DB on page load
-  window.addEventListener('DOMContentLoaded', initDB);
+  // Initialize shared links without touching the viewer's private IndexedDB.
+  // Normal saved collections continue to load from the owner's local database.
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!loadSharedCollection()) initDB();
+  });
 </script>
 
 </body>
