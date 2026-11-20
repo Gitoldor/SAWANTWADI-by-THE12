@@ -2,6 +2,8 @@
   'use strict';
   const encoded = new URLSearchParams(window.location.search).get('collection');
   if (!encoded) return;
+  const incomingBy = new URLSearchParams(window.location.search).get('by');
+  if (incomingBy && window.Sho1re1SharedBy) window.Sho1re1SharedBy.show(incomingBy);
   function decodePayload(value) {
     let base64 = value.replace(/-/g, '+').replace(/_/g, '/');
     base64 += '='.repeat((4 - base64.length % 4) % 4);
