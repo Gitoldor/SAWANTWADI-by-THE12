@@ -494,42 +494,37 @@
   function loadDataFromDB() {
     if (!db) return;
 
-    const tx = db.transaction([STORE_PLACES, STORE_FOLDERS], 'readonly');
+    const tx = db.transaction([STORE_PLACES, STORE_FOLDERS], 'readwrite');
     const placeStore = tx.objectStore(STORE_PLACES);
     const folderStore = tx.objectStore(STORE_FOLDERS);
 
     const placesReq = placeStore.getAll();
     const foldersReq = folderStore.getAll();
+    let liveIds = null;
+
+    // app.js is the source of truth. Match by stable post ID only:
+    // titles/names are not unique and can accidentally preserve deleted posts.
+    if (Array.isArray(window.Sho1re1Places)) {
+      liveIds = new Set(window.Sho1re1Places.map(post => String(post.id)));
+    }
+
+    placesReq.onsuccess = () => {
+      const stored = placesReq.result || [];
+      if (liveIds) {
+        stored.forEach(place => {
+          if (!liveIds.has(String(place.id))) {
+            placeStore.delete(place.id);
+          }
+        });
+        allSavedPlaces = stored.filter(place => liveIds.has(String(place.id)));
+      } else {
+        // If the source list failed to load, keep saved data rather than deleting it.
+        allSavedPlaces = stored;
+      }
+    };
 
     tx.oncomplete = () => {
-      const rawPlaces = placesReq.result || [];
       allFolders = foldersReq.result || [];
-
-      // Scan app.js post list: Verify by both ID and Title/Name
-      allSavedPlaces = rawPlaces.filter(place => {
-        if (typeof appPostsList !== 'undefined') {
-          if (Array.isArray(appPostsList)) {
-            return appPostsList.some(post => 
-              (post.id && post.id === place.id) || 
-              (post.title && place.title && post.title.toLowerCase() === place.title.toLowerCase()) ||
-              (post.name && place.name && post.name.toLowerCase() === place.name.toLowerCase()) ||
-              (post.name && place.title && post.name.toLowerCase() === place.title.toLowerCase())
-            );
-          }
-          
-          // Object lookup fallback
-          if (typeof appPostsList === 'object' && appPostsList !== null) {
-            if (place.id && Object.prototype.hasOwnProperty.call(appPostsList, place.id)) {
-              return true;
-            }
-            return Object.values(appPostsList).some(post => 
-              (post.title && place.title && post.title.toLowerCase() === place.title.toLowerCase()) ||
-              (post.name && place.name && post.name.toLowerCase() === place.name.toLowerCase())
-            );
-          }
-        }
-        return true; // Fallback if appPostsList is missing
-      });
 
       if (!allFolders.some(f => f.name === 'Default')) {
         allFolders.unshift({ name: 'Default', cover: '' });
