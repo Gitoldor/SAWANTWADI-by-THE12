@@ -593,7 +593,7 @@
       ids: currentFolderItems.map(place => String(place.id))
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
-      .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+      .replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/g, '');
     const url = new URL('saved.html', window.location.href);
     url.search = '';
     url.searchParams.set('collection', encoded);
