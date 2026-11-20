@@ -607,7 +607,7 @@
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
       .replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/g, '');
-    const url = new URL('saved.html', window.location.href);
+    const url = new URL('index.html', window.location.href);
     url.search = '';
     url.searchParams.set('collection', encoded);
     const shareUrl = url.toString();
