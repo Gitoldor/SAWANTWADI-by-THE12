@@ -455,6 +455,7 @@
   </div>
 
 <!-- Ensure app.js is loaded so appPostsList is available -->
+<script src="shared-by.js"></script>
 <script src="app.js"></script>
 
 <script>
@@ -597,6 +598,10 @@
     const url = new URL('index.html', window.location.href);
     url.search = '';
     url.searchParams.set('collection', encoded);
+    const sharedBy = window.Sho1re1SharedBy && window.Sho1re1SharedBy.getName
+      ? window.Sho1re1SharedBy.getName()
+      : '';
+    if (sharedBy) url.searchParams.set('by', sharedBy);
     const shareUrl = url.toString();
 
     if (navigator.share) {
