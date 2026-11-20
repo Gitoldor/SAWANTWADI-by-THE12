@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: sho1re1-post-database
+  cancel-in-progress: false
+
 jobs:
 
   expire-posts:
