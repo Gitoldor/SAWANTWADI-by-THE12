@@ -26,6 +26,10 @@
 <meta name="theme-color" content="#ffffff">
 
 <meta name="mobile-web-app-capable" content="yes">
+<script>
+// Shared collection links must keep the main map from auto-recentering to GPS.
+try { if (new URLSearchParams(location.search).has("collection")) window.Sho1re1SharedLocationActive = true; } catch (_) {}
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Sho1re1 Map</title>
@@ -2831,5 +2835,6 @@ initDB().then(() => {
     <script src="photoswipe.js"></script>
     <script src="./my-location.js"></script>
 <script src="./photoswipe-guard.js"></script>
+<script src="./shared-collection-map.js"></script>
 </body>
 </html>
