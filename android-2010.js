@@ -6,7 +6,8 @@
 (() => {
   "use strict";
   const KEY = "sho1re1_android_2010";
-  let enabled = localStorage.getItem(KEY) !== "off";
+  let enabled = true;
+  try { enabled = localStorage.getItem(KEY) !== "off"; } catch (_) {}
   try {
     const mode = new URLSearchParams(location.search).get("android2010");
     if (mode === "on") { enabled = true; localStorage.setItem(KEY, "on"); }
@@ -83,7 +84,11 @@
 
   let timers = [];
   const later = (fn, min, max) => {
-    const id = setTimeout(fn, min + Math.random() * (max - min));
+    let id;
+    id = setTimeout(() => {
+      timers = timers.filter(timer => timer !== id);
+      fn();
+    }, min + Math.random() * (max - min));
     timers.push(id);
   };
   const clearEffects = () => {
