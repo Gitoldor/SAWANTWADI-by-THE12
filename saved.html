@@ -28,6 +28,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
   * {
@@ -112,6 +114,13 @@
   .action-btn:active {
     transform: scale(0.95);
   }
+
+  #sharedMap { display:none; width:100%; height:calc(100vh - 125px); min-height:420px; border-radius:24px; overflow:hidden; z-index:1; background:#f1f1f1; }
+  .shared-view-toggle { display:none; }
+  .shared-map-popup { min-width:150px; font-family:Inter,sans-serif; }
+  .shared-map-popup img { width:100%; height:82px; object-fit:cover; border-radius:9px; margin-bottom:6px; }
+  .shared-map-popup strong { display:block; font-size:13px; margin-bottom:3px; }
+  .shared-map-popup span { color:#666; font-size:11px; }
 
   /* 2x2 GRID CONTAINERS */
   .grid-container {
@@ -423,6 +432,7 @@
       <h1 class="main-title" id="pageTitle">Saved</h1>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="action-btn shared-view-toggle" id="sharedViewToggle" onclick="toggleSharedCollectionView()" style="background:#ededf0;color:#111;">Grid</button>
       <button class="action-btn" id="shareFolderBtn" onclick="shareCurrentFolder()" style="display:none;background:#ededf0;color:#111;">Share</button>
       <button class="action-btn" id="actionBtn" onclick="openFolderModal()">+ New</button>
     </div>
@@ -432,6 +442,7 @@
   <div class="grid-container" id="foldersGrid"></div>
 
   <!-- View 2: 2x2 Grid of Full-Image Posts -->
+  <div id="sharedMap"></div>
   <div class="grid-container" id="postsFeed" style="display: none;"></div>
 
   <!-- Edit / Create Modal -->
@@ -578,6 +589,8 @@
   let currentFolderName = null;
   let currentFolderItems = [];
   let sharedCollectionMode = false;
+  let sharedCollectionMap = null;
+  let sharedCollectionView = "map";
 
   // Create a portable link containing post IDs, not local IndexedDB data.
   // Anyone opening it resolves those IDs against the current public app.js dataset.
@@ -641,6 +654,8 @@
         window.location.href = 'saved.html';
       };
       openFolder(payload.title || 'Shared Collection', items);
+      document.getElementById('sharedViewToggle').style.display = 'inline-block';
+      showSharedCollectionMap(items);
       return true;
     } catch (error) {
       console.warn('Shared collection link is invalid:', error);
@@ -650,6 +665,68 @@
       document.getElementById('postsFeed').innerHTML = '<div class="empty-state">This collection link is invalid or outdated.</div>';
       document.getElementById('actionBtn').style.display = 'none';
       return true;
+    }
+  }
+
+  function showSharedCollectionMap(items) {
+    const mapEl = document.getElementById('sharedMap');
+    const feed = document.getElementById('postsFeed');
+    feed.style.display = 'none';
+    mapEl.style.display = 'block';
+    sharedCollectionView = 'map';
+    document.getElementById('sharedViewToggle').innerText = 'Grid';
+
+    if (!window.L) {
+      mapEl.innerHTML = '<div style="padding:24px;color:#555;">Map could not load. Switch to Grid to view this collection.</div>';
+      return;
+    }
+
+    const located = items.filter(place =>
+      Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng)) &&
+      Number(place.lat) >= -90 && Number(place.lat) <= 90 &&
+      Number(place.lng) >= -180 && Number(place.lng) <= 180
+    );
+
+    if (sharedCollectionMap) { sharedCollectionMap.remove(); sharedCollectionMap = null; }
+    mapEl.innerHTML = '';
+    sharedCollectionMap = L.map(mapEl, { zoomControl: true, scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(sharedCollectionMap);
+
+    if (!located.length) {
+      sharedCollectionMap.setView([15.913, 73.821], 13);
+      mapEl.insertAdjacentHTML('beforeend', '<div style="position:absolute;z-index:500;bottom:14px;left:50%;transform:translateX(-50%);background:#fff;padding:9px 13px;border-radius:14px;font-size:12px;box-shadow:0 2px 12px #0002;white-space:nowrap;">No mapped locations in this collection</div>');
+      return;
+    }
+
+    const bounds = [];
+    located.forEach(place => {
+      const lat = Number(place.lat), lng = Number(place.lng);
+      bounds.push([lat, lng]);
+      const title = String(place.title || place.name || 'Saved place');
+      const type = String(place.type || place.topic || '');
+      const image = place.image ? '<img src="' + String(place.image).replace(/"/g, '&quot;') + '" alt="">' : '';
+      const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeType = type.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const popup = '<div class="shared-map-popup">' + image + '<strong>' + safeTitle + '</strong><span>' + safeType + '</span></div>';
+      L.marker([lat, lng]).addTo(sharedCollectionMap).bindPopup(popup);
+    });
+    sharedCollectionMap.fitBounds(bounds, { padding: [35, 35], maxZoom: 16 });
+    setTimeout(() => sharedCollectionMap && sharedCollectionMap.invalidateSize(), 80);
+  }
+
+  function toggleSharedCollectionView() {
+    if (!sharedCollectionMode) return;
+    const mapEl = document.getElementById('sharedMap');
+    const feed = document.getElementById('postsFeed');
+    if (sharedCollectionView === 'map') {
+      mapEl.style.display = 'none';
+      feed.style.display = 'grid';
+      sharedCollectionView = 'grid';
+      document.getElementById('sharedViewToggle').innerText = 'Map';
+    } else {
+      showSharedCollectionMap(currentFolderItems);
     }
   }
 
@@ -781,6 +858,9 @@
 
   // Return to 2x2 Folder View
   function showFolderGrid() {
+    if (sharedCollectionMode) { window.location.href = 'saved.html'; return; }
+    document.getElementById('sharedMap').style.display = 'none';
+    document.getElementById('sharedViewToggle').style.display = 'none';
     document.getElementById('postsFeed').style.display = 'none';
     document.getElementById('foldersGrid').style.display = 'grid';
     document.getElementById('actionBtn').style.display = 'block';
