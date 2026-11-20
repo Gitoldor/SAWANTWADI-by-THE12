@@ -472,13 +472,15 @@
     }
 
 
-    const url =
-      window.location.origin +
-      window.location.pathname +
-      "?post=" +
-      encodeURIComponent(
-        id
-      );
+    const shareLink = new URL(window.location.href);
+    shareLink.search = "";
+    shareLink.hash = "";
+    shareLink.searchParams.set("post", String(id));
+    const sharedBy = window.Sho1re1SharedBy && window.Sho1re1SharedBy.getName
+      ? window.Sho1re1SharedBy.getName()
+      : "";
+    if (sharedBy) shareLink.searchParams.set("by", sharedBy);
+    const url = shareLink.toString();
 
 
     const title =
@@ -1195,6 +1197,10 @@
 
 
   function start() {
+    const incomingBy = new URLSearchParams(window.location.search).get("by");
+    if (getPostIdFromURL() && incomingBy && window.Sho1re1SharedBy) {
+      window.Sho1re1SharedBy.show(incomingBy);
+    }
 
     observer.observe(
       document.body,
