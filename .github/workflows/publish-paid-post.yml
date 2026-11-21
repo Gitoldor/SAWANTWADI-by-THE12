@@ -55,7 +55,7 @@ jobs:
           const orderId = process.env.ORDER_ID || '';
           const utr = process.env.UTR || '';
           const amount = Number(process.env.AMOUNT);
-          if (!orderId || !utr || amount !== 10) throw new Error('Missing payment reference or amount is not ₹10.');
+          if (!orderId || !utr || amount !== 1) throw new Error('Missing payment reference or amount is not ₹1.');
           for (const key of ['title', 'topic', 'type', 'subtype']) {
             if (typeof post[key] !== 'string' || !post[key].trim()) throw new Error('Missing post field: ' + key);
           }
@@ -101,7 +101,7 @@ jobs:
             createdOn: new Date().toISOString(),
             paymentOrderId: orderId,
             paymentUtr: utr,
-            paymentAmount: 10,
+            paymentAmount: 1,
             postCode: process.env.POST_CODE || ''
           };
           places.push(record);
