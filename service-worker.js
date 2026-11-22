@@ -3,6 +3,7 @@
 
 const CACHE_NAME = "sawantwadi-static-v2";
 const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
+const STATUS_URL = new URL("./offline-preload-status.json", self.registration.scope).href;
 
 async function preloadAll() {
   const cache = await caches.open(CACHE_NAME);
@@ -15,19 +16,23 @@ async function preloadAll() {
 
   for (let i = 0; i < files.length; i += 4) {
     const batch = files.slice(i, i + 4);
-    const results = await Promise.all(batch.map(async path => {
+    await Promise.all(batch.map(async path => {
       const url = new URL(path, self.registration.scope);
       try {
+        // Keep already cached assets; only download missing files on retries.
+        const existing = await cache.match(url.href);
+        if (existing) {
+          completed++;
+          return;
+        }
         const response = await fetch(url.href, { cache: "no-store" });
         if (!response.ok || response.type !== "basic") {
           throw new Error("HTTP " + response.status);
         }
         await cache.put(url.href, response.clone());
         completed++;
-        return true;
       } catch (error) {
         failures.push({ path, error: String(error && error.message || error) });
-        return false;
       }
     }));
   }
@@ -40,19 +45,24 @@ async function preloadAll() {
     failures
   };
 
-  await cache.put(
-    new URL("./offline-preload-status.json", self.registration.scope).href,
-    new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
-    })
-  );
+  await cache.put(STATUS_URL, new Response(JSON.stringify(result), {
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
+  }));
   return result;
+}
+
+async function readPreloadStatus() {
+  const cache = await caches.open(CACHE_NAME);
+  const response = await cache.match(STATUS_URL);
+  return response ? response.json() : null;
 }
 
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.put(MANIFEST_URL, await fetch(MANIFEST_URL));
+    const manifestResponse = await fetch(MANIFEST_URL, { cache: "no-store" });
+    if (!manifestResponse.ok) throw new Error("Offline asset manifest could not be loaded");
+    await cache.put(MANIFEST_URL, manifestResponse.clone());
     await preloadAll();
     await self.skipWaiting();
   })());
@@ -69,8 +79,20 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("message", event => {
-  if (!event.data || event.data.type !== "RUN_OFFLINE_PRELOAD") return;
+  if (!event.data) return;
   const port = event.ports && event.ports[0];
+
+  if (event.data.type === "GET_OFFLINE_PRELOAD_STATUS") {
+    event.waitUntil(readPreloadStatus().then(result => {
+      if (port) port.postMessage(result || {
+        type: "OFFLINE_PRELOAD_RESULT", total: 0, cached: 0, failed: 1,
+        failures: [{ path: "offline-preload-status.json", error: "Preload status is not available yet" }]
+      });
+    }));
+    return;
+  }
+
+  if (event.data.type !== "RUN_OFFLINE_PRELOAD") return;
   event.waitUntil(preloadAll().then(result => {
     if (port) port.postMessage(result);
     return self.clients.matchAll({ type: "window", includeUncontrolled: true })
