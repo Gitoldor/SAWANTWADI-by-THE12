@@ -31,12 +31,14 @@
 
   function handleResult(result) {
     if (!result || result.type !== "OFFLINE_PRELOAD_RESULT") return;
-    if (result.failed === 0 && result.cached === result.total) {
+    if (result.total > 0 && result.failed === 0 && result.cached === result.total) {
       showStatus("✓ Everything loads offline", true,
         "All " + result.total + " app pages and repository files are cached on this device. External services and live data may still need internet.");
     } else {
       showStatus("Offline setup " + result.cached + "/" + result.total,
-        false, (result.failures || []).map(x => x.path + ": " + x.error).join("\n"));
+        false, (result.failures || []).map(function (x) {
+          return x.path + ": " + x.error;
+        }).join("\n"));
     }
   }
 
@@ -44,20 +46,48 @@
     handleResult(event.data);
   });
 
-  function requestPreload(registration) {
-    const worker = registration.active || registration.waiting;
+  function sendMessage(worker, type) {
+    return new Promise(function (resolve) {
+      const channel = new MessageChannel();
+      const timeout = window.setTimeout(function () {
+        channel.port1.close();
+        resolve(null);
+      }, 10000);
+      channel.port1.onmessage = function (event) {
+        window.clearTimeout(timeout);
+        channel.port1.close();
+        resolve(event.data || null);
+      };
+      worker.postMessage({ type: type }, [channel.port2]);
+    });
+  }
+
+  async function checkOfflineStatus(registration) {
+    const worker = registration.active;
     if (!worker) return;
-    showStatus("Preparing all pages for offline use…", false);
-    const channel = new MessageChannel();
-    channel.port1.onmessage = function (event) { handleResult(event.data); };
-    worker.postMessage({ type: "RUN_OFFLINE_PRELOAD" }, [channel.port2]);
+    showStatus("Checking offline files…", false);
+    const result = await sendMessage(worker, "GET_OFFLINE_PRELOAD_STATUS");
+    if (!result) {
+      showStatus("Offline status unavailable", false,
+        "Reload while online to check offline setup.");
+      return;
+    }
+    handleResult(result);
+
+    // Retry only missing files. The service worker skips files already cached,
+    // so successful first-install downloads are never fetched a second time.
+    if (result.total > 0 && result.failed > 0) {
+      showStatus("Finishing offline setup…", false);
+      const retryResult = await sendMessage(worker, "RUN_OFFLINE_PRELOAD");
+      if (retryResult) handleResult(retryResult);
+    }
   }
 
   function registerWorker() {
     navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
       .then(function (registration) {
         return navigator.serviceWorker.ready.then(function () {
-          requestPreload(registration);
+          checkOfflineStatus(registration);
         });
       })
       .catch(function (error) {
