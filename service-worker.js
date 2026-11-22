@@ -1,19 +1,61 @@
-/* Sawantwadi offline cache — bump CACHE_NAME when you publish a new app version. */
+/* Sawantwadi full-site offline preload. */
 "use strict";
 
-const CACHE_NAME = "sawantwadi-static-v1";
-const PRECACHE_URLS = [
-  "./index.html", "./account.html", "./explore.html", "./menu.html",
-  "./news.html", "./nofeature.html", "./saved.html", "./welcome.html",
-  "./y.html", "./manifest.json", "./pwa-register.js"
-];
+const CACHE_NAME = "sawantwadi-static-v2";
+const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
+
+async function preloadAll() {
+  const cache = await caches.open(CACHE_NAME);
+  const manifestResponse = await fetch(MANIFEST_URL, { cache: "no-store" });
+  if (!manifestResponse.ok) throw new Error("Offline asset manifest could not be loaded");
+  const manifest = await manifestResponse.json();
+  const files = Array.isArray(manifest.files) ? manifest.files : [];
+  let completed = 0;
+  const failures = [];
+
+  for (let i = 0; i < files.length; i += 4) {
+    const batch = files.slice(i, i + 4);
+    const results = await Promise.all(batch.map(async path => {
+      const url = new URL(path, self.registration.scope);
+      try {
+        const response = await fetch(url.href, { cache: "no-store" });
+        if (!response.ok || response.type !== "basic") {
+          throw new Error("HTTP " + response.status);
+        }
+        await cache.put(url.href, response.clone());
+        completed++;
+        return true;
+      } catch (error) {
+        failures.push({ path, error: String(error && error.message || error) });
+        return false;
+      }
+    }));
+  }
+
+  const result = {
+    type: "OFFLINE_PRELOAD_RESULT",
+    total: files.length,
+    cached: completed,
+    failed: failures.length,
+    failures
+  };
+
+  await cache.put(
+    new URL("./offline-preload-status.json", self.registration.scope).href,
+    new Response(JSON.stringify(result), {
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
+    })
+  );
+  return result;
+}
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(MANIFEST_URL, await fetch(MANIFEST_URL));
+    await preloadAll();
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", event => {
@@ -24,6 +66,21 @@ self.addEventListener("activate", event => {
         .map(name => caches.delete(name))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", event => {
+  if (!event.data || event.data.type !== "RUN_OFFLINE_PRELOAD") return;
+  const port = event.ports && event.ports[0];
+  event.waitUntil(preloadAll().then(result => {
+    if (port) port.postMessage(result);
+    return self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then(clients => clients.forEach(client => client.postMessage(result)));
+  }).catch(error => {
+    if (port) port.postMessage({
+      type: "OFFLINE_PRELOAD_RESULT", total: 0, cached: 0, failed: 1,
+      failures: [{ path: "offline-assets.json", error: String(error) }]
+    });
+  }));
 });
 
 function isCacheableRequest(request, url) {
@@ -42,21 +99,10 @@ function cacheKeyFor(request, url) {
   return new Request(key.href, { method: "GET" });
 }
 
-async function storeResponse(cache, key, response) {
-  if (!response || !response.ok || response.type !== "basic") return;
-  const control = (response.headers.get("Cache-Control") || "").toLowerCase();
-  if (control.includes("no-store") || control.includes("private")) return;
-  const size = Number(response.headers.get("Content-Length") || 0);
-  if (size > 8 * 1024 * 1024) return;
-  try { await cache.put(key, response.clone()); }
-  catch (error) { console.warn("[Sawantwadi PWA] Cache write failed:", error); }
-}
-
 self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
   if (!isCacheableRequest(request, url)) return;
-
   const key = cacheKeyFor(request, url);
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
@@ -64,11 +110,13 @@ self.addEventListener("fetch", event => {
     if (cached) return cached;
     try {
       const response = await fetch(request);
-      await storeResponse(cache, key, response);
+      if (response.ok && response.type === "basic") {
+        await cache.put(key, response.clone());
+      }
       return response;
     } catch (error) {
       if (request.mode === "navigate") {
-        const fallback = await cache.match("./index.html");
+        const fallback = await cache.match(new URL("./index.html", self.registration.scope).href);
         if (fallback) return fallback;
       }
       throw error;
