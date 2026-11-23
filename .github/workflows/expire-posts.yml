@@ -13,15 +13,13 @@ jobs:
     steps:
       - name: Expire posts in Cloudflare D1
         env:
-          OIDC_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          OIDC_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
         run: |
           node <<'NODE'
           (async () => {
-            const oidcUrl = new URL(process.env.OIDC_URL);
+            const oidcUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
             oidcUrl.searchParams.set('audience', 'sho1re1-d1-api');
             const auth = await fetch(oidcUrl, {
-              headers: { Authorization: 'Bearer ' + process.env.OIDC_TOKEN }
+              headers: { Authorization: 'Bearer ' + process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }
             });
             if (!auth.ok) throw new Error('GitHub OIDC authentication failed.');
             const token = (await auth.json()).value;
