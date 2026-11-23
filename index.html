@@ -2814,8 +2814,11 @@ function reconcileSavedPostsWithLiveData() {
   });
 }
 
-// Startup execution
-initDB().then(() => {
+// Wait for Cloudflare D1 before building map cards.
+window.Sho1re1DataReady.then(() => {
+  rawPlaces = window.Sho1re1Places || [];
+  return initDB();
+}).then(() => {
   reconcileSavedPostsWithLiveData().then(savedItems => {
     savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
     buildFilterChips();
@@ -2828,6 +2831,11 @@ initDB().then(() => {
       applyFilters();
     });
   });
+}).catch(error => {
+  console.error('Sho1re1 D1 initialization failed:', error);
+  rawPlaces = [];
+  buildFilterChips();
+  applyFilters();
 });
 </script>
 <script src="./google-login.js" defer></script>
