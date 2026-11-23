@@ -797,7 +797,9 @@
   // Initialize shared links without touching the viewer's private IndexedDB.
   // Normal saved collections continue to load from the owner's local database.
   window.addEventListener('DOMContentLoaded', () => {
-    if (!loadSharedCollection()) initDB();
+    Promise.resolve(window.Sho1re1DataReady).then(() => {
+      if (!loadSharedCollection()) initDB();
+    });
   });
 </script>
 
