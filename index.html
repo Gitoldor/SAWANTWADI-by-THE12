@@ -2398,7 +2398,12 @@ function renderMapAndCarousel() {
     
     marker.on('click', () => {
       setActive(idx);
-      card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      // In map-only mode the carousel is translated off-screen. Do not ask
+      // the browser to scroll that hidden card into view, which can move the
+      // document viewport and expose the black body background.
+      if (!document.body.classList.contains('sho-map-only')) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
     });
 
     // Double-click Map Marker navigation
