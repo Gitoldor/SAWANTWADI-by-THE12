@@ -1,7 +1,7 @@
 /* Sawantwadi full-site offline preload. */
 "use strict";
 
-const CACHE_NAME = "sawantwadi-static-v2";
+const CACHE_NAME = "sawantwadi-static-v3";
 const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
 const STATUS_URL = new URL("./offline-preload-status.json", self.registration.scope).href;
 
@@ -19,12 +19,7 @@ async function preloadAll() {
     await Promise.all(batch.map(async path => {
       const url = new URL(path, self.registration.scope);
       try {
-        // Keep already cached assets; only download missing files on retries.
-        const existing = await cache.match(url.href);
-        if (existing) {
-          completed++;
-          return;
-        }
+        // Always refresh from the live site so offline copies cannot stay stale.
         const response = await fetch(url.href, { cache: "no-store" });
         if (!response.ok || response.type !== "basic") {
           throw new Error("HTTP " + response.status);
@@ -128,15 +123,16 @@ self.addEventListener("fetch", event => {
   const key = cacheKeyFor(request, url);
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(key);
-    if (cached) return cached;
+    // Network-first: serve current code whenever online, retain cache for offline use.
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, { cache: "no-store" });
       if (response.ok && response.type === "basic") {
         await cache.put(key, response.clone());
       }
       return response;
     } catch (error) {
+      const cached = await cache.match(key);
+      if (cached) return cached;
       if (request.mode === "navigate") {
         const fallback = await cache.match(new URL("./index.html", self.registration.scope).href);
         if (fallback) return fallback;
