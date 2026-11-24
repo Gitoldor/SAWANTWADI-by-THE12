@@ -31,7 +31,7 @@ window.Sho1re1Settings = {
  /* ============================================================
     D1 DATA SOURCE
     ============================================================ */
-window.Sho1re1DataAPI = "https://sawantwadi-data-api.sho1re1.workers.dev";
+window.Sho1re1DataAPI = "https://sawantwadi-read-api.onrender.com";
 window.Sho1re1Places = [];
 window.Sho1re1OriginalPlaces = [];
 window.Sho1re1VisiblePlaces = [];
