@@ -14,16 +14,19 @@
       --sho-map-slide-ease: cubic-bezier(.16,1,.3,1);
     }
 
-    /* All regular overlay pieces descend together, slowly and smoothly. */
+    /* Keep transitions active in BOTH directions: entering and restoring map-only mode. */
+    #carousel,
+    #filterContainer {
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
+      will-change: transform, opacity;
+    }
     body.sho-map-only #carousel,
     body.sho-map-only #filterContainer {
       transform: translate3d(0, calc(100vh + 80px), 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition:
-        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
-        opacity .65s ease !important;
-      will-change: transform, opacity;
     }
 
     /* Recenter sits lower on the map, remaining above the Explore bar and tappable. */
@@ -39,14 +42,18 @@
     }
 
     /* Side controls move horizontally, in sync with the cards moving down. */
+    .sho1re1-ai-button,
+    .saved-posts-btn,
+    .map-style-btn {
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
+      will-change: transform, opacity;
+    }
     body.sho-map-only .sho1re1-ai-button {
       transform: translate3d(calc(-100vw - 100%), 0, 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition:
-        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
-        opacity .55s ease !important;
-      will-change: transform, opacity;
     }
 
     body.sho-map-only .saved-posts-btn,
@@ -54,10 +61,6 @@
       transform: translate3d(calc(100vw + 100%), 0, 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition:
-        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
-        opacity .7s ease !important;
-      will-change: transform, opacity;
     }
 
     #sho-map-restore-handle {
@@ -76,7 +79,9 @@
       -webkit-backdrop-filter: blur(12px);
       opacity: 0;
       pointer-events: none;
-      transition: transform .4s ease, opacity .3s ease;
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity var(--sho-map-slide-duration) var(--sho-map-slide-ease);
       touch-action: none;
       display: flex;
       align-items: center;
