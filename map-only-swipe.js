@@ -1,27 +1,20 @@
 /* Sho1re1: map-only swipe mode.
-   Gestures are intentionally bound only to existing overlay UI, never Leaflet's map.
-   Swipe down on cards/controls to reveal the map; swipe up on the small restore handle to return. */
+   Gestures are bound only to overlay UI, never Leaflet's map. */
 (() => {
   'use strict';
 
   if (window.__sho1re1MapOnlySwipeLoaded) return;
   window.__sho1re1MapOnlySwipeLoaded = true;
 
-  const STYLE_ID = 'sho1re1-map-only-swipe-style';
-  const OVERLAY_SELECTOR = [
-    '#carousel',
-    '#filterContainer',
-    '.brand-image-container',
-    '.brand-link',
-    '#locationTitle',
-    '.saved-posts-btn',
-    '.map-style-btn'
-  ].join(',');
-
   const style = document.createElement('style');
-  style.id = STYLE_ID;
+  style.id = 'sho1re1-map-only-swipe-style';
   style.textContent = `
-    /* Move only the UI layers. The map and all Leaflet panes remain untouched. */
+    :root {
+      --sho-map-slide-duration: 1.05s;
+      --sho-map-slide-ease: cubic-bezier(.22,.72,.18,1);
+    }
+
+    /* All regular overlay pieces descend together, slowly and smoothly. */
     body.sho-map-only #carousel,
     body.sho-map-only #filterContainer,
     body.sho-map-only .brand-image-container,
@@ -29,10 +22,37 @@
     body.sho-map-only #locationTitle,
     body.sho-map-only .saved-posts-btn,
     body.sho-map-only .map-style-btn {
-      transform: translate3d(0, calc(100vh + 40px), 0) !important;
+      transform: translate3d(0, calc(100vh + 80px), 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition: transform .58s cubic-bezier(.18,.85,.22,1), opacity .28s ease !important;
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity .65s ease !important;
+      will-change: transform, opacity;
+    }
+
+    /* Recenter descends to a lower, still reachable position above the Explore bar.
+       Keep its own high stacking order and allow taps while map-only is active. */
+    #map .sho-map-recenter-control {
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
+      will-change: transform;
+    }
+    body.sho-map-only #map .sho-map-recenter-control {
+      transform: translate3d(0, 145px, 0) !important;
+      pointer-events: auto !important;
+      z-index: 999999 !important;
+    }
+
+    /* The AI shortcut exits completely through the left edge in sync. */
+    body.sho-map-only .sho1re1-ai-button {
+      transform: translate3d(calc(-100vw - 100%), 0, 0) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity .55s ease !important;
+      will-change: transform, opacity;
     }
 
     #sho-map-restore-handle {
@@ -51,7 +71,7 @@
       -webkit-backdrop-filter: blur(12px);
       opacity: 0;
       pointer-events: none;
-      transition: transform .35s ease, opacity .25s ease;
+      transition: transform .4s ease, opacity .3s ease;
       touch-action: none;
       display: flex;
       align-items: center;
@@ -69,9 +89,8 @@
       opacity: 1;
       pointer-events: auto;
     }
-    body:not(.sho-map-only) #sho-map-restore-handle {
-      display: none;
-    }
+    body:not(.sho-map-only) #sho-map-restore-handle { display: none; }
+
     @media (prefers-reduced-motion: reduce) {
       body.sho-map-only #carousel,
       body.sho-map-only #filterContainer,
@@ -80,6 +99,8 @@
       body.sho-map-only #locationTitle,
       body.sho-map-only .saved-posts-btn,
       body.sho-map-only .map-style-btn,
+      body.sho-map-only .sho1re1-ai-button,
+      body.sho-map-only #map .sho-map-recenter-control,
       #sho-map-restore-handle {
         transition-duration: .01ms !important;
       }
@@ -94,11 +115,35 @@
   restore.title = 'Swipe up to show places';
   document.body.appendChild(restore);
 
+  // my-location.js creates Recenter inside #map. Tag only that exact control;
+  // no map panes, markers, or Leaflet gesture handlers are modified.
+  function tagRecenter() {
+    const mapRoot = document.getElementById('map');
+    if (!mapRoot) return;
+    mapRoot.querySelectorAll('button').forEach(button => {
+      if (/recenter|locating/i.test(button.textContent || '')) {
+        button.classList.add('sho-map-recenter-control');
+      }
+    });
+  }
+  tagRecenter();
+  const observer = new MutationObserver(tagRecenter);
+  observer.observe(document.getElementById('map') || document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
   let startX = 0;
   let startY = 0;
   let active = false;
   let trackingRestore = false;
   let pointerId = null;
+
+  const OVERLAY_SELECTOR = [
+    '#carousel', '#filterContainer', '.brand-image-container',
+    '.brand-link', '#locationTitle', '.saved-posts-btn', '.map-style-btn'
+  ].join(',');
 
   function inOverlay(target) {
     return target instanceof Element && !!target.closest(OVERLAY_SELECTOR);
@@ -111,11 +156,11 @@
     if (document.body.classList.contains('sho-map-only')) {
       if (!onRestore) return;
     } else {
-      // Do not observe map touches, Leaflet markers, map controls, page swipe zones,
-      // modals, or form controls. This keeps map panning/zooming completely native.
+      // Map canvas, Leaflet controls, buttons, links, inputs and page edge zones
+      // are excluded so native map interactions remain unaffected.
       if (!inOverlay(event.target)) return;
       if (event.target.closest('button, input, textarea, select, a, .swipe-zone')) return;
-      if (event.clientY < window.innerHeight * 0.14 || event.clientY > window.innerHeight * 0.92) return;
+      if (event.clientY < window.innerHeight * .14 || event.clientY > window.innerHeight * .92) return;
     }
 
     startX = event.clientX;
@@ -128,12 +173,9 @@
   function onPointerUp(event) {
     if (!active || event.pointerId !== pointerId) return;
     active = false;
-
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
     pointerId = null;
-
-    // Require a clear vertical gesture, with a deliberate travel distance.
     if (Math.abs(dy) < 75 || Math.abs(dy) < Math.abs(dx) * 1.35) return;
 
     if (!trackingRestore && dy > 0) {
