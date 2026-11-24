@@ -10,18 +10,13 @@
   style.id = 'sho1re1-map-only-swipe-style';
   style.textContent = `
     :root {
-      --sho-map-slide-duration: 1.05s;
-      --sho-map-slide-ease: cubic-bezier(.22,.72,.18,1);
+      --sho-map-slide-duration: 1.45s;
+      --sho-map-slide-ease: cubic-bezier(.16,1,.3,1);
     }
 
     /* All regular overlay pieces descend together, slowly and smoothly. */
     body.sho-map-only #carousel,
-    body.sho-map-only #filterContainer,
-    body.sho-map-only .brand-image-container,
-    body.sho-map-only .brand-link,
-    body.sho-map-only #locationTitle,
-    body.sho-map-only .saved-posts-btn,
-    body.sho-map-only .map-style-btn {
+    body.sho-map-only #filterContainer {
       transform: translate3d(0, calc(100vh + 80px), 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
@@ -31,20 +26,19 @@
       will-change: transform, opacity;
     }
 
-    /* Recenter descends to a lower, still reachable position above the Explore bar.
-       Keep its own high stacking order and allow taps while map-only is active. */
+    /* Recenter sits lower on the map, remaining above the Explore bar and tappable. */
     #map .sho-map-recenter-control {
       transition:
         transform var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
       will-change: transform;
     }
     body.sho-map-only #map .sho-map-recenter-control {
-      transform: translate3d(0, 145px, 0) !important;
+      transform: translate3d(0, 205px, 0) !important;
       pointer-events: auto !important;
       z-index: 999999 !important;
     }
 
-    /* The AI shortcut exits completely through the left edge in sync. */
+    /* Side controls move horizontally, in sync with the cards moving down. */
     body.sho-map-only .sho1re1-ai-button {
       transform: translate3d(calc(-100vw - 100%), 0, 0) !important;
       opacity: 0 !important;
@@ -52,6 +46,17 @@
       transition:
         transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
         opacity .55s ease !important;
+      will-change: transform, opacity;
+    }
+
+    body.sho-map-only .saved-posts-btn,
+    body.sho-map-only .map-style-btn {
+      transform: translate3d(calc(100vw + 100%), 0, 0) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition:
+        transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
+        opacity .7s ease !important;
       will-change: transform, opacity;
     }
 
@@ -94,9 +99,6 @@
     @media (prefers-reduced-motion: reduce) {
       body.sho-map-only #carousel,
       body.sho-map-only #filterContainer,
-      body.sho-map-only .brand-image-container,
-      body.sho-map-only .brand-link,
-      body.sho-map-only #locationTitle,
       body.sho-map-only .saved-posts-btn,
       body.sho-map-only .map-style-btn,
       body.sho-map-only .sho1re1-ai-button,
@@ -141,8 +143,7 @@
   let pointerId = null;
 
   const OVERLAY_SELECTOR = [
-    '#carousel', '#filterContainer', '.brand-image-container',
-    '.brand-link', '#locationTitle', '.saved-posts-btn', '.map-style-btn'
+    '#carousel', '#filterContainer'
   ].join(',');
 
   function inOverlay(target) {
