@@ -1015,42 +1015,45 @@ function start(){
     return !!(user&&String(user.email||"").trim().toLowerCase()===PAID_EMAIL);
   }
 
-  function attachPaidSwipe(cardEl){
-    let startPoint=null;
-    cardEl.addEventListener("pointerdown",e=>{
-      if(!canSwipeDismiss()||!e.isPrimary||e.pointerType==="mouse")return;
-      startPoint={x:e.clientX,y:e.clientY,id:e.pointerId};
-    },{passive:true});
-    cardEl.addEventListener("pointerup",e=>{
-      if(!startPoint||e.pointerId!==startPoint.id)return;
-      const dx=e.clientX-startPoint.x,dy=e.clientY-startPoint.y;
-      startPoint=null;
-      if(dy>-55||Math.abs(dy)<Math.abs(dx)*1.2)return;
-      e.preventDefault();
-      e.stopPropagation();
-      cardEl.dataset.dismissed="1";
-      cardEl.style.transition="transform .34s cubic-bezier(.22,.61,.36,1),opacity .28s ease";
-      cardEl.style.transform="translate3d(0,-145%,0) scale(.94)";
-      cardEl.style.opacity="0";
-      const index=cards.indexOf(cardEl);
-      if(index!==-1)cards.splice(index,1);
-      update();
-      setTimeout(()=>{
-        cardEl.remove();
-        if(!cards.length){
-          root.style.display="none";
-          trigger.classList.add("show");
-          hint.classList.add("show");
-        }
-      },360);
-    },{passive:false});
-    cardEl.addEventListener("pointercancel",()=>{startPoint=null;},{passive:true});
-  }
-
 
   let opened=false,
       sy=0,
-      pulling=false;
+      pulling=false,
+      dismissed=false,
+      notificationSwipeStart=null;
+
+  // Paid account can dismiss the complete opening notification stack.
+  stack.addEventListener("pointerdown",e=>{
+    if(!canSwipeDismiss()||!e.isPrimary||e.pointerType==="mouse")return;
+    notificationSwipeStart={x:e.clientX,y:e.clientY,id:e.pointerId};
+  },{passive:true});
+
+  stack.addEventListener("pointerup",e=>{
+    if(!notificationSwipeStart||e.pointerId!==notificationSwipeStart.id)return;
+    const dx=e.clientX-notificationSwipeStart.x;
+    const dy=e.clientY-notificationSwipeStart.y;
+    notificationSwipeStart=null;
+    if(dy>=-65||Math.abs(dy)<Math.abs(dx)*1.15)return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(dismissed)return;
+    dismissed=true;
+    root.style.pointerEvents="none";
+    root.animate(
+      [
+        {opacity:1,transform:"translateY(0) scale(1)"},
+        {opacity:0,transform:"translateY(-115%) scale(.94)"}
+      ],
+      {duration:380,easing:"cubic-bezier(.22,.61,.36,1)",fill:"forwards"}
+    );
+    setTimeout(()=>{
+      root.style.display="none";
+      trigger.classList.add("show");
+      hint.classList.add("show");
+    },390);
+  },{passive:false});
+
+  stack.addEventListener("pointercancel",()=>{notificationSwipeStart=null;},{passive:true});
 
 
   /* =========================
@@ -1107,6 +1110,8 @@ function start(){
 
       setTimeout(()=>{
 
+        if(dismissed)return;
+
         const c=
           card(
             d,
@@ -1117,7 +1122,6 @@ function start(){
         cards.unshift(c);
 
         stack.prepend(c);
-        attachPaidSwipe(c);
 
 
         /* SOUND */
