@@ -12,18 +12,18 @@
     .page{width:min(100%,520px);margin:0 auto}
     .back{display:inline-flex;align-items:center;gap:8px;color:#777;text-decoration:none;font-size:13px;font-weight:600;margin-bottom:30px}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#999}
-    h1{font-size:38px;letter-spacing:-2px;margin:8px 0 8px;font-weight:800}
+    h1{font-size:38px;letter-spacing:-2px;margin:8px 0;font-weight:800}
     .intro{font-size:14px;line-height:1.6;color:#777;margin:0 0 24px}
-    .account{font-size:12px;color:#777;margin-bottom:24px;overflow-wrap:anywhere}
+    .account{font-size:12px;color:#777;margin-bottom:22px;overflow-wrap:anywhere}
     .account strong{color:#111}
-    .active{display:none;margin:0 0 20px;padding:13px 15px;border-radius:15px;background:#edf4ff;color:#2878ff;font-size:13px;font-weight:700}
     .plans{display:grid;gap:12px}
     .plan{border:1px solid #e8e8e8;border-radius:20px;padding:18px;background:#fff;box-shadow:0 5px 20px #00000005}
+    .plan.selected{border-color:#2878ff;box-shadow:0 0 0 1px #2878ff inset}
     .plan h2{font-size:16px;margin:0 0 7px;font-weight:800}
     .price{font-size:30px;letter-spacing:-1px;font-weight:800}
     .duration{font-size:12px;color:#888;margin-left:5px;font-weight:600}
-    .choose{width:100%;margin-top:15px;border:0;border-radius:13px;background:#111;color:#fff;min-height:46px;font:700 13px Inter, sans-serif}
-    .choose:active{transform:scale(.985)}
+    .choose{width:100%;margin-top:15px;border:0;border-radius:13px;background:#111;color:#fff;min-height:46px;font:700 13px Inter,sans-serif}
+    .plan.selected .choose{background:#2878ff}
     .message{display:none;margin-top:16px;padding:14px;border-radius:14px;background:#f3f3f3;color:#555;font-size:12px;line-height:1.55}
     .note{font-size:11px;line-height:1.55;color:#999;margin-top:20px}
     .pro-active h1{color:#2878ff}
@@ -36,64 +36,96 @@
     <div class="eyebrow">SHO1RE1 MEMBERSHIP</div>
     <h1>PRO</h1>
     <p class="intro">Choose the access period that works for you.</p>
-    <div class="account" id="pro-account">Checking your Google account…</div>
-    <div class="active" id="pro-active">✓ Your PRO account is active.</div>
+    <div class="account" id="pro-account">Loading your account…</div>
     <section class="plans" aria-label="PRO plans">
-      <article class="plan">
+      <article class="plan" data-card="PRO_7D">
         <h2>Weekly PRO</h2>
         <span class="price">₹5</span><span class="duration">/ 7 days</span>
         <button class="choose" type="button" data-plan="PRO_7D">Select weekly plan</button>
       </article>
-      <article class="plan">
+      <article class="plan" data-card="PRO_30D">
         <h2>Monthly PRO</h2>
         <span class="price">₹20</span><span class="duration">/ 30 days</span>
         <button class="choose" type="button" data-plan="PRO_30D">Select monthly plan</button>
       </article>
     </section>
     <div class="message" id="pro-message" role="status" aria-live="polite"></div>
-    <p class="note">Payment setup will be connected later. Selecting a plan does not activate PRO; your account becomes PRO only after payment is verified.</p>
+    <p class="note">Your Google account stays saved on this device. The email is sent to the PRO database only after a successful payment. Payment integration will be connected separately.</p>
   </main>
   <script>
     (function () {
       "use strict";
+      const STORAGE_KEY = "sho1re1_google_profile_v1";
+      const PLAN_KEY = "sho1re1_pro_selected_plan_v1";
       const account = document.getElementById("pro-account");
-      const active = document.getElementById("pro-active");
       const message = document.getElementById("pro-message");
       const page = document.getElementById("pro-page");
+
+      function getUser() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
+        catch (_) { return null; }
+      }
+
       function renderAccount() {
-        const auth = window.Sho1re1Auth;
-        const user = auth && auth.getUser ? auth.getUser() : null;
-        if (!user) {
-          account.textContent = "Sign in with Google to register your account.";
+        const user = getUser();
+        if (!user || !user.email) {
+          account.textContent = "Sign in with Google to choose a PRO plan.";
           return;
         }
-        account.innerHTML = "Signed in as <strong></strong>";
-        account.querySelector("strong").textContent = user.email || "";
-        if (user.proEnabled === true) {
-          active.style.display = "block";
+        account.textContent = "Google account: " + user.email;
+        if (user.proEnabled === true || user.proStatus === "active") {
           page.classList.add("pro-active");
         } else {
-          active.style.display = "none";
           page.classList.remove("pro-active");
         }
       }
-      document.querySelectorAll("[data-plan]").forEach(function (button) {
-        button.addEventListener("click", function () {
-          const plan = button.dataset.plan;
-          const label = plan === "PRO_7D" ? "Weekly PRO · ₹5 for 7 days" : "Monthly PRO · ₹20 for 30 days";
-          message.textContent = label + " selected. Payment setup will be added later; this selection has not activated PRO.";
+
+      function selectPlan(planId) {
+        const user = getUser();
+        if (!user || !user.email) {
+          message.textContent = "Please sign in with Google first.";
           message.style.display = "block";
-          document.querySelectorAll("[data-plan]").forEach(function (other) {
-            other.textContent = other === button ? "Selected" : (other.dataset.plan === "PRO_7D" ? "Select weekly plan" : "Select monthly plan");
-          });
+          return;
+        }
+
+        const plans = {
+          PRO_7D: { name: "Weekly PRO", price: 5, durationDays: 7 },
+          PRO_30D: { name: "Monthly PRO", price: 20, durationDays: 30 }
+        };
+        const plan = plans[planId];
+        if (!plan) return;
+
+        localStorage.setItem(PLAN_KEY, JSON.stringify({
+          email: user.email,
+          googleSub: user.sub,
+          planId: planId,
+          planName: plan.name,
+          price: plan.price,
+          durationDays: plan.durationDays,
+          selectedAt: Date.now()
+        }));
+
+        document.querySelectorAll("[data-card]").forEach(card => {
+          card.classList.toggle("selected", card.dataset.card === planId);
         });
-      });
-      function start() {
-        renderAccount();
-        if (window.Sho1re1Auth && window.Sho1re1Auth.onChange) window.Sho1re1Auth.onChange(renderAccount);
+        document.querySelectorAll("[data-plan]").forEach(button => {
+          button.textContent = button.dataset.plan === planId ? "Selected" :
+            (button.dataset.plan === "PRO_7D" ? "Select weekly plan" : "Select monthly plan");
+        });
+
+        message.textContent = plan.name + " · ₹" + plan.price +
+          " selected for " + plan.durationDays +
+          " days. Your Gmail ID remains in local storage. Nothing has been sent to the database.";
+        message.style.display = "block";
       }
-      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-      else start();
+
+      document.querySelectorAll("[data-plan]").forEach(button => {
+        button.addEventListener("click", () => selectPlan(button.dataset.plan));
+      });
+
+      renderAccount();
+      window.addEventListener("storage", renderAccount);
+      window.addEventListener("focus", renderAccount);
     })();
   </script>
 </body>
