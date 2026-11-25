@@ -7,6 +7,7 @@
   const CLIENT_ID = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
   const STORAGE_KEY = "sho1re1_google_profile_v1";
   let user = readUser();
+  let credential = "";
   let ready = false;
   let waitingForName = false;
   const listeners = new Set();
@@ -40,7 +41,8 @@
     }
   }
   function onCredential(response) {
-    const data = decodeCredential(response.credential || "");
+    credential = typeof response.credential === "string" ? response.credential : "";
+    const data = decodeCredential(credential);
     if (!data || !data.sub) return;
     const previous = readUser();
     const returningProfile = previous && previous.sub === data.sub && previous.displayName;
@@ -150,6 +152,7 @@
     overlay.querySelector(".sho-auth-later").addEventListener("click", closeWelcome);
   }
   function signOut() {
+    credential = "";
     saveUser(null);
     if (ready && google.accounts.id.disableAutoSelect) google.accounts.id.disableAutoSelect();
   }
@@ -161,6 +164,7 @@
   }
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
+    getCredential: () => credential || "",
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
     promptName,
