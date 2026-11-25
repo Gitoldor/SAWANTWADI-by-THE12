@@ -76,6 +76,9 @@ style.textContent=`
   aspect-ratio:16/9;
 
   pointer-events:auto;
+
+  /* Keep the browser from converting vertical stack swipes into page gestures. */
+  touch-action:none;
 }
 
 
@@ -1022,20 +1025,10 @@ function start(){
       dismissed=false,
       notificationSwipeStart=null;
 
-  // Paid account can dismiss the complete opening notification stack.
-  stack.addEventListener("pointerdown",e=>{
-    if(!canSwipeDismiss()||!e.isPrimary||e.pointerType==="mouse")return;
-    notificationSwipeStart={x:e.clientX,y:e.clientY,id:e.pointerId};
-  },{passive:true});
-
-  stack.addEventListener("pointerup",e=>{
-    if(!notificationSwipeStart||e.pointerId!==notificationSwipeStart.id)return;
-    const dx=e.clientX-notificationSwipeStart.x;
-    const dy=e.clientY-notificationSwipeStart.y;
-    notificationSwipeStart=null;
-    if(dy>=-65||Math.abs(dy)<Math.abs(dx)*1.15)return;
-    e.preventDefault();
-    e.stopPropagation();
+  // Paid account: a native touch gesture dismisses the whole opening stack.
+  // Touch events are used here because mobile browsers can cancel pointer events
+  // when they interpret a vertical drag as page scrolling.
+  function dismissOpeningStack(){
     if(dismissed)return;
     dismissed=true;
     root.style.pointerEvents="none";
@@ -1051,9 +1044,38 @@ function start(){
       trigger.classList.add("show");
       hint.classList.add("show");
     },390);
+  }
+
+  stack.addEventListener("touchstart",e=>{
+    if(!canSwipeDismiss()||!e.touches||e.touches.length!==1)return;
+    const t=e.touches[0];
+    notificationSwipeStart={x:t.clientX,y:t.clientY};
+  },{passive:true});
+
+  stack.addEventListener("touchmove",e=>{
+    if(!notificationSwipeStart||!canSwipeDismiss()||!e.touches||e.touches.length!==1)return;
+    const t=e.touches[0];
+    const dx=t.clientX-notificationSwipeStart.x;
+    const dy=t.clientY-notificationSwipeStart.y;
+    if(dy< -8&&Math.abs(dy)>Math.abs(dx)*1.05)e.preventDefault();
   },{passive:false});
 
-  stack.addEventListener("pointercancel",()=>{notificationSwipeStart=null;},{passive:true});
+  stack.addEventListener("touchend",e=>{
+    if(!notificationSwipeStart)return;
+    const start=notificationSwipeStart;
+    notificationSwipeStart=null;
+    if(!canSwipeDismiss()||!e.changedTouches||!e.changedTouches.length)return;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-start.x;
+    const dy=t.clientY-start.y;
+    if(dy<=-55&&Math.abs(dy)>Math.abs(dx)*1.1){
+      e.preventDefault();
+      e.stopPropagation();
+      dismissOpeningStack();
+    }
+  },{passive:false});
+
+  stack.addEventListener("touchcancel",()=>{notificationSwipeStart=null;},{passive:true});
 
 
   /* =========================
