@@ -9,6 +9,8 @@
   let user = readUser();
   let credential = "";
   let ready = false;
+  let pendingCredentialRequest = false;
+  const credentialWaiters = new Set();
   let waitingForName = false;
   const listeners = new Set();
 
@@ -44,6 +46,9 @@
     credential = typeof response.credential === "string" ? response.credential : "";
     const data = decodeCredential(credential);
     if (!data || !data.sub) return;
+    credentialWaiters.forEach(fn => { try { fn(credential); } catch (_) {} });
+    credentialWaiters.clear();
+    window.dispatchEvent(new CustomEvent("sho1re1:credential", { detail: { email: data.email || "" } }));
     const previous = readUser();
     const returningProfile = previous && previous.sub === data.sub && previous.displayName;
     saveUser({
@@ -85,6 +90,7 @@
       cancel_on_tap_outside: true
     });
     ready = true;
+    if (pendingCredentialRequest) { pendingCredentialRequest = false; try { google.accounts.id.prompt(); } catch (_) {} }
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
   }
   function renderButton(target) {
@@ -165,6 +171,13 @@
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
     getCredential: () => credential || "",
+    requestCredential(callback) {
+      if (credential) { if (typeof callback === "function") callback(credential); return; }
+      if (typeof callback === "function") credentialWaiters.add(callback);
+      pendingCredentialRequest = true;
+      if (ready) { pendingCredentialRequest = false; try { google.accounts.id.prompt(); } catch (_) {} }
+      else loadGoogle();
+    },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
     promptName,
