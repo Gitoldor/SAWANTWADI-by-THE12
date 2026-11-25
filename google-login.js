@@ -5,6 +5,7 @@
   if (window.Sho1re1Auth) return;
 
   const CLIENT_ID = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
+  const PRO_API = "https://sawantwadi-read-api.onrender.com";
   const STORAGE_KEY = "sho1re1_google_profile_v1";
   let user = readUser();
   let ready = false;
@@ -50,10 +51,40 @@
       googleName: data.name || "",
       picture: data.picture || "",
       displayName: returningProfile ? previous.displayName : "",
+      proStatus: returningProfile ? (previous.proStatus || "free") : "free",
+      proEnabled: returningProfile ? previous.proEnabled === true : false,
       signedInAt: Date.now()
     });
+    syncProAccount(response.credential || "", data.sub);
     if (!returningProfile) promptName();
     else closeWelcome();
+  }
+  async function syncProAccount(credential, subject) {
+    if (!credential) return;
+    try {
+      const response = await fetch(PRO_API + "/pro/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ credential })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload || payload.success !== true || !payload.pro) {
+        throw new Error(payload && payload.error ? payload.error : "PRO registration failed");
+      }
+      const current = readUser();
+      if (current && current.sub === subject) {
+        saveUser({
+          ...current,
+          proStatus: payload.pro.status || "free",
+          proEnabled: payload.pro.isPro === true,
+          proPlan: payload.pro.plan || "FREE",
+          proExpiresAt: payload.pro.expiresAt || null
+        });
+      }
+    } catch (error) {
+      console.warn("Sho1re1 PRO account sync failed:", error);
+    }
   }
   function loadGoogle() {
     if (window.google && google.accounts && google.accounts.id) {
