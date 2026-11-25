@@ -130,6 +130,8 @@
       body.sho-map-only .saved-posts-btn,
       body.sho-map-only .map-style-btn,
       body.sho-map-only .sho1re1-ai-button,
+      body.sho-map-only .s1trigger,
+      body.sho-map-only .s1hint,
       body.sho-map-only #map .sho-map-recenter-control,
       #sho-map-restore-handle {
         transition-duration: .01ms !important;
