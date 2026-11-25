@@ -945,15 +945,57 @@ body{
 (function () {
   "use strict";
   const item = document.getElementById("pro-menu-link");
+  const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
   if (!item) return;
-  function update() {
-    let user = null;
-    try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
-    const active = !!(user && (user.proEnabled === true || user.proStatus === "active"));
-    item.classList.toggle("pro-active", active);
+  let checking = false;
+  let lastEmail = "";
+  function currentUser() {
+    try {
+      const auth = window.Sho1re1Auth;
+      if (auth && typeof auth.getUser === "function") return auth.getUser();
+      return JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
+    } catch (_) { return null; }
+  }
+  function setAccess(active) {
+    item.classList.toggle("pro-active", active === true);
+    const user = currentUser();
+    if (user && user.email) {
+      const next = { ...user };
+      if (active) next.proEnabled = true;
+      else delete next.proEnabled;
+      try { localStorage.setItem("sho1re1_google_profile_v1", JSON.stringify(next)); } catch (_) {}
+    }
+    window.dispatchEvent(new CustomEvent("sho1re1:proaccesschange", { detail: { allowed: active === true } }));
+  }
+  async function update() {
+    const user = currentUser();
+    const email = String(user && user.email || "").trim().toLowerCase();
+    if (!email) { lastEmail = ""; setAccess(false); return; }
+    if (checking) return;
+    const auth = window.Sho1re1Auth;
+    const credential = auth && typeof auth.getCredential === "function" ? auth.getCredential() : "";
+    if (!credential) { setAccess(false); return; }
+    checking = true;
+    lastEmail = email;
+    try {
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential, email: user.email }),
+        cache: "no-store"
+      });
+      if (!response.ok) throw new Error("PRO access check failed");
+      const result = await response.json();
+      if (lastEmail === email) setAccess(result.success === true && result.allowed === true);
+    } catch (_) {
+      setAccess(false);
+    } finally {
+      checking = false;
+    }
   }
   update();
-  window.addEventListener("storage", update);
+  window.addEventListener("sho1re1:authchange", update);
+  window.addEventListener("sho1re1:credential", update);
   window.addEventListener("focus", update);
 })();
 </script>
