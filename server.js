@@ -7,8 +7,8 @@ const CF_API_TOKEN = process.env.CF_API_TOKEN;
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Accept",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization",
   "Cache-Control": "no-store"
 };
 
@@ -17,7 +17,7 @@ function send(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-async function queryD1(sql) {
+async function queryD1(sql, params = []) {
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(CF_ACCOUNT_ID)}/d1/database/${encodeURIComponent(CF_DATABASE_ID)}/query`;
   const upstream = await fetch(endpoint, {
     method: "POST",
@@ -25,7 +25,7 @@ async function queryD1(sql) {
       "Authorization": `Bearer ${CF_API_TOKEN}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ sql })
+    body: JSON.stringify({ sql, params })
   });
 
   const payload = await upstream.json();
@@ -46,6 +46,45 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && path === "/health") {
     return send(res, 200, { success: true, service: "sawantwadi-render-read-api" });
+  }
+
+  if (req.method === "POST" && path === "/location-custom-access") {
+    if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
+      return send(res, 503, { success: false, error: "D1 connection is not configured" });
+    }
+
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 20000) return send(res, 413, { success: false, error: "Request too large" });
+      }
+      const body = JSON.parse(raw || "{}");
+      const credential = typeof body.credential === "string" ? body.credential : "";
+      if (!credential || credential.length > 12000) {
+        return send(res, 400, { success: false, allowed: false, error: "Google sign-in required" });
+      }
+
+      const verifyResponse = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
+      if (!verifyResponse.ok) return send(res, 401, { success: false, allowed: false, error: "Invalid Google sign-in" });
+      const identity = await verifyResponse.json();
+      const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
+      if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
+          !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) {
+        return send(res, 401, { success: false, allowed: false, error: "Google identity could not be verified" });
+      }
+
+      const result = await queryD1(
+        "SELECT enabled FROM location_custom_access WHERE email = ? COLLATE NOCASE LIMIT 1",
+        [identity.email]
+      );
+      const rows = result[0]?.results;
+      const allowed = Array.isArray(rows) && rows.length > 0 && Number(rows[0].enabled) === 1;
+      return send(res, 200, { success: true, allowed });
+    } catch (error) {
+      console.error("Location customization access check failed", error?.message || "Unknown error");
+      return send(res, 500, { success: false, allowed: false, error: "Unable to verify access" });
+    }
   }
 
   if (req.method !== "GET" || !["/places", "/notifications"].includes(path)) {
