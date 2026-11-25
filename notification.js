@@ -1,25 +1,33 @@
 (()=>{
 
-const DATA="notificationdata.js",
+const API="https://sawantwadi-read-api.onrender.com/notifications",
       START=5000,
       INTERVAL=1000,
       MAX=3;
 
 
 /* =========================
-   LOAD DATA
+   LOAD DATA FROM D1
 ========================= */
 
 function load(){
 
-  if(window.Sho1re1Notifications)return start();
-
-  const s=document.createElement("script");
-
-  s.src=DATA;
-  s.onload=start;
-
-  document.head.append(s);
+  fetch(API,{cache:"no-store"})
+    .then(response=>{
+      if(!response.ok) throw new Error("Notification API returned "+response.status);
+      return response.json();
+    })
+    .then(payload=>{
+      if(!payload || payload.success!==true || !Array.isArray(payload.notifications)){
+        throw new Error("Invalid notification response");
+      }
+      window.Sho1re1Notifications=payload.notifications;
+      start();
+    })
+    .catch(error=>{
+      console.warn("Sho1re1 notifications could not be loaded:",error);
+      window.Sho1re1Notifications=[];
+    });
 
 }
 
