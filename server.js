@@ -68,6 +68,10 @@ const server = http.createServer(async (req, res) => {
       const verifyResponse = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
       if (!verifyResponse.ok) return send(res, 401, { success: false, allowed: false, error: "Invalid Google sign-in" });
       const identity = await verifyResponse.json();
+      const requestedEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (requestedEmail && requestedEmail !== String(identity.email || "").trim().toLowerCase()) {
+        return send(res, 403, { success: false, allowed: false, error: "Signed-in account mismatch" });
+      }
       const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
       if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
           !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) {
