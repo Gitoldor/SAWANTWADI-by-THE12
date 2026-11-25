@@ -1,13 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f7f7f5">
-<title>Explore Apps · Sho1re1</title>
-
 <script>
-/* Clear legacy offline caches without changing the current page data. */
+/* Sho1re1: disable and clear legacy offline service-worker caches. */
 (async () => {
   try {
     if ("serviceWorker" in navigator) {
@@ -26,222 +21,1946 @@
 })();
 </script>
 
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1,
+viewport-fit=cover">
+
+<title>Explore</title>
+
 <style>
-:root{color-scheme:light;--bg:#f5f5f7;--surface:#fff;--ink:#1d1d1f;--muted:#86868b;--line:rgba(0,0,0,.055);--blue:#007aff;--radius:20px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:var(--bg);scroll-behavior:smooth}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-button,input{font:inherit}button{color:inherit}
-.app{width:100%;max-width:1040px;margin:auto;padding:env(safe-area-inset-top) 20px calc(112px + env(safe-area-inset-bottom))}
-.header{min-height:66px;display:flex;align-items:center;gap:9px;position:relative;padding:7px 0 9px}
-.back-button,.view-button{width:38px;height:38px;flex:0 0 38px;border:0;border-radius:50%;background:transparent;color:var(--blue);display:grid;place-items:center;cursor:pointer;transition:transform .3s cubic-bezier(.2,.8,.2,1),background .2s}
-.back-button:active,.view-button:active{transform:scale(.88);background:#e5e5ea}
-.header-content{flex:1;min-width:0}
-.title{font-size:clamp(34px,8vw,42px);font-weight:750;letter-spacing:-1.55px;line-height:1.05;margin:0}
-.search-input{display:none;width:100%;height:44px;border:0;outline:0;background:transparent;color:var(--ink);font-size:23px;font-weight:650;letter-spacing:-.6px}
-.search-input::placeholder{color:#a1a1a6}
-body.searching .title{display:none}body.searching .search-input{display:block;animation:searchIn .3s cubic-bezier(.16,1,.3,1) both}
-@keyframes searchIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.view-button{margin-left:auto;color:#55565b}
-.intro{padding:20px 1px 27px}
-.eyebrow{font-size:12px;font-weight:650;letter-spacing:.15px;color:var(--blue);margin:0 0 8px}
-.intro h2{font-size:clamp(27px,6.5vw,35px);letter-spacing:-1.15px;line-height:1.1;margin:0;font-weight:740}
-.intro p{font-size:15px;line-height:1.45;color:var(--muted);margin:8px 0 0;max-width:470px}
-.section-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 1px 14px}
-.section-title{font-size:21px;font-weight:730;letter-spacing:-.55px;margin:0}
-.section-note{font-size:12px;font-weight:550;color:var(--muted)}
-.feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-.card{min-width:0;position:relative;overflow:hidden;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.035);cursor:pointer;transform:translateZ(0);content-visibility:auto;contain-intrinsic-size:250px;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
-.card:active{transform:scale(.975);box-shadow:0 5px 16px rgba(0,0,0,.08)}
-.card-image{position:relative;width:100%;aspect-ratio:1.18/1;overflow:hidden;background:#e8e8ed}
-.card img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .65s cubic-bezier(.2,.8,.2,1)}
-.card:active img{transform:scale(1.035)}
-.card-info{padding:12px 12px 14px;min-height:73px}
-.card-topline{display:flex;align-items:center;justify-content:space-between;gap:7px}
-.card-title{font-size:15px;font-weight:680;letter-spacing:-.25px;line-height:1.2;overflow-wrap:anywhere}
-.card-kind{margin-top:5px;font-size:12px;color:var(--muted);font-weight:450}
-.card-arrow{flex:0 0 25px;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#f5f5f7;color:var(--blue)}
-.card.enter{animation:cardEnter .48s cubic-bezier(.16,1,.3,1) both}
-@keyframes cardEnter{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.feed.list{display:flex;flex-direction:column;gap:9px}
-.feed.list .card{display:flex;align-items:center;padding:8px;border-radius:18px;min-height:84px}
-.feed.list .card-image{width:72px;height:72px;flex:0 0 72px;aspect-ratio:1;border-radius:12px}
-.feed.list .card-info{flex:1;min-width:0;padding:0 12px;min-height:0}
-.feed.list .card-title{font-size:15px}.feed.list .card-kind{margin-top:5px}.feed.list .card-arrow{margin-right:2px}
-.empty{grid-column:1/-1;padding:70px 20px;text-align:center;color:var(--muted);font-size:14px;background:white;border-radius:20px}
-.search-button{position:fixed;z-index:100;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));width:58px;height:58px;border:0;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;box-shadow:0 5px 18px rgba(0,122,255,.25);transform:translateX(-50%);cursor:pointer;transition:transform .35s cubic-bezier(.16,1,.3,1),background .2s}
-.search-button:active{transform:translateX(-50%) scale(.9)}body.searching .search-button{background:#e5e5ea;color:#1d1d1f}
-@media(min-width:700px){.app{padding:24px 28px 130px}.header{min-height:78px}.intro{padding:25px 1px 34px}.feed{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card-image{aspect-ratio:1.25/1}.feed.list{display:flex}}
-@media(min-width:980px){.feed{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* =====================================================
+   ROOT
+===================================================== */
+
+:root{
+
+    --bg:#fcfcfa;
+    --ink:#11110f;
+    --muted:#aaa9a3;
+
+    --radius:40px;
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+*{
+
+    box-sizing:border-box;
+
+    -webkit-tap-highlight-color:transparent;
+
+}
+
+
+html{
+
+    background:var(--bg);
+
+}
+
+
+body{
+
+    margin:0;
+
+    min-height:100vh;
+
+    background:var(--bg);
+
+    color:var(--ink);
+
+    font-family:
+
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "Segoe UI",
+    sans-serif;
+
+    -webkit-font-smoothing:antialiased;
+
+    overflow-x:hidden;
+
+}
+
+
+/* =====================================================
+   APP
+===================================================== */
+
+.app{
+
+    width:100%;
+
+    max-width:900px;
+
+    margin:auto;
+
+    padding:
+
+    24px
+    12px
+    130px;
+
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header{
+
+    height:62px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 5px;
+
+    margin-bottom:18px;
+
+}
+
+
+/* =====================================================
+   BACK BUTTON
+===================================================== */
+
+.back-button{
+
+    width:44px;
+
+    height:44px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    flex-shrink:0;
+
+    margin-right:4px;
+
+    transition:
+
+    transform
+
+    .3s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+}
+
+
+.back-button:active{
+
+    transform:scale(.82);
+
+}
+
+
+/* =====================================================
+   HEADER CONTENT
+===================================================== */
+
+.header-content{
+
+    flex:1;
+
+    min-width:0;
+
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
+
+.title{
+
+    margin:0;
+
+    font-size:34px;
+
+    font-weight:650;
+
+    letter-spacing:-1.8px;
+
+    line-height:1;
+
+    transform-origin:left center;
+
+}
+
+
+/* =====================================================
+   RAW SEARCH
+===================================================== */
+
+.search-input{
+
+    display:none;
+
+    width:100%;
+
+    padding:0;
+
+    margin:0;
+
+    border:none;
+
+    outline:none;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    font:inherit;
+
+    font-size:31px;
+
+    font-weight:600;
+
+    letter-spacing:-1.5px;
+
+}
+
+
+.search-input::placeholder{
+
+    color:#c5c4be;
+
+}
+
+
+body.searching .title{
+
+    display:none;
+
+}
+
+
+body.searching .search-input{
+
+    display:block;
+
+    animation:
+
+    searchPop
+
+    .45s
+
+    cubic-bezier(
+
+        .16,
+        1.4,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes searchPop{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateY(8px)
+
+        scale(.96);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   VIEW BUTTON
+===================================================== */
+
+.view-button{
+
+    width:44px;
+
+    height:44px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:transparent;
+
+    color:var(--ink);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    flex-shrink:0;
+
+    transition:
+
+    transform
+
+    .3s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+}
+
+
+.view-button:active{
+
+    transform:scale(.82);
+
+}
+
+
+/* =====================================================
+   FEED
+===================================================== */
+
+.feed{
+
+    display:grid;
+
+    grid-template-columns:
+
+    repeat(
+
+        2,
+
+        minmax(0,1fr)
+
+    );
+
+    gap:9px;
+
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+.card{
+
+    position:relative;
+
+    width:100%;
+
+    aspect-ratio:1 / 1;
+
+    overflow:hidden;
+
+    border-radius:var(--radius);
+
+    background:#f0f0ec;
+
+    cursor:pointer;
+
+    transform:
+
+    translateZ(0);
+
+    content-visibility:auto;
+
+    contain-intrinsic-size:180px;
+
+    will-change:
+
+    transform,
+
+    opacity;
+
+    transition:
+
+    transform
+
+    .35s
+
+    cubic-bezier(
+
+        .16,
+        1.4,
+        .3,
+        1
+
+    );
+
+}
+
+
+.card:active{
+
+    transform:
+
+    scale(.94);
+
+}
+
+
+/* =====================================================
+   IMAGE
+===================================================== */
+
+.card-image{
+
+    width:100%;
+
+    height:100%;
+
+}
+
+
+.card img{
+
+    width:100%;
+
+    height:100%;
+
+    display:block;
+
+    object-fit:cover;
+
+    pointer-events:none;
+
+    user-select:none;
+
+}
+
+
+/* =====================================================
+   TITLE
+
+   HIDDEN IN GRID
+===================================================== */
+
+.card-title{
+
+    display:none;
+
+}
+
+
+/* =====================================================
+   LIST VIEW
+===================================================== */
+
+.feed.list{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
+
+}
+
+
+.feed.list .card{
+
+    width:100%;
+
+    height:88px;
+
+    aspect-ratio:auto;
+
+    border-radius:30px;
+
+    display:flex;
+
+    align-items:center;
+
+    overflow:hidden;
+
+    background:transparent;
+
+}
+
+
+.feed.list .card-image{
+
+    width:88px;
+
+    height:88px;
+
+    flex-shrink:0;
+
+    border-radius:18px;
+
+    overflow:hidden;
+
+    background:#eee;
+
+}
+
+
+.feed.list .card-title{
+
+    display:block;
+
+    margin-left:15px;
+
+    padding-right:15px;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    letter-spacing:-.4px;
+
+    white-space:nowrap;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+
+}
+
+
+/* =====================================================
+   CARD ENTRANCE
+===================================================== */
+
+.card.enter{
+
+    animation:
+
+    cardJump
+
+    .55s
+
+    cubic-bezier(
+
+        .16,
+        1.35,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes cardJump{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateY(18px)
+
+        scale(.90);
+
+    }
+
+
+    60%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(-3px)
+
+        scale(1.025);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateY(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   LIST ENTRANCE
+===================================================== */
+
+.feed.list .card.enter{
+
+    animation:
+
+    listJump
+
+    .45s
+
+    cubic-bezier(
+
+        .16,
+        1.3,
+        .3,
+        1
+
+    )
+
+    both;
+
+}
+
+
+@keyframes listJump{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+
+        translateX(-14px)
+
+        scale(.97);
+
+    }
+
+
+    70%{
+
+        transform:
+
+        translateX(2px)
+
+        scale(1.01);
+
+    }
+
+
+    100%{
+
+        opacity:1;
+
+        transform:
+
+        translateX(0)
+
+        scale(1);
+
+    }
+
+}
+
+
+/* =====================================================
+   FLOATING SEARCH BUTTON
+===================================================== */
+
+.search-button{
+
+    position:fixed;
+
+    z-index:100;
+
+    left:50%;
+
+    bottom:
+
+    calc(
+
+        20px +
+
+        env(safe-area-inset-bottom)
+
+    );
+
+    width:58px;
+
+    height:58px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:var(--ink);
+
+    color:white;
+
+    cursor:pointer;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    box-shadow:
+
+    0 10px 30px
+
+    rgba(0,0,0,.14);
+
+    transform:
+
+    translateX(-50%);
+
+    transition:
+
+    background .3s,
+
+    color .3s,
+
+    transform .35s
+
+    cubic-bezier(
+
+        .16,
+        1.5,
+        .3,
+        1
+
+    );
+
+}
+
+
+.search-button:active{
+
+    transform:
+
+    translateX(-50%)
+
+    scale(.86);
+
+}
+
+
+body.searching .search-button{
+
+    background:#efefeb;
+
+    color:var(--ink);
+
+    box-shadow:none;
+
+}
+
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.empty{
+
+    grid-column:1/-1;
+
+    padding:100px 20px;
+
+    text-align:center;
+
+    color:var(--muted);
+
+    font-size:14px;
+
+}
+
+
+/* =====================================================
+   DESKTOP
+===================================================== */
+
+@media(min-width:700px){
+
+    .app{
+
+        padding:
+
+        40px
+        24px
+        140px;
+
+    }
+
+
+    .feed{
+
+        grid-template-columns:
+
+        repeat(
+
+            4,
+
+            minmax(0,1fr)
+
+        );
+
+        gap:12px;
+
+    }
+
+}
+
+
+/* =====================================================
+   REDUCE MOTION
+===================================================== */
+
+@media(prefers-reduced-motion:reduce){
+
+    *{
+
+        animation:none!important;
+
+        transition:none!important;
+
+    }
+
+}
+
+
+
+/* =====================================================
+   FEATURED 1:1 CAROUSEL
+===================================================== */
+.featured-carousel{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-snap-type:x mandatory;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    padding:2px 1px 12px;
+    margin:0 0 12px;
+    -webkit-overflow-scrolling:touch;
+}
+.featured-carousel::-webkit-scrollbar{display:none}
+.featured-card{
+    position:relative;
+    flex:0 0 min(78vw,390px);
+    aspect-ratio:1/1;
+    overflow:hidden;
+    border-radius:var(--radius);
+    background:#f0f0ec;
+    scroll-snap-align:start;
+    transform:translateZ(0);
+    cursor:pointer;
+    transition:transform .35s cubic-bezier(.16,1.4,.3,1);
+}
+.featured-card:active{transform:scale(.97)}
+.featured-card img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    pointer-events:none;
+    user-select:none;
+}
+.featured-card:after{
+    content:"";
+    position:absolute;
+    inset:45% 0 0;
+    background:linear-gradient(transparent,rgba(0,0,0,.48));
+    pointer-events:none;
+}
+.featured-title{
+    position:absolute;
+    z-index:1;
+    left:20px;
+    right:20px;
+    bottom:19px;
+    color:#fff;
+    font-size:22px;
+    line-height:1.05;
+    font-weight:650;
+    letter-spacing:-.7px;
+    text-shadow:0 1px 8px rgba(0,0,0,.16);
+}
+@media(min-width:700px){
+    .featured-card{flex-basis:min(42vw,390px)}
+}
+
 </style>
+
 <script src="./clarity.js" defer></script>
 </head>
+
+
 <body>
+
+
 <div class="app">
-  <header class="header">
-    <button class="back-button" id="backButton" aria-label="Go to home" onclick="window.location.href='index.html'">
-      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div class="header-content">
-      <h1 class="title">Explore Apps</h1>
-      <input id="searchInput" class="search-input" type="text" placeholder="Search apps" autocomplete="off" spellcheck="false" aria-label="Search apps">
-    </div>
-    <button class="view-button" id="viewButton" aria-label="Change view">
-      <svg id="viewIcon" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 7H19M5 12H19M5 17H19"/></svg>
-    </button>
-  </header>
 
-  <section class="intro" aria-label="Explore introduction">
-    <p class="eyebrow">SHO1RE1 STORE</p>
-    <h2>Explore something<br>new.</h2>
-    <p>Discover places, ideas and experiences around you.</p>
-  </section>
 
-  <div class="section-head">
-    <h2 class="section-title">Explore collections</h2>
-    <span class="section-note" id="resultCount">Collections</span>
-  </div>
-  <main id="feed" class="feed" aria-live="polite"></main>
-</div>
+<!-- ============================================
+     HEADER
+============================================ -->
 
-<button class="search-button" id="searchButton" aria-label="Search apps">
-  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+<header class="header">
+
+
+<!-- BACK BUTTON -->
+
+<button
+
+class="back-button"
+
+id="backButton"
+
+aria-label="Go to home"
+
+onclick="window.location.href='index.html'"
+
+>
+
+
+<svg
+
+width="22"
+
+height="22"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="2"
+
+stroke-linecap="round"
+
+stroke-linejoin="round"
+
+>
+
+<path d="M19 12H5"/>
+
+<path d="M12 19L5 12L12 5"/>
+
+</svg>
+
+
 </button>
 
+
+<!-- TITLE / SEARCH -->
+
+<div class="header-content">
+
+
+<h1 class="title">
+
+Explore Apps
+
+</h1>
+
+
+<input
+
+id="searchInput"
+
+class="search-input"
+
+type="text"
+
+placeholder="Search"
+
+autocomplete="off"
+
+spellcheck="false"
+
+>
+
+
+</div>
+
+
+<!-- VIEW BUTTON -->
+
+<button
+
+class="view-button"
+
+id="viewButton"
+
+aria-label="Change view"
+
+>
+
+
+<svg
+
+id="viewIcon"
+
+width="20"
+
+height="20"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="1.8"
+
+stroke-linecap="round"
+
+>
+
+<path d="M5 7H19"/>
+
+<path d="M5 12H19"/>
+
+<path d="M5 17H19"/>
+
+</svg>
+
+
+</button>
+
+
+</header>
+
+
+
+<!-- ============================================
+     FEED
+============================================ -->
+
+<section
+class="featured-carousel"
+id="featuredCarousel"
+aria-label="Featured collections"
+></section>
+
+<main
+
+id="feed"
+
+class="feed"
+
+>
+
+</main>
+
+
+</div>
+
+
+
+<!-- ============================================
+     SEARCH
+============================================ -->
+
+<button
+
+class="search-button"
+
+id="searchButton"
+
+aria-label="Search"
+
+>
+
+
+<svg
+
+width="22"
+
+height="22"
+
+viewBox="0 0 24 24"
+
+fill="none"
+
+stroke="currentColor"
+
+stroke-width="2"
+
+stroke-linecap="round"
+
+stroke-linejoin="round"
+
+>
+
+<circle
+
+cx="11"
+
+cy="11"
+
+r="6"
+
+/>
+
+<path
+
+d="M20 20L16 16"
+
+/>
+
+</svg>
+
+
+</button>
+
+
+
+<!-- ============================================
+     DATA
+============================================ -->
+
 <script src="explore.js"></script>
+
+
 <script>
-const CONFIG={BATCH_SIZE:8,SEARCH_DELAY:180};
-const feed=document.getElementById("feed");
-const searchInput=document.getElementById("searchInput");
-const searchButton=document.getElementById("searchButton");
-const viewButton=document.getElementById("viewButton");
-const viewIcon=document.getElementById("viewIcon");
-const resultCount=document.getElementById("resultCount");
-const allData=Array.isArray(window.exploreData)?window.exploreData:[];
-let filteredData=allData;
-let renderedCount=0;
-let currentView=localStorage.getItem("explore-layout")||"grid";
-let isSearching=false;
+
+
+/* =====================================================
+   CONFIG
+===================================================== */
+
+const CONFIG = {
+
+    BATCH_SIZE:8,
+
+    SEARCH_DELAY:180
+
+};
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const feed =
+
+document.getElementById("feed");
+
+
+const searchInput =
+
+document.getElementById("searchInput");
+
+
+const searchButton =
+
+document.getElementById("searchButton");
+
+
+const viewButton =
+
+document.getElementById("viewButton");
+
+
+const viewIcon =
+
+document.getElementById("viewIcon");
+
+
+/* =====================================================
+   DATA
+===================================================== */
+
+const allData =
+
+Array.isArray(
+
+    window.exploreData
+
+)
+
+? window.exploreData
+
+: [];
+
+/* =====================================================
+   FEATURED CAROUSEL
+===================================================== */
+const featuredCarousel =
+document.getElementById("featuredCarousel");
+
+function renderFeatured(){
+    if(!featuredCarousel) return;
+    featuredCarousel.replaceChildren();
+
+    allData.slice(0,4).forEach((item,index)=>{
+        const card=document.createElement("article");
+        card.className="featured-card";
+        card.dataset.id=item.id||"";
+
+        const image=document.createElement("img");
+        image.loading=index===0?"eager":"lazy";
+        image.decoding="async";
+        image.alt=item.title||"";
+        image.src=item.image||"";
+
+        const title=document.createElement("div");
+        title.className="featured-title";
+        title.textContent=item.title||"Explore";
+
+        card.append(image,title);
+        featuredCarousel.appendChild(card);
+    });
+}
+
+featuredCarousel.addEventListener("click",event=>{
+    const card=event.target.closest(".featured-card");
+    if(!card)return;
+    console.log("Open:",card.dataset.id);
+});
+
+renderFeatured();
+
+
+
+let filteredData =
+
+allData;
+
+
+let renderedCount = 0;
+
+
+let currentView =
+
+localStorage.getItem(
+
+    "explore-layout"
+
+)
+
+|| "grid";
+
+
+let isSearching = false;
+
+
+/* =====================================================
+   CREATE CARD
+===================================================== */
 
 function createCard(item,index){
-  const card=document.createElement("article");
-  card.className="card enter";
-  card.dataset.id=item.id||"";
-  card.style.animationDelay=Math.min(index*35,180)+"ms";
-  const imageBox=document.createElement("div");
-  imageBox.className="card-image";
-  const image=document.createElement("img");
-  image.loading="lazy";
-  image.decoding="async";
-  image.alt=item.title||"";
-  image.src=item.image||"";
-  imageBox.appendChild(image);
-  const info=document.createElement("div");
-  info.className="card-info";
-  const top=document.createElement("div");
-  top.className="card-topline";
-  const title=document.createElement("div");
-  title.className="card-title";
-  title.textContent=item.title||"Untitled";
-  const arrow=document.createElement("span");
-  arrow.className="card-arrow";
-  arrow.setAttribute("aria-hidden","true");
-  arrow.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-  const kind=document.createElement("div");
-  kind.className="card-kind";
-  kind.textContent="Explore collection";
-  top.append(title,arrow);
-  info.append(top,kind);
-  card.append(imageBox,info);
-  return card;
+
+
+    const card =
+
+    document.createElement("article");
+
+
+    card.className =
+
+    "card enter";
+
+
+    card.dataset.id =
+
+    item.id || "";
+
+
+    card.style.animationDelay =
+
+    Math.min(
+
+        index * 35,
+
+        180
+
+    )
+
+    + "ms";
+
+
+    const imageBox =
+
+    document.createElement("div");
+
+
+    imageBox.className =
+
+    "card-image";
+
+
+    const image =
+
+    document.createElement("img");
+
+
+    image.loading = "lazy";
+
+
+    image.decoding = "async";
+
+
+    image.alt =
+
+    item.title || "";
+
+
+    image.src =
+
+    item.image || "";
+
+
+    imageBox.appendChild(image);
+
+
+    const title =
+
+    document.createElement("div");
+
+
+    title.className =
+
+    "card-title";
+
+
+    title.textContent =
+
+    item.title || "Untitled";
+
+
+    card.appendChild(imageBox);
+
+
+    card.appendChild(title);
+
+
+    return card;
+
 }
 
-feed.addEventListener("click",event=>{
-  const card=event.target.closest(".card");
-  if(!card)return;
-  const id=card.dataset.id;
-  console.log("Open:",id);
-},{passive:true});
+
+/* =====================================================
+   CLICK DELEGATION
+===================================================== */
+
+feed.addEventListener(
+
+    "click",
+
+    event => {
+
+
+        const card =
+
+        event.target.closest(".card");
+
+
+        if(!card) return;
+
+
+        const id =
+
+        card.dataset.id;
+
+
+        console.log(
+
+            "Open:",
+
+            id
+
+        );
+
+
+    },
+
+    {passive:true}
+
+);
+
+
+/* =====================================================
+   RENDER
+===================================================== */
 
 function render(reset=false){
-  if(reset){feed.replaceChildren();renderedCount=0;}
-  if(filteredData.length===0){
-    const empty=document.createElement("div");
-    empty.className="empty";
-    empty.textContent="Nothing found";
-    feed.appendChild(empty);
-    resultCount.textContent="0 results";
-    return;
-  }
-  const end=Math.min(renderedCount+CONFIG.BATCH_SIZE,filteredData.length);
-  const fragment=document.createDocumentFragment();
-  for(let i=renderedCount;i<end;i++)fragment.appendChild(createCard(filteredData[i],i-renderedCount));
-  feed.appendChild(fragment);
-  renderedCount=end;
-  resultCount.textContent=filteredData.length+" collections";
+
+
+    if(reset){
+
+
+        feed.replaceChildren();
+
+
+        renderedCount = 0;
+
+
+    }
+
+
+    if(
+
+        filteredData.length === 0
+
+    ){
+
+
+        const empty =
+
+        document.createElement("div");
+
+
+        empty.className = "empty";
+
+
+        empty.textContent =
+
+        "Nothing found";
+
+
+        feed.appendChild(empty);
+
+
+        return;
+
+    }
+
+
+    const end =
+
+    Math.min(
+
+        renderedCount +
+
+        CONFIG.BATCH_SIZE,
+
+        filteredData.length
+
+    );
+
+
+    const fragment =
+
+    document.createDocumentFragment();
+
+
+    for(
+
+        let i = renderedCount;
+
+        i < end;
+
+        i++
+
+    ){
+
+
+        fragment.appendChild(
+
+            createCard(
+
+                filteredData[i],
+
+                i - renderedCount
+
+            )
+
+        );
+
+    }
+
+
+    feed.appendChild(fragment);
+
+
+    renderedCount = end;
+
 }
 
-let scrollPending=false;
-window.addEventListener("scroll",()=>{
-  if(scrollPending)return;
-  scrollPending=true;
-  requestAnimationFrame(()=>{
-    const bottom=window.scrollY+window.innerHeight;
-    const pageHeight=document.documentElement.scrollHeight;
-    if(bottom>=pageHeight-500&&renderedCount<filteredData.length)render();
-    scrollPending=false;
-  });
-},{passive:true});
+
+/* =====================================================
+   LOAD MORE
+===================================================== */
+
+let scrollPending = false;
+
+
+window.addEventListener(
+
+    "scroll",
+
+    () => {
+
+
+        if(scrollPending) return;
+
+
+        scrollPending = true;
+
+
+        requestAnimationFrame(
+
+            () => {
+
+
+                const bottom =
+
+                window.scrollY +
+
+                window.innerHeight;
+
+
+                const pageHeight =
+
+                document.documentElement
+
+                .scrollHeight;
+
+
+                if(
+
+                    bottom >=
+
+                    pageHeight - 500
+
+                    &&
+
+                    renderedCount <
+
+                    filteredData.length
+
+                ){
+
+
+                    render();
+
+                }
+
+
+                scrollPending = false;
+
+            }
+
+        );
+
+    },
+
+    {passive:true}
+
+);
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
 
 let searchTimer;
-searchInput.addEventListener("input",()=>{
-  clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{
-    const query=searchInput.value.trim().toLowerCase();
-    filteredData=query?allData.filter(item=>(item.title||"").toLowerCase().includes(query)):allData;
-    render(true);
-  },CONFIG.SEARCH_DELAY);
-});
+
+
+searchInput.addEventListener(
+
+    "input",
+
+    () => {
+
+
+        clearTimeout(searchTimer);
+
+
+        searchTimer =
+
+        setTimeout(
+
+            () => {
+
+
+                const query =
+
+                searchInput.value
+
+                .trim()
+
+                .toLowerCase();
+
+
+                if(!query){
+
+
+                    filteredData =
+
+                    allData;
+
+                }
+
+
+                else{
+
+
+                    filteredData =
+
+                    allData.filter(
+
+                        item =>
+
+                        (
+
+                            item.title || ""
+
+                        )
+
+                        .toLowerCase()
+
+                        .includes(query)
+
+                    );
+
+                }
+
+
+                render(true);
+
+            },
+
+            CONFIG.SEARCH_DELAY
+
+        );
+
+    }
+
+);
+
+
+/* =====================================================
+   SEARCH TOGGLE
+===================================================== */
 
 function toggleSearch(){
-  isSearching=!isSearching;
-  document.body.classList.toggle("searching",isSearching);
-  if(isSearching){
-    requestAnimationFrame(()=>searchInput.focus());
-  }else{
-    searchInput.value="";
-    filteredData=allData;
-    render(true);
-  }
+
+
+    isSearching =
+
+    !isSearching;
+
+
+    document.body.classList.toggle(
+
+        "searching",
+
+        isSearching
+
+    );
+
+
+    if(isSearching){
+
+
+        requestAnimationFrame(
+
+            () => {
+
+
+                searchInput.focus();
+
+            }
+
+        );
+
+    }
+
+
+    else{
+
+
+        searchInput.value = "";
+
+
+        filteredData =
+
+        allData;
+
+
+        render(true);
+
+    }
+
 }
-searchButton.addEventListener("click",toggleSearch);
+
+
+searchButton.addEventListener(
+
+    "click",
+
+    toggleSearch
+
+);
+
+
+/* =====================================================
+   VIEW SWITCH
+===================================================== */
 
 function setView(view){
-  currentView=view;
-  localStorage.setItem("explore-layout",view);
-  feed.animate(
-    [{opacity:.72,transform:"translateY(5px) scale(.99)"},{opacity:1,transform:"translateY(0) scale(1)"}],
-    {duration:360,easing:"cubic-bezier(.16,1,.3,1)"}
-  );
-  feed.classList.toggle("list",view==="list");
-  updateViewIcon();
+
+
+    currentView = view;
+
+
+    localStorage.setItem(
+
+        "explore-layout",
+
+        view
+
+    );
+
+
+    feed.animate(
+
+        [
+
+            {
+
+                opacity:.7,
+
+                transform:"scale(.985)"
+
+            },
+
+            {
+
+                opacity:1,
+
+                transform:"scale(1)"
+
+            }
+
+        ],
+
+        {
+
+            duration:350,
+
+            easing:
+
+            "cubic-bezier(.16,1.35,.3,1)"
+
+        }
+
+    );
+
+
+    feed.classList.toggle(
+
+        "list",
+
+        view === "list"
+
+    );
+
+
+    updateViewIcon();
+
 }
+
+
 function updateViewIcon(){
-  if(currentView==="grid"){
-    viewIcon.innerHTML='<path d="M5 7H19M5 12H19M5 17H19"/>';
-  }else{
-    viewIcon.innerHTML='<rect x="3.5" y="4" width="7" height="7" rx="1.5"/><rect x="13.5" y="4" width="7" height="7" rx="1.5"/><rect x="3.5" y="13" width="7" height="7" rx="1.5"/><rect x="13.5" y="13" width="7" height="7" rx="1.5"/>';
-  }
+
+
+    if(
+
+        currentView === "grid"
+
+    ){
+
+
+        viewIcon.innerHTML = `
+
+            <path d="M6 7H19"/>
+            <path d="M6 12H19"/>
+            <path d="M6 17H19"/>
+
+            <path d="M3 7H3.01"/>
+            <path d="M3 12H3.01"/>
+            <path d="M3 17H3.01"/>
+
+        `;
+
+    }
+
+
+    else{
+
+
+        viewIcon.innerHTML = `
+
+            <rect
+            x="4"
+            y="4"
+            width="6"
+            height="6"
+            rx="1"/>
+
+            <rect
+            x="14"
+            y="4"
+            width="6"
+            height="6"
+            rx="1"/>
+
+            <rect
+            x="4"
+            y="14"
+            width="6"
+            height="6"
+            rx="1"/>
+
+            <rect
+            x="14"
+            y="14"
+            width="6"
+            height="6"
+            rx="1"/>
+
+        `;
+
+    }
+
 }
-viewButton.addEventListener("click",()=>setView(currentView==="grid"?"list":"grid"));
-document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&isSearching)toggleSearch();
-});
-setView(currentView);
+
+
+viewButton.addEventListener(
+
+    "click",
+
+    () => {
+
+
+        setView(
+
+            currentView === "grid"
+
+            ? "list"
+
+            : "grid"
+
+        );
+
+    }
+
+);
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+document.addEventListener(
+
+    "keydown",
+
+    event => {
+
+
+        if(
+
+            event.key === "Escape"
+
+            &&
+
+            isSearching
+
+        ){
+
+
+            toggleSearch();
+
+        }
+
+    }
+
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+setView(
+
+    currentView
+
+);
+
+
 render();
+
+
 </script>
+
+
 <script src="pwa-gte.js"></script>
-<script src="./pwa-register.js" defer></script>
+
+
+
+  <script src="./pwa-register.js" defer></script>
 </body>
 </html>
