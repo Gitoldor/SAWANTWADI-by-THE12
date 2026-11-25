@@ -958,12 +958,16 @@ body{
   }
   function setAccess(active) {
     item.classList.toggle("pro-active", active === true);
-    const user = currentUser();
-    if (user && user.email) {
-      const next = { ...user };
-      if (active) next.proEnabled = true;
-      else delete next.proEnabled;
-      try { localStorage.setItem("sho1re1_google_profile_v1", JSON.stringify(next)); } catch (_) {}
+    const auth = window.Sho1re1Auth;
+    if (auth && typeof auth.setProAccess === "function") auth.setProAccess(active === true);
+    else {
+      const user = currentUser();
+      if (user && user.email) {
+        const next = { ...user };
+        if (active) next.proEnabled = true;
+        else delete next.proEnabled;
+        try { localStorage.setItem("sho1re1_google_profile_v1", JSON.stringify(next)); } catch (_) {}
+      }
     }
     window.dispatchEvent(new CustomEvent("sho1re1:proaccesschange", { detail: { allowed: active === true } }));
   }
