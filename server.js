@@ -36,6 +36,17 @@ async function queryD1(sql, params = []) {
   return payload.result || [];
 }
 
+async function verifyGoogleIdentity(credential) {
+  if (!credential || typeof credential !== "string" || credential.length > 12000) return null;
+  const response = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
+  if (!response.ok) return null;
+  const identity = await response.json();
+  const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
+  if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
+      !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) return null;
+  return identity;
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, headers);
@@ -46,6 +57,65 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && path === "/health") {
     return send(res, 200, { success: true, service: "sawantwadi-render-read-api" });
+  }
+
+  if (req.method === "POST" && path === "/pro/register") {
+    if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
+      return send(res, 503, { success: false, error: "D1 connection is not configured" });
+    }
+
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 20000) return send(res, 413, { success: false, error: "Request too large" });
+      }
+      const body = JSON.parse(raw || "{}");
+      const identity = await verifyGoogleIdentity(body.credential);
+      if (!identity) {
+        return send(res, 401, { success: false, error: "Verified Google sign-in required" });
+      }
+
+      await queryD1(
+        "INSERT INTO pro (email, google_sub, enabled, plan, status) VALUES (?, ?, 0, 'FREE', 'free') ON CONFLICT(email) DO UPDATE SET google_sub = excluded.google_sub, updated_at = CURRENT_TIMESTAMP",
+        [identity.email, identity.sub]
+      );
+
+      const result = await queryD1(
+        "SELECT enabled, plan, status, plan_id, started_at, expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
+        [identity.email]
+      );
+      const rows = result[0]?.results;
+      if (!Array.isArray(rows) || !rows.length) {
+        return send(res, 500, { success: false, error: "PRO account could not be loaded" });
+      }
+
+      const account = rows[0];
+      const expired = !!account.expires_at && Date.parse(account.expires_at) <= Date.now();
+      if (expired && Number(account.enabled) === 1) {
+        await queryD1(
+          "UPDATE pro SET enabled = 0, status = 'expired', plan = 'FREE', updated_at = CURRENT_TIMESTAMP WHERE email = ? COLLATE NOCASE",
+          [identity.email]
+        );
+      }
+
+      const isPro = Number(account.enabled) === 1 && !expired;
+      return send(res, 200, {
+        success: true,
+        pro: {
+          email: identity.email,
+          plan: isPro ? (account.plan || "PRO") : "FREE",
+          status: isPro ? "active" : (expired ? "expired" : (account.status || "free")),
+          planId: account.plan_id || null,
+          startedAt: account.started_at || null,
+          expiresAt: account.expires_at || null,
+          isPro
+        }
+      });
+    } catch (error) {
+      console.error("PRO account registration failed", error?.message || "Unknown error");
+      return send(res, 500, { success: false, error: "Unable to register PRO account" });
+    }
   }
 
   if (req.method === "POST" && path === "/location-custom-access") {
@@ -65,17 +135,11 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { success: false, allowed: false, error: "Google sign-in required" });
       }
 
-      const verifyResponse = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
-      if (!verifyResponse.ok) return send(res, 401, { success: false, allowed: false, error: "Invalid Google sign-in" });
-      const identity = await verifyResponse.json();
-      const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
-      if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
-          !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) {
-        return send(res, 401, { success: false, allowed: false, error: "Google identity could not be verified" });
-      }
+      const identity = await verifyGoogleIdentity(credential);
+      if (!identity) return send(res, 401, { success: false, allowed: false, error: "Google identity could not be verified" });
 
       const result = await queryD1(
-        "SELECT enabled FROM location_custom_access WHERE email = ? COLLATE NOCASE LIMIT 1",
+        "SELECT enabled FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
       );
       const rows = result[0]?.results;
