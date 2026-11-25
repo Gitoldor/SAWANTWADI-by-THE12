@@ -171,6 +171,15 @@
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
     getCredential: () => credential || "",
+    setProAccess(active) {
+      if (!user) return false;
+      const next = { ...user };
+      if (active === true) next.proEnabled = true;
+      else delete next.proEnabled;
+      user = next;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(user)); } catch (_) {}
+      return true;
+    },
     requestCredential(callback) {
       if (credential) { if (typeof callback === "function") callback(credential); return; }
       if (typeof callback === "function") credentialWaiters.add(callback);
