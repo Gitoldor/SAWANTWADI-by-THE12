@@ -28,9 +28,9 @@
         url: "nofeature.html",
         desc: "Discover Content"
       },
-      tab1: {
-        title: "Tab 1",
-        url: "#"
+      studio: {
+        title: "Studio",
+        url: "studio.html"
       },
       media: {
         title: "Media",
@@ -40,15 +40,7 @@
         title: "Inbox",
         url: "nofeature.html"
       },
-      tab2: {
-        title: "Tab 2",
-        url: "#"
-      },
-      tab3: {
-        title: "Tab 3",
-        url: "#"
-      }
-    }
+     }
   };
 
 
@@ -93,10 +85,12 @@
         </svg>
       `,
 
-      square: `
+      studio: `
         <svg viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2">
-          <rect x="4" y="4" width="16" height="16" rx="3"/>
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 20h4l10.8-10.8a2.1 2.1 0 0 0-4-4L4 16v4z"/>
+          <path d="m13.5 6.5 4 4"/>
+          <path d="M12 20h8"/>
         </svg>
       `
     };
@@ -238,20 +232,24 @@
 
 
 
-            <!-- TAB 1 -->
+            <!-- STUDIO — PAID ACCOUNTS ONLY -->
 
-            <a href="${config.tabs.tab1.url}"
-            class="nav-tile tile-placeholder">
+            <a href="${config.tabs.studio.url}"
+            target="_top"
+            class="nav-tile tile-studio"
+            id="sho1re1StudioTab"
+            aria-label="Open Studio"
+            style="display:none">
 
               <div class="tile-icon">
 
-                ${icon("square")}
+                ${icon("studio")}
 
               </div>
 
               <div class="tile-title">
 
-                ${config.tabs.tab1.title}
+                ${config.tabs.studio.title}
 
               </div>
 
@@ -262,7 +260,7 @@
             <!-- MEDIA -->
 
             <a href="${config.tabs.media.url}"
-            class="nav-tile">
+            class="nav-tile tile-media">
 
               <div class="tile-icon">
 
@@ -283,7 +281,7 @@
             <!-- INBOX -->
 
             <a href="${config.tabs.inbox.url}"
-            class="nav-tile">
+            class="nav-tile tile-inbox">
 
               <div class="tile-icon">
 
@@ -299,47 +297,6 @@
 
             </a>
 
-
-
-            <!-- TAB 2 -->
-
-            <a href="${config.tabs.tab2.url}"
-            class="nav-tile tile-placeholder">
-
-              <div class="tile-icon">
-
-                ${icon("square")}
-
-              </div>
-
-              <div class="tile-title">
-
-                ${config.tabs.tab2.title}
-
-              </div>
-
-            </a>
-
-
-
-            <!-- TAB 3 -->
-
-            <a href="${config.tabs.tab3.url}"
-            class="nav-tile tile-placeholder">
-
-              <div class="tile-icon">
-
-                ${icon("square")}
-
-              </div>
-
-              <div class="tile-title">
-
-                ${config.tabs.tab3.title}
-
-              </div>
-
-            </a>
 
 
           </div>
@@ -1058,23 +1015,36 @@
 
 
       /* =========================================
-         PLACEHOLDER
+         FIXED TILE POSITIONS
+         Preserve the original live-tab locations.
       ========================================= */
 
-      #custom-explore-bar-root
-      .tile-placeholder {
+      #custom-explore-bar-root .tile-map {
+        grid-column: 1 / span 2;
+        grid-row: 1 / span 2;
+      }
 
+      #custom-explore-bar-root .tile-explore {
+        grid-column: 3 / span 2;
+        grid-row: 1 / span 2;
+      }
+
+      #custom-explore-bar-root .tile-studio {
+        grid-column: 1;
+        grid-row: 3;
         align-items: center;
-
         text-align: center;
+        background: #f8f9fa;
+      }
 
-        color: #888;
+      #custom-explore-bar-root .tile-media {
+        grid-column: 2;
+        grid-row: 3;
+      }
 
-        background: #fafafa;
-
-        border:
-          1px dashed #ccc;
-
+      #custom-explore-bar-root .tile-inbox {
+        grid-column: 3;
+        grid-row: 3;
       }
 
 
@@ -1245,6 +1215,54 @@
     );
 
   }
+
+
+  /* =========================================
+     PAID-ONLY STUDIO TAB
+     menu.html runs in an iframe, so read the
+     signed-in profile from the same-origin parent.
+  ========================================= */
+
+  (function showPaidStudioTab(){
+    const tab = document.getElementById("sho1re1StudioTab");
+    if (!tab) return;
+
+    const PAID_EMAIL = "rajguruowais@gmail.com";
+
+    function currentUser(){
+      try {
+        const auth = window.parent && window.parent.Sho1re1Auth;
+        if (auth && typeof auth.getUser === "function") {
+          const user = auth.getUser();
+          if (user) return user;
+        }
+      } catch (_) {}
+
+      try {
+        const raw = window.parent.localStorage.getItem("sho1re1_google_profile_v1");
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function refresh(){
+      const user = currentUser();
+      const paid = !!(
+        user &&
+        String(user.email || "").trim().toLowerCase() === PAID_EMAIL
+      );
+      tab.style.display = paid ? "flex" : "none";
+      tab.setAttribute("aria-hidden", paid ? "false" : "true");
+    }
+
+    refresh();
+
+    try {
+      window.parent.addEventListener("sho1re1:authchange", refresh);
+      window.parent.addEventListener("storage", refresh);
+    } catch (_) {}
+  })();
 
 
   /* =========================================
