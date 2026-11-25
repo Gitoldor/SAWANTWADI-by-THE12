@@ -44,11 +44,22 @@
     /* Side controls move horizontally, in sync with the cards moving down. */
     .sho1re1-ai-button,
     .saved-posts-btn,
-    .map-style-btn {
+    .map-style-btn,
+    .s1trigger {
       transition:
         transform var(--sho-map-slide-duration) var(--sho-map-slide-ease),
         opacity var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
       will-change: transform, opacity;
+    }
+
+    /* Let the shared swipe transition own the AI button's transform. */
+    .sho1re1-ai-button {
+      animation-fill-mode: none !important;
+    }
+
+    /* The small Updates hint belongs to the notification trigger. */
+    .s1hint {
+      transition: opacity var(--sho-map-slide-duration) var(--sho-map-slide-ease) !important;
     }
     body.sho-map-only .sho1re1-ai-button {
       transform: translate3d(calc(-100vw - 100%), 0, 0) !important;
@@ -59,6 +70,18 @@
     body.sho-map-only .saved-posts-btn,
     body.sho-map-only .map-style-btn {
       transform: translate3d(calc(100vw + 100%), 0, 0) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Notifications exits to the right with Saved and Map-style. */
+    body.sho-map-only .s1trigger {
+      transform: translate3d(calc(100vw + 100%), -50%, 0) scale(1) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    body.sho-map-only .s1hint {
       opacity: 0 !important;
       pointer-events: none !important;
     }
