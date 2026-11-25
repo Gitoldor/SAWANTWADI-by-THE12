@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>Sho1re1 Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:#080808;color:#fff;font-family:Inter,system-ui,sans-serif}body{overflow:auto}.studio{min-height:100vh;padding:calc(22px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 80% 0%,#262626 0,transparent 42%),#080808}.top{display:flex;align-items:center;justify-content:space-between}.brand{font-size:11px;font-weight:800;letter-spacing:.24em;color:#aaa}.close{width:42px;height:42px;border:1px solid #ffffff20;border-radius:50%;background:#ffffff10;color:#fff;font-size:25px;line-height:1}.eyebrow{margin:54px 0 10px;color:#a1a1a1;font-size:10px;font-weight:800;letter-spacing:.22em}.heading{font-size:clamp(42px,12vw,68px);line-height:.94;letter-spacing:-.075em;font-weight:900;margin:0}.sub{max-width:290px;color:#999;font-size:13px;line-height:1.6;margin:16px 0 30px}.hero{position:relative;overflow:hidden;min-height:220px;border:1px solid #ffffff20;border-radius:28px;padding:22px;background:linear-gradient(135deg,#292929,#111 65%);box-shadow:0 22px 70px #0009}.hero:after{content:"";position:absolute;width:210px;height:210px;border-radius:50%;right:-65px;top:-55px;border:1px solid #ffffff24;box-shadow:0 0 0 22px #ffffff08,0 0 0 46px #ffffff05}.hero-label{font-size:10px;color:#aaa;letter-spacing:.16em;font-weight:800}.hero-title{position:relative;z-index:1;margin-top:42px;font-size:28px;font-weight:800;letter-spacing:-.05em}.hero-copy{position:relative;z-index:1;margin-top:8px;font-size:12px;color:#aaa}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.tile{min-height:132px;border:1px solid #ffffff18;border-radius:22px;background:#151515;padding:17px}.tile-icon{width:34px;height:34px;border-radius:12px;background:#ffffff12;display:grid;place-items:center;font-size:17px}.tile h3{font-size:14px;margin:20px 0 5px}.tile p{font-size:10px;color:#888;margin:0;line-height:1.5}.section{margin:34px 0 12px;font-size:11px;color:#888;letter-spacing:.18em;font-weight:800}.activity{border:1px solid #ffffff18;border-radius:20px;padding:16px;background:#111}.activity-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #ffffff12;font-size:12px}.activity-row:last-child{border:0}.muted{color:#777}.tag{font-size:9px;color:#aaa;border:1px solid #ffffff25;border-radius:99px;padding:5px 8px}
+</style>
+</head>
+<body>
+<main class="studio">
+ <div class="top"><div class="brand">SHO1RE1 / STUDIO</div><button class="close" aria-label="Close Studio">×</button></div>
+ <p class="eyebrow">YOUR CREATIVE SPACE</p>
+ <h1 class="heading">Make<br>something.</h1>
+ <p class="sub">A new space for creating, shaping and sharing things around Sawantwadi.</p>
+ <section class="hero"><div class="hero-label">STUDIO OVERVIEW</div><div class="hero-title">Your ideas live here.</div><div class="hero-copy">This is the first Studio preview. More tools are coming.</div></section>
+ <div class="grid">
+  <article class="tile"><div class="tile-icon">✳</div><h3>Create</h3><p>Start a new creative project.</p></article>
+  <article class="tile"><div class="tile-icon">▧</div><h3>Your work</h3><p>Keep your projects together.</p></article>
+  <article class="tile"><div class="tile-icon">⌁</div><h3>Discover</h3><p>Find ideas from your community.</p></article>
+  <article class="tile"><div class="tile-icon">↗</div><h3>Publish</h3><p>Share what you make.</p></article>
+ </div>
+ <div class="section">RECENT ACTIVITY</div>
+ <div class="activity"><div class="activity-row"><span>Studio is ready</span><span class="tag">PREVIEW</span></div><div class="activity-row"><span class="muted">Your next creation</span><span class="muted">—</span></div></div>
+</main>
+<script>
+document.querySelector('.close').addEventListener('click',function(){if(window.parent!==window)window.parent.postMessage({type:'sho1re1:close-studio'},location.origin);});
+</script>
+</body>
+</html>
