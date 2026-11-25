@@ -632,7 +632,6 @@ body{
 }
 
 
-
 /* PRO menu state */
 .pro-menu-link.pro-active .item-title,
 .pro-menu-link.pro-active .feed-icon svg {
@@ -947,24 +946,15 @@ body{
   "use strict";
   const item = document.getElementById("pro-menu-link");
   if (!item) return;
-  function bindAuth() {
-    let auth = null;
-    try { auth = window.parent && window.parent.Sho1re1Auth; } catch (_) {}
-    if (!auth || typeof auth.getUser !== "function") return false;
-    function update() {
-      const user = auth.getUser();
-      item.classList.toggle("pro-active", !!(user && user.proEnabled === true));
-    }
-    update();
-    if (typeof auth.onChange === "function") auth.onChange(update);
-    return true;
+  function update() {
+    let user = null;
+    try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
+    const active = !!(user && (user.proEnabled === true || user.proStatus === "active"));
+    item.classList.toggle("pro-active", active);
   }
-  if (bindAuth()) return;
-  let attempts = 0;
-  const timer = setInterval(function () {
-    attempts++;
-    if (bindAuth() || attempts >= 100) clearInterval(timer);
-  }, 100);
+  update();
+  window.addEventListener("storage", update);
+  window.addEventListener("focus", update);
 })();
 </script>
 
