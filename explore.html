@@ -902,7 +902,7 @@ body.searching .search-button{
 .featured-carousel::-webkit-scrollbar{display:none}
 .featured-card{
     position:relative;
-    flex:0 0 min(78vw,390px);
+    flex:0 0 calc(100% - 44px);
     aspect-ratio:1/1;
     overflow:hidden;
     border-radius:var(--radius);
@@ -912,7 +912,8 @@ body.searching .search-button{
     cursor:pointer;
     transition:transform .35s cubic-bezier(.16,1.4,.3,1);
 }
-.featured-card:active{transform:scale(.97)}
+.featured-card:active{transform:scale(.985)}
+@media(min-width:700px){.featured-card{flex-basis:min(42vw,390px)}}
 .featured-card img{
     display:block;
     width:100%;
@@ -940,9 +941,6 @@ body.searching .search-button{
     font-weight:650;
     letter-spacing:-.7px;
     text-shadow:0 1px 8px rgba(0,0,0,.16);
-}
-@media(min-width:700px){
-    .featured-card{flex-basis:min(42vw,390px)}
 }
 
 </style>
@@ -1277,7 +1275,69 @@ featuredCarousel.addEventListener("click",event=>{
     console.log("Open:",card.dataset.id);
 });
 
+
 renderFeatured();
+
+/* =====================================================
+   FEATURED CAROUSEL AUTO-ADVANCE
+   Manual interaction pauses autoplay for 10 seconds.
+===================================================== */
+const FEATURED_AUTOPLAY_DELAY = 3600;
+const FEATURED_RESUME_DELAY = 10000;
+let featuredAutoTimer = null;
+let featuredResumeTimer = null;
+let featuredAutoMoving = false;
+
+function stopFeaturedAuto(){
+    clearTimeout(featuredAutoTimer);
+    featuredAutoTimer = null;
+}
+
+function scheduleFeaturedAuto(delay=FEATURED_AUTOPLAY_DELAY){
+    stopFeaturedAuto();
+    if(!featuredCarousel || featuredCarousel.children.length < 2) return;
+    featuredAutoTimer = setTimeout(advanceFeatured, delay);
+}
+
+function pauseFeaturedForManualUse(){
+    stopFeaturedAuto();
+    clearTimeout(featuredResumeTimer);
+    featuredResumeTimer = setTimeout(()=>{
+        scheduleFeaturedAuto(900);
+    }, FEATURED_RESUME_DELAY);
+}
+
+function advanceFeatured(){
+    const cards = Array.from(featuredCarousel.children);
+    if(cards.length < 2) return;
+
+    const currentLeft = featuredCarousel.scrollLeft;
+    let next = cards.find(card => card.offsetLeft > currentLeft + 8);
+
+    if(!next) next = cards[0];
+
+    featuredAutoMoving = true;
+    featuredCarousel.scrollTo({
+        left: next.offsetLeft - featuredCarousel.offsetLeft,
+        behavior: "smooth"
+    });
+
+    setTimeout(()=>{
+        featuredAutoMoving = false;
+        scheduleFeaturedAuto();
+    }, 850);
+}
+
+["touchstart","pointerdown","wheel","keydown"].forEach(type=>{
+    featuredCarousel.addEventListener(type, pauseFeaturedForManualUse, {passive:true});
+});
+
+featuredCarousel.addEventListener("scroll",()=>{
+    if(featuredAutoMoving) return;
+    pauseFeaturedForManualUse();
+},{passive:true});
+
+scheduleFeaturedAuto(2200);
 
 
 
