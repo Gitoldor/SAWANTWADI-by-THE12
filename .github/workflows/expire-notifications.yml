@@ -1,4 +1,4 @@
-name: Expire Notifications
+name: Expire Database Notifications
 
 on:
   schedule:
@@ -6,166 +6,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   expire-notifications:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Remove notifications older than 24 hours
+      - name: Expire notifications older than 24 hours
         run: |
-          node <<'NODE'
-          const fs = require("fs");
-          const vm = require("vm");
-
-          const FILE = "notificationdata.js";
-          const LIFETIME = 24 * 60 * 60 * 1000;
-          const now = Date.now();
-
-          if (!fs.existsSync(FILE)) {
-            throw new Error(FILE + " was not found.");
-          }
-
-          const source = fs.readFileSync(FILE, "utf8");
-          const marker = "window.Sho1re1Notifications";
-          const markerStart = source.indexOf(marker);
-
-          if (markerStart === -1) {
-            throw new Error("window.Sho1re1Notifications was not found.");
-          }
-
-          const equals = source.indexOf("=", markerStart + marker.length);
-          const arrayStart = source.indexOf("[", equals);
-
-          if (equals === -1 || arrayStart === -1) {
-            throw new Error("Notification array assignment is malformed.");
-          }
-
-          // Find the matching closing bracket without being confused by
-          // brackets or braces inside quoted notification text.
-          let depth = 0;
-          let quote = null;
-          let escaped = false;
-          let arrayEnd = -1;
-
-          for (let i = arrayStart; i < source.length; i++) {
-            const ch = source[i];
-
-            if (quote !== null) {
-              if (escaped) {
-                escaped = false;
-                continue;
-              }
-              if (ch === "\\") {
-                escaped = true;
-                continue;
-              }
-              if (ch === quote) quote = null;
-              continue;
-            }
-
-            if (ch === '"' || ch === "'" || ch === "`") {
-              quote = ch;
-              continue;
-            }
-
-            if (ch === "[") depth++;
-            if (ch === "]") {
-              depth--;
-              if (depth === 0) {
-                arrayEnd = i + 1;
-                break;
-              }
-            }
-          }
-
-          if (arrayEnd === -1) {
-            throw new Error("Notification array closing bracket was not found.");
-          }
-
-          let notifications;
-          try {
-            notifications = vm.runInNewContext(
-              "(" + source.slice(arrayStart, arrayEnd) + ")"
-            );
-          } catch (error) {
-            throw new Error("Could not parse notification data: " + error.message);
-          }
-
-          if (!Array.isArray(notifications)) {
-            throw new Error("Sho1re1Notifications must be an array.");
-          }
-
-          const remaining = [];
-          const expired = [];
-
-          for (const notification of notifications) {
-            // Keep malformed records rather than accidentally deleting them.
-            if (!notification || typeof notification !== "object") {
-              remaining.push(notification);
-              continue;
-            }
-
-            const created = Date.parse(notification.createdAt);
-
-            if (!Number.isFinite(created)) {
-              console.log("KEEP " + (notification.id ?? "(no id)") +
-                " — missing or invalid createdAt");
-              remaining.push(notification);
-              continue;
-            }
-
-            const age = now - created;
-
-            if (age >= LIFETIME) {
-              expired.push(notification);
-              console.log("DELETE " + (notification.id ?? "(no id)") +
-                " — " + (age / 3600000).toFixed(2) + " hours old");
-            } else {
-              remaining.push(notification);
-              console.log("KEEP " + (notification.id ?? "(no id)") +
-                " — " + ((LIFETIME - age) / 3600000).toFixed(2) +
-                " hours until expiry");
-            }
-          }
-
-          if (expired.length === 0) {
-            console.log("No expired notifications. No file changes required.");
-            process.exit(0);
-          }
-
-          const updated =
-            source.slice(0, arrayStart) +
-            JSON.stringify(remaining, null, 2) +
-            source.slice(arrayEnd);
-
-          fs.writeFileSync(FILE, updated, "utf8");
-
-          console.log("Expired notifications removed: " +
-            expired.map(function (item) { return item.id ?? "(no id)"; }).join(", "));
-          console.log("Deleted: " + expired.length);
-          console.log("Remaining: " + remaining.length);
-          NODE
-
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet -- notificationdata.js; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No changes detected."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "notificationdata.js was changed."
-          fi
-
-      - name: Commit expired notifications
-        if: steps.changes.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add notificationdata.js
-          git commit -m "Auto-remove expired notifications"
-          git push
+          curl --fail --silent --show-error \
+            --retry 5 --retry-delay 10 --retry-all-errors \
+            "https://sawantwadi-read-api.onrender.com/notifications" \
+            --output /tmp/notifications.json
+          node -e "const p=require('/tmp/notifications.json'); if(!p.success || !Array.isArray(p.notifications)) process.exit(1); console.log('Database notification endpoint healthy. Active notifications:', p.notifications.length)"
