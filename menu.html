@@ -974,7 +974,11 @@ body{
     if (checking) return;
     const auth = window.Sho1re1Auth;
     const credential = auth && typeof auth.getCredential === "function" ? auth.getCredential() : "";
-    if (!credential) { setAccess(false); return; }
+    if (!credential) {
+      setAccess(false);
+      if (auth && typeof auth.requestCredential === "function") auth.requestCredential(() => update());
+      return;
+    }
     checking = true;
     lastEmail = email;
     try {
