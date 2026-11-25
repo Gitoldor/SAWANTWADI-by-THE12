@@ -23,7 +23,13 @@
     var id=++accessCheckId;
     var auth=window.Sho1re1Auth;
     var credential=auth&&typeof auth.getCredential==='function'?auth.getCredential():'';
-    if(!credential){button.textContent='Customize';return;}
+    if(!credential){
+      button.textContent='Verify account';
+      if(auth&&typeof auth.requestCredential==='function'){
+        auth.requestCredential(function(){checkCustomizationAccess();});
+      }
+      return;
+    }
     fetch('https://sawantwadi-read-api.onrender.com/location-custom-access',{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:credential}),cache:'no-store'
     }).then(function(response){if(!response.ok)throw new Error('Access check failed');return response.json();})
