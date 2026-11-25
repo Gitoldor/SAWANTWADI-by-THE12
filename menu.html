@@ -631,6 +631,15 @@ body{
 
 }
 
+
+
+/* PRO menu state */
+.pro-menu-link.pro-active .item-title,
+.pro-menu-link.pro-active .feed-icon svg {
+  color: #2878ff;
+  stroke: #2878ff;
+}
+
 </style>
 
 <script src="./clarity.js" defer></script>
@@ -900,6 +909,22 @@ body{
 </div>
 
 
+  <!-- PRO ACCOUNT -->
+  <a
+    href="pro.html"
+    target="_top"
+    class="list-item pro-menu-link"
+    id="pro-menu-link"
+  >
+    <div class="feed-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 8l4 3 5-7 5 7 4-3-2 12H5L3 8z"></path>
+        <path d="M5 16h14"></path>
+      </svg>
+    </div>
+    <span class="item-title">PRO</span>
+  </a>
+
   <!-- SHO1RE1 ACCOUNT -->
   <a
     href="account.html"
@@ -915,6 +940,33 @@ body{
     <span class="item-title">Login / Account</span>
   </a>
 
+
+
+<script>
+(function () {
+  "use strict";
+  const item = document.getElementById("pro-menu-link");
+  if (!item) return;
+  function bindAuth() {
+    let auth = null;
+    try { auth = window.parent && window.parent.Sho1re1Auth; } catch (_) {}
+    if (!auth || typeof auth.getUser !== "function") return false;
+    function update() {
+      const user = auth.getUser();
+      item.classList.toggle("pro-active", !!(user && user.proEnabled === true));
+    }
+    update();
+    if (typeof auth.onChange === "function") auth.onChange(update);
+    return true;
+  }
+  if (bindAuth()) return;
+  let attempts = 0;
+  const timer = setInterval(function () {
+    attempts++;
+    if (bindAuth() || attempts >= 100) clearInterval(timer);
+  }, 100);
+})();
+</script>
 
 <!-- =======================================================
      YOUR EXISTING DATA FILE
