@@ -3,7 +3,8 @@
 const API="https://sawantwadi-read-api.onrender.com/notifications",
       START=5000,
       INTERVAL=1000,
-      MAX=3;
+      MAX=3,
+      PAID_EMAIL="rajguruowais@gmail.com";
 
 
 /* =========================
@@ -870,6 +871,8 @@ function card(d,cls){
 
   el.onclick=()=>{
 
+    if(el.dataset.dismissed==="1")return;
+
     if(d.link)
       location.href=d.link;
 
@@ -1006,6 +1009,44 @@ function start(){
 
   const cards=[];
 
+  function canSwipeDismiss(){
+    const auth=window.Sho1re1Auth;
+    const user=auth&&typeof auth.getUser==="function"?auth.getUser():null;
+    return !!(user&&String(user.email||"").trim().toLowerCase()===PAID_EMAIL);
+  }
+
+  function attachPaidSwipe(cardEl){
+    let startPoint=null;
+    cardEl.addEventListener("pointerdown",e=>{
+      if(!canSwipeDismiss()||!e.isPrimary||e.pointerType==="mouse")return;
+      startPoint={x:e.clientX,y:e.clientY,id:e.pointerId};
+    },{passive:true});
+    cardEl.addEventListener("pointerup",e=>{
+      if(!startPoint||e.pointerId!==startPoint.id)return;
+      const dx=e.clientX-startPoint.x,dy=e.clientY-startPoint.y;
+      startPoint=null;
+      if(dy>-55||Math.abs(dy)<Math.abs(dx)*1.2)return;
+      e.preventDefault();
+      e.stopPropagation();
+      cardEl.dataset.dismissed="1";
+      cardEl.style.transition="transform .34s cubic-bezier(.22,.61,.36,1),opacity .28s ease";
+      cardEl.style.transform="translate3d(0,-145%,0) scale(.94)";
+      cardEl.style.opacity="0";
+      const index=cards.indexOf(cardEl);
+      if(index!==-1)cards.splice(index,1);
+      update();
+      setTimeout(()=>{
+        cardEl.remove();
+        if(!cards.length){
+          root.style.display="none";
+          trigger.classList.add("show");
+          hint.classList.add("show");
+        }
+      },360);
+    },{passive:false});
+    cardEl.addEventListener("pointercancel",()=>{startPoint=null;},{passive:true});
+  }
+
 
   let opened=false,
       sy=0,
@@ -1076,6 +1117,7 @@ function start(){
         cards.unshift(c);
 
         stack.prepend(c);
+        attachPaidSwipe(c);
 
 
         /* SOUND */
