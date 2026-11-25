@@ -44,14 +44,14 @@
  window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.type==='sho1re1:close-studio')closeStudio()});
  document.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0)||overlay&&overlay.classList.contains('open'))return;
-  if(e.clientX<window.innerWidth-28)return;
+  if(e.clientX<window.innerWidth-96)return;
   if(e.target.closest('button,a,input,textarea,select,.leaflet-control,.leaflet-marker-icon,.leaflet-popup'))return;
   start={x:e.clientX,y:e.clientY,id:e.pointerId};
  },{capture:true,passive:true});
  document.addEventListener('pointerup',e=>{
   if(!start||e.pointerId!==start.id)return;
   const dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;
-  if(dx<-85&&Math.abs(dx)>Math.abs(dy)*1.35)openStudio();
+  if(dx<-48&&Math.abs(dx)>Math.abs(dy)*1.15)openStudio();
  },{capture:true,passive:true});
  document.addEventListener('pointercancel',()=>start=null,{capture:true,passive:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeStudio()});
