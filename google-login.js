@@ -6,8 +6,9 @@
 
   const CLIENT_ID = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
   const STORAGE_KEY = "sho1re1_google_profile_v1";
+  const CREDENTIAL_STORAGE_KEY = "sho1re1_google_credential_session_v1";
   let user = readUser();
-  let credential = "";
+  let credential = readSessionCredential();
   let ready = false;
   let pendingCredentialRequest = false;
   const credentialWaiters = new Set();
@@ -20,6 +21,31 @@
       return value && value.sub ? value : null;
     } catch (_) { return null; }
   }
+
+  // Keep the Google ID token only in this browser tab's session storage so
+  // verified PRO checks still work after a page refresh. The server validates
+  // the token and its expiry on every access check.
+  function readSessionCredential() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(CREDENTIAL_STORAGE_KEY) || "null");
+      if (!saved || typeof saved.token !== "string" || !saved.token || Number(saved.exp) * 1000 <= Date.now()) {
+        sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+        return "";
+      }
+      return saved.token;
+    } catch (_) { return ""; }
+  }
+  function saveSessionCredential(token, data) {
+    try {
+      const exp = Number(data && data.exp) || 0;
+      if (!token || exp * 1000 <= Date.now()) {
+        sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+        return;
+      }
+      sessionStorage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify({ token: token, exp: exp }));
+    } catch (_) {}
+  }
+
   function saveUser(next) {
     user = next;
     try {
@@ -45,7 +71,8 @@
   function onCredential(response) {
     credential = response.credential || "";
     const data = decodeCredential(credential);
-    if (!data || !data.sub) return;
+    if (!data || !data.sub) { credential = ""; return; }
+    saveSessionCredential(credential, data);
     credentialWaiters.forEach(fn => { try { fn(credential); } catch (_) {} });
     credentialWaiters.clear();
     window.dispatchEvent(new CustomEvent("sho1re1:credential", { detail: { email: data.email || "" } }));
@@ -159,6 +186,7 @@
   }
   function signOut() {
     credential = "";
+    try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); } catch (_) {}
     saveUser(null);
     if (ready && google.accounts.id.disableAutoSelect) google.accounts.id.disableAutoSelect();
   }
