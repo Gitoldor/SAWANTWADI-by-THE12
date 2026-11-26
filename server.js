@@ -91,6 +91,35 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Display-only PRO badge status. This endpoint does not authorize PRO features.
+  if (req.method === "POST" && path === "/pro-status") {
+    if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
+      return send(res, 503, { success: false, active: false, error: "D1 connection is not configured" });
+    }
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 2000) return send(res, 413, { success: false, active: false, error: "Request too large" });
+      }
+      const body = JSON.parse(raw || "{}");
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (!email || email.length > 320 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+        return send(res, 400, { success: false, active: false, error: "Valid email required" });
+      }
+      const result = await queryD1(
+        "SELECT enabled FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
+        [email]
+      );
+      const rows = result[0]?.results;
+      const active = Array.isArray(rows) && rows.length > 0 && Number(rows[0].enabled) === 1;
+      return send(res, 200, { success: true, active });
+    } catch (error) {
+      console.error("PRO badge status check failed", error?.message || "Unknown error");
+      return send(res, 500, { success: false, active: false, error: "Unable to check PRO status" });
+    }
+  }
+
   if (req.method !== "GET" || !["/places", "/notifications"].includes(path)) {
     return send(res, 404, { success: false, error: "Not found" });
   }
