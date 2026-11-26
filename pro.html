@@ -94,7 +94,7 @@
     const plans = { PRO_7D:{name:"PRO"}, MAX_30D:{name:"MAX"}, BUSINESS_PRO:{name:"BUSINESS PRO"}, BUSINESS_MAX:{name:"BUSINESS MAX"} };
     let busy = false, verifying = false, verifyTimer = null, authVersion = 0, expiryTimer = null, renderingGoogle = false;
     function readUser(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");}catch(_){return null;}}
-    function token(){try{return window.Sho1re1Auth&&window.Sho1re1Auth.getCredential();}catch(_){return "";}}
+    function token(){try{return window.Sho1re1Auth&&(window.Sho1re1Auth.getSessionToken()||window.Sho1re1Auth.getCredential());}catch(_){return "";}}
     function readPending(){try{const p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");return p&&p.orderId?p:null;}catch(_){return null;}}
     function show(value){message.textContent=value;message.classList.add("show");}
     function renderAccount(){const u=readUser();account.textContent=u&&u.email?"Google account: "+u.email:"Sign in with Google to check your membership.";}
