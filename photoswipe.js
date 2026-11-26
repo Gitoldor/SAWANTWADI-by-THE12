@@ -161,7 +161,7 @@
 
     img.src = src;
 
-    img.alt = "Share your Sho1re1 PRO profile";
+    img.alt = "";
 
     img.draggable = false;
 
@@ -250,7 +250,7 @@
       const img = document.createElement("img");
       img.className = "photoSwipeImage";
       img.src = CONFIG.proImage;
-      img.alt = "";
+      img.alt = "Share your Sho1re1 PRO profile";
       img.draggable = false;
       img.decoding = "async";
       img.classList.add("proShareSlide");
