@@ -15,6 +15,16 @@
       background: radial-gradient(ellipse at 50% 5%, #252525 0, #111 38%, #070707 78%);
     }
     .page { width: min(100%, 430px); text-align: center; }
+    .exit-row { display: flex; justify-content: flex-start; margin: 0 0 18px; }
+    .exit-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 42px; padding: 0 16px; border: 1px solid rgba(255,255,255,.18);
+      border-radius: 14px; color: #f5f5f5; background: rgba(255,255,255,.07);
+      text-decoration: none; font-size: 13px; font-weight: 700;
+      transition: background .18s ease, transform .18s ease;
+    }
+    .exit-button:active { transform: scale(.98); }
+    .exit-button:hover { background: rgba(255,255,255,.13); }
     .eyebrow { color: #858585; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; margin: 0 0 20px; }
     .card {
       position: relative; overflow: hidden; padding: 34px 24px 30px;
@@ -61,6 +71,7 @@
 </head>
 <body>
   <main class="page">
+    <div class="exit-row"><a class="exit-button" href="index.html" aria-label="Exit and return to home">← Exit</a></div>
     <p class="eyebrow" id="pageEyebrow">Share your PRO page</p>
     <section class="card hidden" id="profileCard" aria-label="Sho1re1 PRO profile">
       <h1 class="pro-title">PRO</h1>
