@@ -946,7 +946,6 @@ body{
 (function () {
   "use strict";
 
-  const PAID_EMAIL = "rajguruowais@gmail.com";
   const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
   const item = document.getElementById("pro-menu-link");
   if (!item) return;
@@ -985,19 +984,13 @@ body{
     const auth = getAuth();
     const user = getUser(auth);
     const email = String(user && user.email || "").trim().toLowerCase();
-
-    // Keep the same owner exception already used by the location-customize PRO gate.
-    if (email === PAID_EMAIL) {
-      paintPaid(true);
-      return;
-    }
-
     const credential = auth && typeof auth.getCredential === "function"
       ? auth.getCredential()
       : "";
 
-    // Never open a Google popup just to colour the menu item.
-    if (!credential) {
+    // The saved profile is not proof of payment. Verify this live Google
+    // credential against its email and the enabled PRO row in D1.
+    if (!email || !credential) {
       paintPaid(false);
       return;
     }
@@ -1005,7 +998,7 @@ body{
     fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential: credential }),
+      body: JSON.stringify({ credential: credential, email: email }),
       cache: "no-store"
     }).then(function (response) {
       if (!response.ok) throw new Error("PRO access check failed");
