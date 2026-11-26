@@ -3,7 +3,7 @@
  'use strict';
  if(window.__sho1re1StudioLoaded)return;
  window.__sho1re1StudioLoaded=true;
- const API='https://sawantwadi-read-api.onrender.com/location-custom-access';
+ const API='https://sawantwadi-read-api.onrender.com/pro-status';
  let allowed=false,checking=false,start=null,overlay=null,frame=null;
  const style=document.createElement('style');
  style.textContent=`
@@ -20,15 +20,14 @@
  async function checkAccess(){
   if(checking)return false;
   checking=true;
-  const a=window.Sho1re1Auth,user=authUser();
+  const user=authUser();
   const email=String(user&&user.email||'').trim().toLowerCase();
-  const token=a&&typeof a.getCredential==='function'?a.getCredential():'';
-  if(!email||!token){allowed=false;checking=false;return false}
+  if(!email){allowed=false;checking=false;return false}
   try{
-   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:token,email:email}),cache:'no-store'});
+   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email}),cache:'no-store'});
    if(!response.ok)throw Error('Access check failed');
    const data=await response.json();
-   allowed=data.success===true&&data.allowed===true;
+   allowed=data.success===true&&data.active===true;
   }catch(_){allowed=false}
   checking=false;
   return allowed;
