@@ -17,7 +17,7 @@
 
     // Fifth slide is appended only after the same verified PRO access check
     // used by the location-customization feature succeeds.
-    proImage: "https://i.ibb.co/6RH1sfPL/1000014324-removebg-preview.png",
+    proImage: "https://i.ibb.co/LdKK0Lbd/1000014326-removebg-preview.png",
     proEmail: "rajguruowais@gmail.com",
     proAccessAPI: "https://sawantwadi-read-api.onrender.com/location-custom-access",
 
