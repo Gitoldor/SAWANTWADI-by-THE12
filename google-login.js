@@ -208,8 +208,12 @@
     overlay.querySelector(".sho-auth-later").addEventListener("click", closeWelcome);
   }
   function signOut() {
+    const oldSession = appSession;
     credential = "";
     appSession = "";
+    if (oldSession) {
+      fetch(SESSION_API + "/api/session/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionToken: oldSession }) }).catch(() => {});
+    }
     try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); localStorage.removeItem(APP_SESSION_KEY); } catch (_) {}
     saveUser(null);
     if (ready && google.accounts.id.disableAutoSelect) google.accounts.id.disableAutoSelect();
