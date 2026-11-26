@@ -135,7 +135,15 @@
     async function startCheckout(planId){
       if(busy)return;
       const existing=readPending();
-      if(existing){show("You already have a payment order open. Returning to it and checking its status first…");beginPolling();return;}
+      if(existing && existing.planId===planId){
+        const resumeUrl=existing.upiIntent||existing.checkoutUrl;
+        if(resumeUrl){
+          show("Your previous payment is still available. Opening it again…");
+          beginPolling();
+          location.href=resumeUrl;
+          return;
+        }
+      }
       const u=readUser(),credential=token();
       if(!u||!u.email||!u.sub||!credential){show("Your Google session is not available. Please sign in once, then retry.");return;}
       setBusy(true);show("Creating a secure payment order…");
@@ -146,7 +154,7 @@
         const upiIntent=typeof d.order.upiIntent==="string"?d.order.upiIntent.trim():"";
         const checkoutUrl=typeof d.order.checkoutUrl==="string"?d.order.checkoutUrl.trim():"";
         if(!upiIntent&&!checkoutUrl)throw new Error("FamGateway did not return a UPI intent or checkout link. No payment was started.");
-        localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now(),continuationToken:d.order.continuationToken||""}));
+        localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now(),continuationToken:d.order.continuationToken||"",upiIntent:upiIntent||"",checkoutUrl:checkoutUrl||""}));
         setBusy(false);
         if(upiIntent){
           show("UPI app opened. Complete or cancel the payment there, then return here — Sho1re1 will check automatically.");
@@ -174,9 +182,10 @@
           show("Payment verified successfully. "+(plans[p.planId]?.name||"Your plan")+" is now active.");
         }else if(r.ok&&d.status==="expired"){
           localStorage.removeItem(PENDING_KEY);stopPolling();setBusy(false);
-          show("This payment order expired without a confirmed payment. You can safely choose a plan again.");
+          show("This payment link is no longer active. Choose a plan to create a fresh payment link.");
         }else if(r.ok&&d.status==="pending"){
-          show("Payment not confirmed yet. If you completed it, wait a moment; otherwise finish or cancel it in your UPI app and return here. We'll keep checking.");
+          // Pending is neutral: the user may leave and resume payment later.
+          // Do not pressure the user or display a failure-like message.
         }else if(!r.ok){
           show(d.error||"We couldn't check the payment just now. Your order is saved; we'll retry automatically.");
         }
