@@ -25,25 +25,12 @@
     var auth=window.Sho1re1Auth;
     var profile=auth&&typeof auth.getUser==='function'?auth.getUser():null;
     var email=profile&&typeof profile.email==='string'?profile.email.trim().toLowerCase():'';
-    // Keep the sharing sheet clean: use the locally signed-in profile for the
-    // immediate UI state, and silently refresh the server-verified credential
-    // in the background when Google Identity Services returns one.
-    if(email==='rajguruowais@gmail.com'){
-      customizationAllowed=true;
-      button.disabled=false;
-      button.classList.remove('s1loc-locked');
-      button.setAttribute('aria-disabled','false');
-      button.title='Customize this location';
-      upgrade.style.display='none';
-    }else{
-      upgrade.style.display='inline';
-    }
-    if(auth&&typeof auth.getCredential==='function'){
-      var credential=auth.getCredential();
-      if(credential){
+    var credential=auth&&typeof auth.getCredential==='function'?auth.getCredential():'';
+    upgrade.style.display='inline';
+    if(email&&credential){
         fetch('https://sawantwadi-read-api.onrender.com/location-custom-access',{
           method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({credential:credential}),cache:'no-store'
+          body:JSON.stringify({credential:credential,email:email}),cache:'no-store'
         }).then(function(response){if(!response.ok)throw new Error('Access check failed');return response.json();})
         .then(function(data){
           if(!modal||!modal.classList.contains('open'))return;
