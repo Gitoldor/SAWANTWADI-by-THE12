@@ -31,11 +31,6 @@
       var card = event.target.closest('.card');
       if (!card) return;
 
-      // Media-card taps are reserved for opening the player, not carousel focus.
-      if (card.classList.contains('media-post') ||
-          card.classList.contains('media-reel') ||
-          card.classList.contains('media-video')) return;
-
       // Let the original place-card click run first (it activates the card and map marker).
       requestAnimationFrame(function () {
         centerCard(card, 'smooth');
