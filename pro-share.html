@@ -66,6 +66,10 @@
     .post-card img { display: block; width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #222; }
     .post-title { display: block; padding: 10px; font-size: 12px; line-height: 1.35; font-weight: 650; overflow-wrap: anywhere; }
     .posts-empty { grid-column: 1/-1; margin: 0; padding: 20px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; color: #999; text-align: center; font-size: 12px; }
+    .map-post-card { min-height: 100%; aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; border: 1px solid rgba(255,255,255,.2); border-radius: 17px; color: #fff; background: linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.045)); text-align: center; text-decoration: none; }
+    .map-post-icon { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.25); border-radius: 15px; background: rgba(255,255,255,.1); font-size: 22px; }
+    .map-post-label { font-size: 13px; line-height: 1.35; font-weight: 750; }
+    .map-post-sub { color: #aaa; font-size: 10px; line-height: 1.4; }
     .footer { margin-top: 23px; color: #686868; font-size: 11px; letter-spacing: .04em; }
     .hidden { display: none !important; }
     @media (max-width: 360px) {
@@ -163,7 +167,8 @@
             grid.appendChild(empty);
             return;
           }
-          matches.forEach(post => {
+          const visiblePosts = matches.slice(0, 5);
+          visiblePosts.forEach(post => {
             const rawLink = String(post.link || "").trim();
             let target = "";
             try {
@@ -191,6 +196,24 @@
             card.append(image, title);
             grid.appendChild(card);
           });
+
+          // The sixth tile opens every email-linked post on the main map.
+          const payload = {
+            v: 1,
+            title: "Posts by " + (name || email),
+            ids: matches.map(post => String(post.id)).filter(Boolean)
+          };
+          const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+            .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+          const mapUrl = new URL("index.html", location.href);
+          mapUrl.search = "";
+          mapUrl.searchParams.set("collection", encoded);
+
+          const mapCard = document.createElement("a");
+          mapCard.className = "map-post-card";
+          mapCard.href = mapUrl.href;
+          mapCard.innerHTML = '<span class="map-post-icon" aria-hidden="true">⌖</span><span class="map-post-label">Open posts in map</span><span class="map-post-sub">See all ' + matches.length + ' posts on the main map</span>';
+          grid.appendChild(mapCard);
         } catch (_) {
           grid.replaceChildren();
           empty.textContent = "Posts are temporarily unavailable.";
