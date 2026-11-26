@@ -1245,7 +1245,7 @@
       }
     }
 
-    const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
+    const API = "https://sawantwadi-read-api.onrender.com/pro-status";
     let requestId = 0;
 
     function paint(paid){
@@ -1256,19 +1256,16 @@
     async function refresh(){
       const current = ++requestId;
       const user = currentUser();
-      let auth = null;
-      try { auth = window.parent && window.parent.Sho1re1Auth; } catch (_) {}
       const email = String(user && user.email || "").trim().toLowerCase();
-      const credential = auth && typeof auth.getCredential === "function" ? auth.getCredential() : "";
-      if (!email || !credential) { paint(false); return; }
+      if (!email) { paint(false); return; }
       try {
         const response = await fetch(API, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credential: credential, email: email }), cache: "no-store"
+          body: JSON.stringify({ email: email }), cache: "no-store"
         });
-        if (!response.ok) throw new Error("PRO access check failed");
+        if (!response.ok) throw new Error("PRO status check failed");
         const result = await response.json();
-        if (current === requestId) paint(result.success === true && result.allowed === true);
+        if (current === requestId) paint(result.success === true && result.active === true);
       } catch (_) { if (current === requestId) paint(false); }
     }
 
