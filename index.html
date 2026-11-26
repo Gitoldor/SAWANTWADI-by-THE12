@@ -2026,6 +2026,7 @@ button,
 </div>
 
 <script src="app.js"></script>
+<script src="./youtube-player.js"></script>
 <script src="update.js"></script>
 <script src="weather.js"></script>
 <script src="mapsearch.js"></script>
@@ -2315,9 +2316,11 @@ applyMapFilter();
 
 /* Helper for navigating to place link */
 function openPlaceLink(place) {
-  if (place && place.link) {
-    window.location.href = place.link;
+  if (!place) return;
+  if (place.contentKind && window.Sho1re1PlayYouTube) {
+    if (window.Sho1re1PlayYouTube(place.link, place.title, place.contentKind)) return;
   }
+  if (place.link) window.location.href = place.link;
 }
 
 /* =========================
@@ -2345,7 +2348,7 @@ function renderMapAndCarousel() {
       <img src="${place.image}" loading="lazy" alt="${place.title || ''}" />
       <div class="card-overlay">
         <div class="card-title">${place.title || ''}</div>
-        <div class="card-type">${place.type || ''}</div>
+        <div class="card-type">${place.contentKind ? place.contentKind.replace('_', ' ') : (place.type || '')}</div>
         <div class="card-sub">${place.subtype || ''}</div>
       </div>
     `;
@@ -2357,6 +2360,7 @@ function renderMapAndCarousel() {
       if (e.target.closest('.card-save-btn')) return;
       setActive(idx);
       map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
+      if (place.contentKind) openPlaceLink(place);
     };
 
     // Double-click Carousel Card navigation
@@ -2798,7 +2802,7 @@ function reconcileSavedPostsWithLiveData() {
 
 // Wait for Cloudflare D1 before building map cards.
 window.Sho1re1DataReady.then(() => {
-  rawPlaces = window.Sho1re1Places || [];
+  rawPlaces = (window.Sho1re1Places || []).concat(typeof window.Sho1re1GetMediaItems === "function" ? window.Sho1re1GetMediaItems() : []);
   return initDB();
 }).then(() => {
   reconcileSavedPostsWithLiveData().then(savedItems => {
