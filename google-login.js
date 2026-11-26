@@ -222,7 +222,8 @@
   }
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
-    getCredential: () => appSession || credential,
+    getCredential: () => credential,
+    getSessionToken: () => appSession,
     requestCredential(callback) {
       if (credential) { if (typeof callback === "function") callback(credential); return; }
       if (typeof callback === "function") credentialWaiters.add(callback);
