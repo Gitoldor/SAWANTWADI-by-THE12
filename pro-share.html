@@ -62,7 +62,7 @@
 <body>
   <main class="page">
     <p class="eyebrow" id="pageEyebrow">Sho1re1 · Sawantwadi</p>
-    <section class="card" aria-label="Sho1re1 PRO profile">
+    <section class="card hidden" id="profileCard" aria-label="Sho1re1 PRO profile">
       <h1 class="pro-title">PRO</h1>
       <div class="avatar-wrap">
         <img class="avatar" id="avatar" alt="Google profile photo">
@@ -88,7 +88,7 @@
       const encodedData = params.get("data");
       let shareUrl = "";
 
-      function setProfile(profile) {
+      function setProfile(profile) {\n        $("profileCard").classList.remove("hidden");
         const name = String(profile.name || "Sho1re1 user").slice(0, 32);
         $("displayName").textContent = name;
         $("claimName").textContent = name;
