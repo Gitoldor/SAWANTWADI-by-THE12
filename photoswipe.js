@@ -118,6 +118,15 @@
       pointer-events: none;
     }
 
+    /* Slightly reduce only the PRO fifth image and keep it centered. */
+    .photoSwipeProImage {
+      width: 92%;
+      margin-left: auto;
+      margin-right: auto;
+      object-fit: contain;
+      object-position: center;
+    }
+
   `;
 
   document.head.appendChild(style);
@@ -260,7 +269,7 @@
   hasProAccess().then(function (allowed) {
     if (allowed) {
       const img = document.createElement("img");
-      img.className = "photoSwipeImage";
+      img.className = "photoSwipeImage photoSwipeProImage";
       img.src = CONFIG.proImage;
       img.alt = "";
       img.draggable = false;
