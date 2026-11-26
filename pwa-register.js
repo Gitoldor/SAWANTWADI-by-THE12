@@ -31,6 +31,11 @@
 
   function handleResult(result) {
     if (!result || result.type !== "OFFLINE_PRELOAD_RESULT") return;
+    if (result.mode === "on-demand") {
+      showStatus("Offline cache ready", true,
+        "The main app shell is saved. Other app pages and assets are cached automatically as you visit them, without a large first-install download.");
+      return;
+    }
     if (result.total > 0 && result.failed === 0 && result.cached === result.total) {
       showStatus("✓ Everything loads offline", true,
         "All " + result.total + " app pages and repository files are cached on this device. External services and live data may still need internet.");
