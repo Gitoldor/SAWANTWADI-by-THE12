@@ -30,7 +30,7 @@
     if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw;
     try {
       var url = new URL(raw, window.location.href);
-      var host = url.hostname.replace(/^www\\./, "").toLowerCase();
+      var host = url.hostname.replace(/^www\./, "").toLowerCase();
       if (host === "youtu.be") return url.pathname.split("/").filter(Boolean)[0] || "";
       if (host.endsWith("youtube.com") || host === "youtube-nocookie.com") {
         if (url.searchParams.get("v")) return url.searchParams.get("v");
