@@ -121,7 +121,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method !== "GET" || !["/places", "/notifications", "/posts-by-email"].includes(path)) {
+  if (req.method !== "GET" || !["/places", "/media", "/notifications", "/posts-by-email"].includes(path)) {
     return send(res, 404, { success: false, error: "Not found" });
   }
 
@@ -147,6 +147,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { success: true, places: rows });
     }
 
+    if (path === "/media") {
+      const columns = "id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn,paymentOrderId,paymentUtr,paymentAmount,postCode,email";
+      const [postsResult, reelsResult, longFormsResult] = await Promise.all([
+        queryD1("SELECT " + columns + " FROM posts ORDER BY id DESC"),
+        queryD1("SELECT " + columns + " FROM reels ORDER BY id DESC"),
+        queryD1("SELECT " + columns + " FROM long_forms ORDER BY id DESC")
+      ]);
+
+      const normalizeMedia = (result, kind) => {
+        const rows = result[0]?.results;
+        if (!Array.isArray(rows)) throw new Error("Unexpected D1 " + kind + " response");
+        return rows.map(row => ({ ...row, sourceId: row.id, id: kind + "-" + row.id, contentKind: kind }));
+      };
+
+      return send(res, 200, {
+        success: true,
+        posts: normalizeMedia(postsResult, "post"),
+        reels: normalizeMedia(reelsResult, "reel"),
+        long_forms: normalizeMedia(longFormsResult, "long_form")
+      });
+    }
     if (path === "/notifications") {
       // Preserve the previous 24-hour notification lifetime.
       await queryD1(
