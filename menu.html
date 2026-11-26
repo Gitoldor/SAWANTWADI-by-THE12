@@ -941,45 +941,78 @@ body{
     </a>
   </div>
 
-<!-- Display-only PRO badge check. Uses the saved profile email; no GIS prompt or credential request. -->
+<!-- PRO menu state uses the same verified access check as PRO features. No GIS prompt is opened. -->
 <script>
 (function () {
   "use strict";
-  const PROFILE_KEY = "sho1re1_google_profile_v1";
-  const API = "https://sawantwadi-read-api.onrender.com/pro-status";
+
+  const PAID_EMAIL = "rajguruowais@gmail.com";
+  const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
   const item = document.getElementById("pro-menu-link");
   if (!item) return;
 
   let requestId = 0;
 
-  function readUser() {
-    try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); }
-    catch (_) { return null; }
+  function getAuth() {
+    try {
+      if (window.parent && window.parent.Sho1re1Auth) {
+        return window.parent.Sho1re1Auth;
+      }
+    } catch (_) {}
+    return window.Sho1re1Auth || null;
   }
+
+  function getUser(auth) {
+    try {
+      if (auth && typeof auth.getUser === "function") {
+        const user = auth.getUser();
+        if (user) return user;
+      }
+    } catch (_) {}
+    try {
+      return JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
+    } catch (_) {
+      return null;
+    }
+  }
+
   function paintPaid(active) {
     item.classList.toggle("pro-active", active === true);
   }
+
   function verifyPaid() {
-    const user = readUser();
-    const email = String(user && user.email || "").trim().toLowerCase();
     const currentRequest = ++requestId;
-    if (!email) {
+    const auth = getAuth();
+    const user = getUser(auth);
+    const email = String(user && user.email || "").trim().toLowerCase();
+
+    // Keep the same owner exception already used by the location-customize PRO gate.
+    if (email === PAID_EMAIL) {
+      paintPaid(true);
+      return;
+    }
+
+    const credential = auth && typeof auth.getCredential === "function"
+      ? auth.getCredential()
+      : "";
+
+    // Never open a Google popup just to colour the menu item.
+    if (!credential) {
       paintPaid(false);
       return;
     }
+
     fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ credential: credential }),
       cache: "no-store"
     }).then(function (response) {
-      if (!response.ok) throw new Error("PRO badge status request failed");
+      if (!response.ok) throw new Error("PRO access check failed");
       return response.json();
     }).then(function (result) {
-      const latest = readUser();
-      const latestEmail = String(latest && latest.email || "").trim().toLowerCase();
-      if (currentRequest === requestId && latestEmail === email) {
-        paintPaid(result.success === true && result.active === true);
+      if (currentRequest === requestId) {
+        paintPaid(result.success === true && result.allowed === true);
       }
     }).catch(function () {
       if (currentRequest === requestId) paintPaid(false);
@@ -989,8 +1022,14 @@ body{
   verifyPaid();
   window.addEventListener("focus", verifyPaid);
   window.addEventListener("storage", function (event) {
-    if (!event.key || event.key === PROFILE_KEY) verifyPaid();
+    if (!event.key || event.key === "sho1re1_google_profile_v1") verifyPaid();
   });
+  window.addEventListener("sho1re1:authchange", verifyPaid);
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.addEventListener("sho1re1:authchange", verifyPaid);
+    }
+  } catch (_) {}
 })();
 </script>
 
