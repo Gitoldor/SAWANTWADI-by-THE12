@@ -9,6 +9,21 @@
   var overlay = null;
   var previewPlayer = null;
   var previewHost = null;
+  var genericPreviewNode = null;
+  var genericPlayerNode = null;
+
+  function safeMediaUrl(value) {
+    try {
+      var url = new URL(String(value || "").trim(), window.location.href);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+      return url.href;
+    } catch (_) { return ""; }
+  }
+
+  function isDirectVideo(value) {
+    var url = safeMediaUrl(value);
+    return !!url && /\\.(mp4|webm|ogv|ogg|m4v)(?:$|[?#])/i.test(url);
+  }
 
   function getVideoId(value) {
     var raw = String(value || "").trim();
@@ -71,7 +86,9 @@
       "#sho1re1-youtube-shell{position:relative;width:min(100%,900px);aspect-ratio:16/9;background:#000;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55);}",
       "#sho1re1-youtube-shell.is-vertical{width:min(100%,420px);height:min(78vh,740px);aspect-ratio:9/16;}",
       "#sho1re1-youtube-player{width:100%;height:100%;}",
+      "#sho1re1-youtube-player iframe,#sho1re1-youtube-player video{display:block;width:100%;height:100%;border:0;background:#000;}",
       ".card .sho1re1-card-preview{position:absolute;inset:0;z-index:2;background:#000;overflow:hidden;border-radius:inherit;}",
+      ".card .sho1re1-card-preview video,.card .sho1re1-card-preview iframe{display:block;width:100%;height:100%;border:0;object-fit:cover;background:#000;}",
       ".card .sho1re1-card-preview .sho1re1-inline-youtube{width:100%;height:100%;pointer-events:none;}",
       ".card .sho1re1-card-preview iframe{width:100%;height:100%;object-fit:cover;}",
       "#sho1re1-youtube-close{position:absolute;right:10px;top:10px;z-index:3;width:42px;height:42px;border:0;border-radius:50%;background:rgba(20,20,20,.8);color:#fff;font-size:27px;line-height:1;cursor:pointer;}",
@@ -96,6 +113,10 @@
       try { player.destroy(); } catch (_) {}
     }
     player = null;
+    if (genericPlayerNode) {
+      try { genericPlayerNode.pause && genericPlayerNode.pause(); } catch (_) {}
+      genericPlayerNode = null;
+    }
     if (overlay) {
       overlay.classList.remove("is-open");
       var shell = overlay.querySelector("#sho1re1-youtube-shell");
@@ -111,6 +132,10 @@
       try { previewPlayer.destroy(); } catch (_) {}
     }
     previewPlayer = null;
+    if (genericPreviewNode) {
+      try { genericPreviewNode.pause && genericPreviewNode.pause(); } catch (_) {}
+      genericPreviewNode = null;
+    }
     if (previewHost) {
       previewHost.innerHTML = "";
       previewHost.classList.remove("is-playing");
@@ -122,46 +147,66 @@
 
   window.Sho1re1PreviewYouTube = function (url, host) {
     var videoId = getVideoId(url);
-    if (!videoId || !host) return false;
-    if (previewHost === host && previewPlayer) return true;
+    var safeUrl = safeMediaUrl(url);
+    if (!host || (!videoId && !safeUrl)) return false;
+    if (previewHost === host && (previewPlayer || genericPreviewNode)) return true;
     stopPreview();
     previewHost = host;
-    host.innerHTML = '<div class="sho1re1-inline-youtube"></div>';
     host.classList.add("is-playing");
-    var target = host.firstElementChild;
-    loadApi().then(function () {
-      if (previewHost !== host || !host.isConnected) return;
-      previewPlayer = new window.YT.Player(target, {
-        videoId: videoId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          playsinline: 1,
-          rel: 0,
-          modestbranding: 1,
-          mute: 1
-        },
-        events: {
-          onReady: function (event) {
-            event.target.mute();
-            event.target.playVideo();
-          }
-        }
+
+    if (videoId) {
+      host.innerHTML = '<div class="sho1re1-inline-youtube"></div>';
+      var target = host.firstElementChild;
+      loadApi().then(function () {
+        if (previewHost !== host || !host.isConnected) return;
+        previewPlayer = new window.YT.Player(target, {
+          videoId: videoId,
+          width: "100%",
+          height: "100%",
+          playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1, mute: 1 },
+          events: { onReady: function (event) { event.target.mute(); event.target.playVideo(); } }
+        });
+      }).catch(function (error) {
+        console.warn("[Sho1re1 YouTube] Muted preview could not start:", error);
       });
-    }).catch(function (error) {
-      console.warn("[Sho1re1 YouTube] Muted preview could not start:", error);
-    });
+      return true;
+    }
+
+    if (isDirectVideo(safeUrl)) {
+      var video = document.createElement("video");
+      video.src = safeUrl;
+      video.autoplay = true;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.preload = "none";
+      genericPreviewNode = video;
+      host.replaceChildren(video);
+      var playAttempt = video.play();
+      if (playAttempt && playAttempt.catch) playAttempt.catch(function () {});
+    } else {
+      var frameUrl = new URL(safeUrl);
+      frameUrl.searchParams.set("autoplay", "1");
+      frameUrl.searchParams.set("mute", "1");
+      var frame = document.createElement("iframe");
+      frame.src = frameUrl.href;
+      frame.title = "Media preview";
+      frame.loading = "lazy";
+      frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      frame.setAttribute("allowfullscreen", "");
+      genericPreviewNode = frame;
+      host.replaceChildren(frame);
+    }
     return true;
   };
 
   window.Sho1re1PlayYouTube = function (url, title, contentKind) {
     stopPreview();
     var videoId = getVideoId(url);
-    if (!videoId) {
-      console.warn("[Sho1re1 YouTube] Invalid video URL:", url);
+    var safeUrl = safeMediaUrl(url);
+    if (!videoId && !safeUrl) {
+      console.warn("[Sho1re1 Media] Unsupported or invalid media URL:", url);
       return false;
     }
     var root = ensureOverlay();
@@ -170,28 +215,47 @@
     shell.classList.toggle("is-vertical", contentKind === "reel");
     root.classList.add("is-open");
     target.innerHTML = "";
-    loadApi().then(function () {
-      if (!root.classList.contains("is-open")) return;
-      player = new window.YT.Player(target, {
-        videoId: videoId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          autoplay: 1,
-          playsinline: 1,
-          rel: 0,
-          modestbranding: 1
-        },
-        events: {
-          onReady: function (event) { event.target.playVideo(); },
-          onError: function (event) {
-            console.warn("[Sho1re1 YouTube] Playback error:", event.data);
+
+    if (videoId) {
+      loadApi().then(function () {
+        if (!root.classList.contains("is-open")) return;
+        player = new window.YT.Player(target, {
+          videoId: videoId,
+          width: "100%",
+          height: "100%",
+          playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+          events: {
+            onReady: function (event) { event.target.playVideo(); },
+            onError: function (event) { console.warn("[Sho1re1 YouTube] Playback error:", event.data); }
           }
-        }
+        });
+      }).catch(function (error) {
+        console.error("[Sho1re1 YouTube] Player could not start:", error);
       });
-    }).catch(function (error) {
-      console.error("[Sho1re1 YouTube] Player could not start:", error);
-    });
+      return true;
+    }
+
+    if (isDirectVideo(safeUrl)) {
+      var video = document.createElement("video");
+      video.src = safeUrl;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      genericPlayerNode = video;
+      target.appendChild(video);
+      var playAttempt = video.play();
+      if (playAttempt && playAttempt.catch) playAttempt.catch(function () {});
+    } else {
+      var frame = document.createElement("iframe");
+      frame.src = safeUrl;
+      frame.title = title || "Embedded video";
+      frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      frame.setAttribute("allowfullscreen", "");
+      genericPlayerNode = frame;
+      target.appendChild(frame);
+    }
     return true;
   };
 
