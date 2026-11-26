@@ -64,16 +64,21 @@
     const account = document.getElementById("pro-account");
     const message = document.getElementById("pro-message");
     const plans = { PRO_7D:{name:"PRO"}, MAX_30D:{name:"MAX"}, BUSINESS_PRO:{name:"BUSINESS PRO"}, BUSINESS_MAX:{name:"BUSINESS MAX"} };
-    let busy = false;
+    let busy = false, verifying = false, verifyTimer = null;
     function readUser(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");}catch(_){return null;}}
     function token(){try{return window.Sho1re1Auth&&window.Sho1re1Auth.getCredential();}catch(_){return "";}}
+    function readPending(){try{const p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");return p&&p.orderId?p:null;}catch(_){return null;}}
     function show(value){message.textContent=value;message.classList.add("show");}
     function renderAccount(){const u=readUser();account.textContent=u&&u.email?"Google account: "+u.email:"Sign in with Google first, then select a plan.";}
     function setBusy(value){busy=value;document.querySelectorAll("[data-plan]").forEach(b=>b.disabled=value);}
+    function stopPolling(){if(verifyTimer){clearInterval(verifyTimer);verifyTimer=null;}}
+    function beginPolling(){if(!verifyTimer)verifyTimer=setInterval(()=>{if(!document.hidden)verifyPendingOnce();},5000);verifyPendingOnce();}
     async function startCheckout(planId){
       if(busy)return;
+      const existing=readPending();
+      if(existing){show("You already have a payment order open. Returning to it and checking its status first…");beginPolling();return;}
       const u=readUser(),credential=token();
-      if(!u||!u.email||!u.sub||!credential){show("Please sign in with Google again so the server can verify your account.");return;}
+      if(!u||!u.email||!u.sub||!credential){show("Your Google session is not available. Please sign in once, then retry.");return;}
       setBusy(true);show("Creating a secure payment order…");
       try{
         const r=await fetch(API+"/api/orders",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({planId,credential})});
@@ -82,38 +87,49 @@
         const upiIntent=typeof d.order.upiIntent==="string"?d.order.upiIntent.trim():"";
         const checkoutUrl=typeof d.order.checkoutUrl==="string"?d.order.checkoutUrl.trim():"";
         if(!upiIntent&&!checkoutUrl)throw new Error("FamGateway did not return a UPI intent or checkout link. No payment was started.");
-        localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now()}));
+        localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now(),continuationToken:d.order.continuationToken||""}));
+        setBusy(false);
         if(upiIntent){
-          show("Opening your UPI app for ₹"+d.order.payableAmount+"…");
-          // Prefer the native UPI intent so Android can hand off directly to GPay,
-          // PhonePe, Paytm or another installed UPI app. Never treat app launch as payment.
+          show("UPI app opened. Complete or cancel the payment there, then return here — Sho1re1 will check automatically.");
           location.href=upiIntent;
         }else{
-          show("UPI intent unavailable. Opening secure FamGateway checkout…");
+          show("Opening secure FamGateway checkout. Return here after payment and Sho1re1 will check automatically.");
           location.href=checkoutUrl;
         }
       }catch(e){show(e.message||"Payment service is unavailable. Please try again.");setBusy(false);}
     }
-    async function resumePayment(){
-      let p=null;try{p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");}catch(_){}
-      if(!p||!p.orderId)return;
-      const credential=token();if(!readUser()||!credential){show("Your order is saved. Sign in again in this tab to verify it.");return;}
-      setBusy(true);show("Checking your payment securely…");const started=Date.now();
-      while(Date.now()-started<300000){
-        try{
-          const r=await fetch(API+"/api/verify",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({orderId:p.orderId,credential})});
-          const d=await r.json();
-          if(r.ok&&d.status==="paid"){localStorage.removeItem(PENDING_KEY);show("Payment verified. "+(plans[p.planId]?.name||"Your plan")+" is now active.");setBusy(false);return;}
-          if(r.ok&&d.status==="expired"){localStorage.removeItem(PENDING_KEY);show("This order expired. Select your plan again to create a fresh order.");setBusy(false);return;}
-          if(!r.ok&&r.status!==503)throw new Error(d.error||"Payment verification failed.");
-        }catch(e){if(Date.now()-started>15000)show("Waiting for confirmation. "+(e.message||""));}
-        await new Promise(resolve=>setTimeout(resolve,3000));
-      }
-      show("Still waiting for confirmation. Your order is saved; reload this page to check again.");setBusy(false);
+    async function verifyPendingOnce(){
+      if(verifying||document.hidden)return;
+      const p=readPending();if(!p)return;
+      verifying=true;
+      try{
+        const credential=token();
+        const body={orderId:p.orderId};
+        if(p.continuationToken)body.continuationToken=p.continuationToken;
+        else if(credential)body.credential=credential;
+        else {show("Your payment order is saved. Return in this same browser session to continue checking.");return;}
+        const r=await fetch(API+"/api/verify",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(body),cache:"no-store"});
+        const d=await r.json();
+        if(r.ok&&d.status==="paid"){
+          localStorage.removeItem(PENDING_KEY);stopPolling();setBusy(false);
+          show("Payment verified successfully. "+(plans[p.planId]?.name||"Your plan")+" is now active.");
+        }else if(r.ok&&d.status==="expired"){
+          localStorage.removeItem(PENDING_KEY);stopPolling();setBusy(false);
+          show("This payment order expired without a confirmed payment. You can safely choose a plan again.");
+        }else if(r.ok&&d.status==="pending"){
+          show("Payment not confirmed yet. If you completed it, wait a moment; otherwise finish or cancel it in your UPI app and return here. We'll keep checking.");
+        }else if(!r.ok){
+          show(d.error||"We couldn't check the payment just now. Your order is saved; we'll retry automatically.");
+        }
+      }catch(_){show("Connection interrupted. Your order is saved; Sho1re1 will retry when you return or reconnect.");}
+      finally{verifying=false;}
     }
     document.querySelectorAll("[data-plan]").forEach(b=>b.addEventListener("click",()=>startCheckout(b.dataset.plan)));
-    renderAccount();window.addEventListener("storage",renderAccount);window.addEventListener("sho1re1:authchange",renderAccount);window.addEventListener("focus",renderAccount);
-    if(new URLSearchParams(location.search).get("payment")==="return"||localStorage.getItem(PENDING_KEY))setTimeout(resumePayment,900);
+    renderAccount();window.addEventListener("storage",renderAccount);window.addEventListener("sho1re1:authchange",renderAccount);
+    window.addEventListener("focus",()=>{renderAccount();beginPolling();});
+    window.addEventListener("pageshow",()=>{if(readPending())beginPolling();});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden&&readPending())beginPolling();});
+    if(readPending()||new URLSearchParams(location.search).get("payment")==="return")setTimeout(beginPolling,700);
   })();
   </script>
 </body>
