@@ -104,7 +104,7 @@ const server = http.createServer(async (req, res) => {
       }
       const body = JSON.parse(raw || "{}");
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-      if (!email || email.length > 320 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      if (!email || email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return send(res, 400, { success: false, active: false, error: "Valid email required" });
       }
       const result = await queryD1(
