@@ -195,5 +195,15 @@
     return true;
   };
 
+  // Stop background playback when the app is hidden to save CPU, battery and data.
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      stopPreview();
+      if (player && typeof player.pauseVideo === "function") {
+        try { player.pauseVideo(); } catch (_) {}
+      }
+    }
+  });
+
   window.Sho1re1CloseYouTube = close;
 })();
