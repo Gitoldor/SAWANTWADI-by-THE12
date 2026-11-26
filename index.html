@@ -2373,21 +2373,22 @@ function renderMapAndCarousel() {
     const saveBtn = card.querySelector('.card-save-btn');
     setupCardSave(saveBtn, place);
 
+    // A single click selects/focuses every card just like a place card.
     card.onclick = (e) => {
       if (e.target.closest('.card-save-btn')) return;
-
-      // Media cards open directly on the first tap. Do not run place-card
-      // selection or map animation before opening the player.
-      if (place.contentKind) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        openPlaceLink(place);
-        return;
-      }
-
       setActive(idx);
       map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
     };
+
+    // Media opens only on a deliberate double click.
+    if (place.contentKind) {
+      card.ondblclick = (e) => {
+        if (e.target.closest('.card-save-btn')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openPlaceLink(place);
+      };
+    }
 
     carousel.appendChild(card);
     cardRefs.push(card);
