@@ -2375,9 +2375,19 @@ function renderMapAndCarousel() {
 
     card.onclick = (e) => {
       if (e.target.closest('.card-save-btn')) return;
+
+      // Media opens on the very first tap; don't wait for carousel centering
+      // or map animation to finish. Place cards keep their original behaviour.
+      if (place.contentKind) {
+        e.preventDefault();
+        e.stopPropagation();
+        setActive(idx);
+        openPlaceLink(place);
+        return;
+      }
+
       setActive(idx);
       map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
-      if (place.contentKind) openPlaceLink(place);
     };
 
     carousel.appendChild(card);
