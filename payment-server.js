@@ -65,6 +65,16 @@ async function queryD1(sql, params = []) {
 let schemaReady;
 async function ensureSchema() {
   if (!schemaReady) schemaReady = (async () => {
+    await queryD1(`CREATE TABLE IF NOT EXISTS sho1re1_auth_sessions (
+      token_hash TEXT PRIMARY KEY,
+      google_sub TEXT NOT NULL,
+      email TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL
+    )`);
+    await queryD1("CREATE INDEX IF NOT EXISTS idx_sho1re1_sessions_expiry ON sho1re1_auth_sessions(expires_at)");
     await queryD1(`CREATE TABLE IF NOT EXISTS sho1re1_payment_orders (
       order_id TEXT PRIMARY KEY,
       google_sub TEXT NOT NULL,
@@ -113,6 +123,36 @@ async function verifyGoogleCredential(token) {
     name: String(identity.name || "Sho1re1 user").slice(0, 80)
   };
 }
+
+function hashSessionToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+async function issueAppSession(identity) {
+  const token = "s1_" + crypto.randomBytes(32).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + 30 * 86400;
+  await queryD1(
+    "INSERT INTO sho1re1_auth_sessions (token_hash,google_sub,email,display_name,created_at,expires_at,last_seen_at) VALUES (?,?,?,?,?,?,?)",
+    [hashSessionToken(token), identity.sub, identity.email, identity.name, now, expiresAt, now]
+  );
+  return { token, expiresAt };
+}
+async function verifyAppSession(token) {
+  if (typeof token !== "string" || !token.startsWith("s1_") || token.length > 200) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const rows = await queryD1(
+    "SELECT google_sub,email,display_name,expires_at FROM sho1re1_auth_sessions WHERE token_hash=? AND expires_at>? LIMIT 1",
+    [hashSessionToken(token), now]
+  );
+  if (!rows.length) return null;
+  await queryD1("UPDATE sho1re1_auth_sessions SET last_seen_at=? WHERE token_hash=?", [now, hashSessionToken(token)]);
+  return { sub: String(rows[0].google_sub), email: String(rows[0].email).toLowerCase(), name: String(rows[0].display_name || "Sho1re1 user") };
+}
+async function verifyAppCredential(token) {
+  const session = await verifyAppSession(token);
+  return session || await verifyGoogleCredential(token);
+}
+
 function createPaymentContinuation(orderId, identity) {
   const payload = Buffer.from(JSON.stringify({
     orderId, sub: identity.sub, email: identity.email, name: identity.name,
@@ -290,9 +330,28 @@ const server = http.createServer(async (req, res) => {
   try {
     await ensureSchema();
 
-    if (req.method === "POST" && url.pathname === "/api/orders") {
+    if (req.method === "POST" && url.pathname === "/api/session") {
       const { body } = await readBody(req);
       const identity = await verifyGoogleCredential(body.credential);
+      const session = await issueAppSession(identity);
+      return send(res, 200, { success: true, sessionToken: session.token, expiresAt: new Date(session.expiresAt * 1000).toISOString(), user: { sub: identity.sub, email: identity.email, name: identity.name } });
+    }
+    if (req.method === "POST" && url.pathname === "/api/session/refresh") {
+      const { body } = await readBody(req);
+      const identity = await verifyAppCredential(body.sessionToken || body.credential);
+      const session = await issueAppSession(identity);
+      return send(res, 200, { success: true, sessionToken: session.token, expiresAt: new Date(session.expiresAt * 1000).toISOString() });
+    }
+    if (req.method === "POST" && url.pathname === "/api/session/logout") {
+      const { body } = await readBody(req);
+      const token = String(body.sessionToken || "");
+      if (token.startsWith("s1_")) await queryD1("DELETE FROM sho1re1_auth_sessions WHERE token_hash=?", [hashSessionToken(token)]);
+      return send(res, 200, { success: true });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/orders") {
+      const { body } = await readBody(req);
+      const identity = await verifyAppCredential(body.credential);
       const plan = PLANS[String(body.planId || "")];
       if (!plan) return send(res, 400, { success: false, error: "Unknown plan" });
 
@@ -347,7 +406,7 @@ const server = http.createServer(async (req, res) => {
       // Android switches to a UPI app, without storing or re-requesting Google login.
       const identity = body.continuationToken
         ? verifyPaymentContinuation(body.continuationToken, orderId)
-        : await verifyGoogleCredential(body.credential);
+        : await verifyAppCredential(body.credential);
       if (order.google_sub !== identity.sub) {
         return send(res, 404, { success: false, error: "Payment order not found for this account" });
       }
@@ -366,7 +425,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/subscription") {
       const { body } = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
+      const identity = await verifyAppCredential(body.credential);
       // If the buyer closed checkout before the return page loaded, the verified
       // webhook leaves the order PAID. Reconcile it on the next authenticated visit.
       const paidOrders = await queryD1(
