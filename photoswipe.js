@@ -117,6 +117,11 @@
       pointer-events: none;
     }
 
+    .photoSwipeImage.proShareSlide {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
 
   `;
 
@@ -156,7 +161,7 @@
 
     img.src = src;
 
-    img.alt = "";
+    img.alt = "Share your Sho1re1 PRO profile";
 
     img.draggable = false;
 
@@ -248,6 +253,12 @@
       img.alt = "";
       img.draggable = false;
       img.decoding = "async";
+      img.classList.add("proShareSlide");
+      img.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.href = new URL("pro-share.html", window.location.href).href;
+      });
       track.appendChild(img);
       imageElements.push(img);
     }
