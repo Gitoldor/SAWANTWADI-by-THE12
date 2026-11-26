@@ -150,7 +150,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const result = await queryD1(
-      "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn FROM places ORDER BY id DESC"
+      "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn,email FROM places ORDER BY id DESC"
     );
     const rows = result[0]?.results;
 
