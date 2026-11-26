@@ -2378,6 +2378,17 @@ function renderMapAndCarousel() {
     card.onclick = (e) => {
       if (e.target.closest('.card-save-btn')) return;
       setActive(idx);
+      if (place.contentKind && window.Sho1re1PreviewYouTube) {
+        let preview = card.querySelector('.sho1re1-card-preview');
+        if (!preview) {
+          preview = document.createElement('div');
+          preview.className = 'sho1re1-card-preview';
+          card.appendChild(preview);
+        }
+        window.Sho1re1PreviewYouTube(place.link, preview);
+      } else if (window.Sho1re1StopYouTubePreview) {
+        window.Sho1re1StopYouTubePreview();
+      }
       const targetMarker = markerMap.get(idx);
       if (targetMarker) {
         // Reveal the exact marker even when it is buried inside a dense cluster.
