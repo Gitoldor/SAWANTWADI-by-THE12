@@ -22,7 +22,7 @@
 
   function isDirectVideo(value) {
     var url = safeMediaUrl(value);
-    return !!url && /\\.(mp4|webm|ogv|ogg|m4v)(?:$|[?#])/i.test(url);
+    return !!url && /\.(mp4|webm|ogv|ogg|m4v)(?:$|[?#])/i.test(url);
   }
 
   function getVideoId(value) {
