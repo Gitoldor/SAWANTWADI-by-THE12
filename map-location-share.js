@@ -25,16 +25,15 @@
     var auth=window.Sho1re1Auth;
     var profile=auth&&typeof auth.getUser==='function'?auth.getUser():null;
     var email=profile&&typeof profile.email==='string'?profile.email.trim().toLowerCase():'';
-    var credential=auth&&typeof auth.getCredential==='function'?auth.getCredential():'';
     upgrade.style.display='inline';
-    if(email&&credential){
-        fetch('https://sawantwadi-read-api.onrender.com/location-custom-access',{
+    if(email){
+        fetch('https://sawantwadi-read-api.onrender.com/pro-status',{
           method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({credential:credential,email:email}),cache:'no-store'
+          body:JSON.stringify({email:email}),cache:'no-store'
         }).then(function(response){if(!response.ok)throw new Error('Access check failed');return response.json();})
         .then(function(data){
           if(!modal||!modal.classList.contains('open'))return;
-          customizationAllowed=data.success===true&&data.allowed===true;
+          customizationAllowed=data.success===true&&data.active===true;
           button.disabled=!customizationAllowed;
           button.classList.toggle('s1loc-locked',!customizationAllowed);
           button.setAttribute('aria-disabled',String(!customizationAllowed));
