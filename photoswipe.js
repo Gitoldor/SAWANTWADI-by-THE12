@@ -118,14 +118,6 @@
       pointer-events: none;
     }
 
-    /* Slightly reduce only the PRO fifth image and keep it centered. */
-    .photoSwipeProImage {
-      width: 92%;
-      margin-left: auto;
-      margin-right: auto;
-      object-fit: contain;
-      object-position: center;
-    }
 
   `;
 
@@ -269,7 +261,7 @@
   hasProAccess().then(function (allowed) {
     if (allowed) {
       const img = document.createElement("img");
-      img.className = "photoSwipeImage photoSwipeProImage";
+      img.className = "photoSwipeImage";
       img.src = CONFIG.proImage;
       img.alt = "";
       img.draggable = false;
