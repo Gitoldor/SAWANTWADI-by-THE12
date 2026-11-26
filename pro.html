@@ -18,7 +18,14 @@
     .intro{font-size:14px;line-height:1.65;color:#777;margin:0 0 24px}
     .account{font-size:12px;color:#888;margin:0 0 22px;overflow-wrap:anywhere}
     .account strong{color:#171717;font-weight:700}
+    .membership-status{display:none;margin:0 0 20px;padding:18px;border:1px solid #e7e7eb;border-radius:19px;background:#fff;box-shadow:0 7px 24px #00000006}
+    .membership-status.show{display:block}
+    .membership-status h2{font-size:15px;margin:0 0 8px;font-weight:800}
+    .membership-status p{font-size:12px;line-height:1.65;color:#777;margin:5px 0}
+    .membership-status .status-plan{font-size:23px;font-weight:850;letter-spacing:-.7px;color:#2878ff}
+    .retry-check{margin-top:10px;border:0;border-radius:12px;padding:11px 15px;background:#111;color:white;font:700 12px Inter,sans-serif}
     .plans{display:grid;gap:12px}
+    .plans[hidden]{display:none!important}
     .plan{position:relative;border:1px solid #e9e9ec;border-radius:21px;padding:19px;background:#fff;box-shadow:0 7px 24px #00000006;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
     .plan.selected{border-color:#2878ff;box-shadow:0 0 0 1px #2878ff inset,0 8px 24px #2878ff12}
     .plan h2{font-size:15px;margin:0 0 8px;font-weight:800;letter-spacing:-.2px}
@@ -43,7 +50,13 @@
     <p class="intro">Choose the access plan that fits you.</p>
     <p class="account" id="pro-account">Checking your Google account…</p>
 
-    <section class="plans" aria-label="Sho1re1 membership plans">
+    <section class="membership-status show" id="membership-status" aria-live="polite">
+      <h2 id="membership-heading">Checking your membership…</h2>
+      <p id="membership-detail">Checking the subscription database for your signed-in Google account.</p>
+      <button class="retry-check" id="membership-retry" type="button" hidden>Retry check</button>
+    </section>
+
+    <section class="plans" id="membership-plans" aria-label="Sho1re1 membership plans" hidden>
       <article class="plan" data-card="PRO_7D"><h2>PRO</h2><div class="price-line"><span class="price">₹5</span><span class="duration">/ 7 days</span></div><button class="choose" type="button" data-plan="PRO_7D">Choose PRO</button></article>
       <article class="plan" data-card="MAX_30D"><h2>MAX</h2><div class="price-line"><span class="price">₹20</span><span class="duration">/ 30 days</span></div><button class="choose" type="button" data-plan="MAX_30D">Choose MAX</button></article>
       <article class="plan" data-card="BUSINESS_PRO"><h2>BUSINESS PRO</h2><div class="price-line"><span class="price">₹10</span><span class="duration">/ 7 days</span></div><button class="choose" type="button" data-plan="BUSINESS_PRO">Choose BUSINESS PRO</button></article>
@@ -63,16 +76,62 @@
     const PENDING_KEY = "sho1re1_payment_pending_v1";
     const account = document.getElementById("pro-account");
     const message = document.getElementById("pro-message");
+    const membershipStatus = document.getElementById("membership-status");
+    const membershipHeading = document.getElementById("membership-heading");
+    const membershipDetail = document.getElementById("membership-detail");
+    const membershipRetry = document.getElementById("membership-retry");
+    const planSection = document.getElementById("membership-plans");
     const plans = { PRO_7D:{name:"PRO"}, MAX_30D:{name:"MAX"}, BUSINESS_PRO:{name:"BUSINESS PRO"}, BUSINESS_MAX:{name:"BUSINESS MAX"} };
-    let busy = false, verifying = false, verifyTimer = null;
+    let busy = false, verifying = false, verifyTimer = null, authVersion = 0;
     function readUser(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");}catch(_){return null;}}
     function token(){try{return window.Sho1re1Auth&&window.Sho1re1Auth.getCredential();}catch(_){return "";}}
     function readPending(){try{const p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");return p&&p.orderId?p:null;}catch(_){return null;}}
     function show(value){message.textContent=value;message.classList.add("show");}
-    function renderAccount(){const u=readUser();account.textContent=u&&u.email?"Google account: "+u.email:"Sign in with Google first, then select a plan.";}
+    function renderAccount(){const u=readUser();account.textContent=u&&u.email?"Google account: "+u.email:"Sign in with Google to check your membership.";}
+    function membershipView(title,detail,showPlans,retry){
+      membershipHeading.textContent=title;
+      membershipDetail.textContent=detail;
+      membershipStatus.classList.add("show");
+      membershipRetry.hidden=!retry;
+      planSection.hidden=!showPlans;
+    }
     function setBusy(value){busy=value;document.querySelectorAll("[data-plan]").forEach(b=>b.disabled=value);}
     function stopPolling(){if(verifyTimer){clearInterval(verifyTimer);verifyTimer=null;}}
     function beginPolling(){if(!verifyTimer)verifyTimer=setInterval(()=>{if(!document.hidden)verifyPendingOnce();},5000);verifyPendingOnce();}
+    async function loadSubscription(){
+      const version=++authVersion;
+      const u=readUser(),credential=token();
+      membershipView("Checking your membership…","Looking up the signed-in Google account in the subscription database.",false,false);
+      if(!u||!u.email||!u.sub||!credential){
+        membershipView("Google sign-in required","We need to verify your Google account before showing membership or purchase options. Your existing database membership has not been changed.",false,false);
+        return;
+      }
+      try{
+        const r=await fetch(API+"/api/subscription",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({credential}),cache:"no-store"});
+        const d=await r.json();
+        if(version!==authVersion)return;
+        if(!r.ok||!d.success||!Array.isArray(d.subscriptions))throw new Error(d.error||"Could not read your membership from the database.");
+        const live=d.subscriptions;
+        if(live.length){
+          const labels={PRO_7D:"PRO",MAX_30D:"MAX",BUSINESS_PRO:"BUSINESS PRO",BUSINESS_MAX:"BUSINESS MAX",PRO_LEGACY:"LEGACY PRO"};
+          const parts=live.map(s=>{
+            const name=labels[s.planId]||String(s.planId||"ACTIVE MEMBERSHIP");
+            const expiry=s.expiresAt?new Date(s.expiresAt):null;
+            const expiryText=expiry&&!Number.isNaN(expiry.getTime())?"Valid until "+expiry.toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}):"Active · no expiry recorded";
+            return name+" — "+expiryText;
+          });
+          membershipView("Your membership is active",parts.join("  •  "),false,false);
+          document.getElementById("pro-page").classList.add("pro-active");
+        }else{
+          document.getElementById("pro-page").classList.remove("pro-active");
+          membershipView("No active membership","No active plan is currently recorded for "+d.email+". Choose a plan below if you'd like to subscribe.",true,false);
+        }
+      }catch(e){
+        if(version!==authVersion)return;
+        membershipView("Couldn't check your membership",e.message||"Database check failed. Your membership status is unknown, so purchase options are hidden to prevent duplicate purchases.",false,true);
+      }
+    }
+    membershipRetry.addEventListener("click",loadSubscription);
     async function startCheckout(planId){
       if(busy)return;
       const existing=readPending();
@@ -125,7 +184,9 @@
       finally{verifying=false;}
     }
     document.querySelectorAll("[data-plan]").forEach(b=>b.addEventListener("click",()=>startCheckout(b.dataset.plan)));
-    renderAccount();window.addEventListener("storage",renderAccount);window.addEventListener("sho1re1:authchange",renderAccount);
+    renderAccount();loadSubscription();
+    window.addEventListener("storage",()=>{renderAccount();loadSubscription();});
+    window.addEventListener("sho1re1:authchange",()=>{renderAccount();loadSubscription();});
     window.addEventListener("focus",()=>{renderAccount();beginPolling();});
     window.addEventListener("pageshow",()=>{if(readPending())beginPolling();});
     document.addEventListener("visibilitychange",()=>{if(!document.hidden&&readPending())beginPolling();});
