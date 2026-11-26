@@ -18,7 +18,6 @@
     // Fifth slide is appended only after the same verified PRO access check
     // used by the location-customization feature succeeds.
     proImage: "https://i.ibb.co/Zp8VjjXV/1000014335-removebg-preview.png",
-    proEmail: "rajguruowais@gmail.com",
     proAccessAPI: "https://sawantwadi-read-api.onrender.com/location-custom-access",
 
     // 9:16 portrait
@@ -184,36 +183,26 @@
      ========================================================== */
 
   async function hasProAccess() {
-    let auth = window.Sho1re1Auth || null;
+    const auth = window.Sho1re1Auth || null;
     let user = null;
-
     try {
-      if (auth && typeof auth.getUser === "function") {
-        user = auth.getUser();
-      }
-      if (!user) {
-        user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
-      }
+      user = auth && typeof auth.getUser === "function" ? auth.getUser() : null;
     } catch (_) {}
 
     const email = String(user && user.email || "").trim().toLowerCase();
-
-    // Match the existing owner exception used by the PRO location feature.
-    if (email === CONFIG.proEmail) return true;
-
-    // Use the same Google-credential verification endpoint as PRO features.
-    // Never open a Google popup just to decide whether to show slide five.
     const credential = auth && typeof auth.getCredential === "function"
       ? auth.getCredential()
       : "";
 
-    if (!credential) return false;
+    // Require a live signed-in Google credential; cached profile data alone
+    // must never unlock a PRO-only slide.
+    if (!email || !credential) return false;
 
     try {
       const response = await fetch(CONFIG.proAccessAPI, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: credential }),
+        body: JSON.stringify({ credential: credential, email: email }),
         cache: "no-store"
       });
 
