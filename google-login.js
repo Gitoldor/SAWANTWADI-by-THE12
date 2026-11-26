@@ -67,6 +67,35 @@
       return null;
     }
   }
+
+  // Send one welcome email for a first-time local profile on this device.
+  // The Google ID token is sent only to the Sho1re1 mail API for verification;
+  // the profile and sign-in session remain local to this browser.
+  function sendFirstLoginWelcome(token, data, firstLocalLogin) {
+    const key = "sho1re1_welcome_email_sent_v1_" + String(data && data.sub || "");
+    let state = "";
+    try { state = localStorage.getItem(key) || ""; } catch (_) {}
+    if (state === "sent" || (!firstLocalLogin && state !== "pending")) return;
+    try { localStorage.setItem(key, "pending"); } catch (_) {}
+
+    fetch("https://sho1re1-mail-api.onrender.com/welcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: token })
+    }).then(response => response.json().then(payload => ({
+      ok: response.ok,
+      payload: payload
+    }))).then(result => {
+      if (result.ok && result.payload && result.payload.success === true) {
+        try { localStorage.setItem(key, "sent"); } catch (_) {}
+      } else {
+        console.warn("Sho1re1 welcome email was not sent.", result.payload && result.payload.error || "Request failed");
+      }
+    }).catch(error => {
+      console.warn("Sho1re1 welcome email request failed.", error);
+    });
+  }
+
   function onCredential(response) {
     credential = response.credential || "";
     const data = decodeCredential(credential);
@@ -76,6 +105,7 @@
     credentialWaiters.clear();
     window.dispatchEvent(new CustomEvent("sho1re1:credential", { detail: { email: data.email || "" } }));
     const previous = readUser();
+    const firstLocalLogin = !previous || previous.sub !== data.sub;
     const returningProfile = previous && previous.sub === data.sub && previous.displayName;
     saveUser({
       sub: data.sub,
@@ -85,6 +115,10 @@
       displayName: returningProfile ? previous.displayName : "",
       signedInAt: Date.now()
     });
+    if (firstLocalLogin || (function () {
+      try { return localStorage.getItem("sho1re1_welcome_email_sent_v1_" + data.sub) === "pending"; }
+      catch (_) { return false; }
+    })()) sendFirstLoginWelcome(credential, data, firstLocalLogin);
     if (!returningProfile) promptName();
     else closeWelcome();
   }
