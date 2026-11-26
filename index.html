@@ -1012,10 +1012,11 @@ body.page-transition-up {
    ============================================================ */
 
 .cluster-wrap {
-  width: 120px;
-  height: 70px;
+  width: 140px;
+  height: 90px;
 
   position: relative;
+  overflow: visible;
 
   transition:
     transform .5s cubic-bezier(.16,1.4,.3,1);
@@ -1028,8 +1029,8 @@ body.page-transition-up {
 .cluster-card {
   position: absolute;
 
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
 
   border-radius: 28px;
 
@@ -1069,20 +1070,20 @@ body.page-transition-up {
 }
 
 .cluster-card:nth-child(1) {
-  left: 0;
-  top: 0;
+  left: 8px;
+  top: 18px;
   transform: rotate(-8deg);
 }
 
 .cluster-card:nth-child(2) {
-  left: 24px;
-  top: 2px;
+  left: 38px;
+  top: 13px;
   transform: rotate(4deg);
 }
 
 .cluster-card:nth-child(3) {
-  left: 48px;
-  top: 4px;
+  left: 68px;
+  top: 18px;
   transform: rotate(-5deg);
 }
 
@@ -2377,7 +2378,15 @@ function renderMapAndCarousel() {
     card.onclick = (e) => {
       if (e.target.closest('.card-save-btn')) return;
       setActive(idx);
-      map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
+      const targetMarker = markerMap.get(idx);
+      if (targetMarker) {
+        // Reveal the exact marker even when it is buried inside a dense cluster.
+        clusterLayer.zoomToShowLayer(targetMarker, () => {
+          map.panTo([place.lat, place.lng], { animate: true, duration: 0.45 });
+        });
+      } else {
+        map.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
+      }
     };
 
     // Media opens only on a deliberate double click.
@@ -2704,9 +2713,11 @@ MARKER CLUSTER & FILTERS
 ========================= */
 const clusterLayer = L.markerClusterGroup({
   showCoverageOnHover: false,
+  zoomToBoundsOnClick: false,
   spiderfyOnMaxZoom: true,
+  spiderfyDistanceMultiplier: 1.5,
   disableClusteringAtZoom: 17,
-  maxClusterRadius: 90,
+  maxClusterRadius: 75,
   iconCreateFunction: (cluster) => {
     const total = cluster.getChildCount();
     const images = cluster.getAllChildMarkers().slice(0, 3).map(m => `
@@ -2715,11 +2726,25 @@ const clusterLayer = L.markerClusterGroup({
     return L.divIcon({
       html: `<div class="cluster-wrap"><div class="cluster-count">${total > 9 ? '10+' : total}</div>${images}</div>`,
       className: '',
-      iconSize: [120, 70]
+      iconSize: [140, 90],
+      iconAnchor: [70, 45]
     });
   }
 });
 map.addLayer(clusterLayer);
+
+// A cluster tap expands to the closest useful zoom instead of stopping at
+// the cluster plugin's default zoom level.
+clusterLayer.on('clusterclick', (event) => {
+  const bounds = event.layer.getBounds();
+  if (bounds && bounds.isValid()) {
+    map.fitBounds(bounds, {
+      padding: [80, 80],
+      maxZoom: 19,
+      animate: true
+    });
+  }
+});
 
 function setActive(index){
   if(activeIndex === index) return;
