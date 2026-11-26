@@ -6,8 +6,11 @@
   const CLIENT_ID = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
   const STORAGE_KEY = "sho1re1_google_profile_v1";
   const CREDENTIAL_STORAGE_KEY = "sho1re1_google_credential_session_v1";
+  const APP_SESSION_KEY = "sho1re1_app_session_v1";
+  const SESSION_API = "https://sho1re1-payments.onrender.com";
   let user = readUser();
   let credential = readSessionCredential();
+  let appSession = readAppSession();
   let ready = false;
   let pendingCredentialRequest = false;
   const credentialWaiters = new Set();
@@ -33,6 +36,24 @@
       }
       return saved.token;
     } catch (_) { return ""; }
+  }
+  function readAppSession() {
+    try { const saved = JSON.parse(localStorage.getItem(APP_SESSION_KEY) || "null");
+      if (!saved || typeof saved.token !== "string" || !saved.token || Number(saved.exp) * 1000 <= Date.now()) { localStorage.removeItem(APP_SESSION_KEY); return ""; }
+      return saved.token;
+    } catch (_) { return ""; }
+  }
+  function saveAppSession(token, expiresAt) {
+    try { if (!token || !expiresAt || Number(expiresAt) * 1000 <= Date.now()) return;
+      localStorage.setItem(APP_SESSION_KEY, JSON.stringify({ token, exp: Number(expiresAt) })); appSession = token;
+    } catch (_) {}
+  }
+  async function establishAppSession(token) {
+    try {
+      const response = await fetch(SESSION_API + "/api/session", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ credential: token }) });
+      const data = await response.json();
+      if (response.ok && data.success && data.sessionToken && data.expiresAt) saveAppSession(data.sessionToken, Math.floor(new Date(data.expiresAt).getTime() / 1000));
+    } catch (error) { console.warn("Sho1re1 persistent session could not be created yet.", error); }
   }
   function saveSessionCredential(token, data) {
     try {
@@ -72,6 +93,8 @@
     const data = decodeCredential(credential);
     if (!data || !data.sub) { credential = ""; return; }
     saveSessionCredential(credential, data);
+    appSession = "";
+    establishAppSession(credential);
     credentialWaiters.forEach(fn => { try { fn(credential); } catch (_) {} });
     credentialWaiters.clear();
     window.dispatchEvent(new CustomEvent("sho1re1:credential", { detail: { email: data.email || "" } }));
@@ -112,21 +135,13 @@
     google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: onCredential,
-      auto_select: true,
+      auto_select: false,
       cancel_on_tap_outside: true
     });
     ready = true;
     pendingCredentialRequest = false;
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
 
-    // Restore an existing Google session when the browser still has the
-    // user's Google authorization. GIS can silently return a fresh ID token
-    // for auto-selected accounts; no long-lived bearer token is stored here.
-    if (user && google.accounts.id.prompt) {
-      try { google.accounts.id.prompt(); } catch (error) {
-        console.warn("Sho1re1 automatic Google session restore was unavailable.", error);
-      }
-    }
   }
   function renderButton(target) {
     if (!target) return;
@@ -193,8 +208,13 @@
     overlay.querySelector(".sho-auth-later").addEventListener("click", closeWelcome);
   }
   function signOut() {
+    const oldSession = appSession;
     credential = "";
-    try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); } catch (_) {}
+    appSession = "";
+    if (oldSession) {
+      fetch(SESSION_API + "/api/session/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionToken: oldSession }) }).catch(() => {});
+    }
+    try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); localStorage.removeItem(APP_SESSION_KEY); } catch (_) {}
     saveUser(null);
     if (ready && google.accounts.id.disableAutoSelect) google.accounts.id.disableAutoSelect();
   }
@@ -207,6 +227,7 @@
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
     getCredential: () => credential,
+    getSessionToken: () => appSession,
     requestCredential(callback) {
       if (credential) { if (typeof callback === "function") callback(credential); return; }
       if (typeof callback === "function") credentialWaiters.add(callback);
