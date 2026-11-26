@@ -1,13 +1,13 @@
 /* Sawantwadi full-site offline preload. */
 "use strict";
 
-const CACHE_NAME = "sawantwadi-static-v3";
+const CACHE_NAME = "sawantwadi-static-v4";
 const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
 const STATUS_URL = new URL("./offline-preload-status.json", self.registration.scope).href;
 
 async function preloadAll() {
   const cache = await caches.open(CACHE_NAME);
-  const manifestResponse = await fetch(MANIFEST_URL, { cache: "no-store" });
+  const manifestResponse = await fetch(MANIFEST_URL);
   if (!manifestResponse.ok) throw new Error("Offline asset manifest could not be loaded");
   const manifest = await manifestResponse.json();
   const files = Array.isArray(manifest.files) ? manifest.files : [];
@@ -20,7 +20,7 @@ async function preloadAll() {
       const url = new URL(path, self.registration.scope);
       try {
         // Always refresh from the live site so offline copies cannot stay stale.
-        const response = await fetch(url.href, { cache: "no-store" });
+        const response = await fetch(url.href);
         if (!response.ok || response.type !== "basic") {
           throw new Error("HTTP " + response.status);
         }
@@ -55,10 +55,20 @@ async function readPreloadStatus() {
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const manifestResponse = await fetch(MANIFEST_URL, { cache: "no-store" });
+    const manifestResponse = await fetch(MANIFEST_URL);
     if (!manifestResponse.ok) throw new Error("Offline asset manifest could not be loaded");
     await cache.put(MANIFEST_URL, manifestResponse.clone());
-    await preloadAll();
+    // Keep first install light: cache only the main app shell.
+    // Other same-origin pages and assets are cached automatically when visited.
+    const shellURL = new URL("./index.html", self.registration.scope).href;
+    const shellResponse = await fetch(shellURL);
+    if (!shellResponse.ok || shellResponse.type !== "basic") {
+      throw new Error("Main app shell could not be cached");
+    }
+    await cache.put(shellURL, shellResponse.clone());
+    await cache.put(STATUS_URL, new Response(JSON.stringify({
+      type: "OFFLINE_PRELOAD_RESULT", total: 0, cached: 1, failed: 0, mode: "on-demand"
+    }), { headers: { "Content-Type": "application/json" } }));
     await self.skipWaiting();
   })());
 });
@@ -125,7 +135,7 @@ self.addEventListener("fetch", event => {
     const cache = await caches.open(CACHE_NAME);
     // Network-first: serve current code whenever online, retain cache for offline use.
     try {
-      const response = await fetch(request, { cache: "no-store" });
+      const response = await fetch(request);
       if (response.ok && response.type === "basic") {
         await cache.put(key, response.clone());
       }
