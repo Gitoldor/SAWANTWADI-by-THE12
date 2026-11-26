@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#fcfcfc">
-  <title>PRO · Sho1re1</title>
+  <title>Membership · Sho1re1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -39,114 +39,70 @@
   <main class="page" id="pro-page">
     <a class="back" href="index.html">← Back to app</a>
     <div class="eyebrow">SHO1RE1 MEMBERSHIP</div>
-    <h1>PRO</h1>
-    <p class="intro">Choose your PRO access period.</p>
+    <h1>MEMBERSHIP</h1>
+    <p class="intro">Choose the access plan that fits you.</p>
     <p class="account" id="pro-account">Checking your Google account…</p>
 
-    <section class="plans" aria-label="PRO plans">
-      <article class="plan" data-card="PRO_7D">
-        <h2>Weekly PRO</h2>
-        <div class="price-line"><span class="price">₹5</span><span class="duration">/ 7 days</span></div>
-        <button class="choose" type="button" data-plan="PRO_7D">Select weekly plan</button>
-      </article>
-      <article class="plan" data-card="PRO_30D">
-        <h2>Monthly PRO</h2>
-        <div class="price-line"><span class="price">₹20</span><span class="duration">/ 30 days</span></div>
-        <button class="choose" type="button" data-plan="PRO_30D">Select monthly plan</button>
-      </article>
+    <section class="plans" aria-label="Sho1re1 membership plans">
+      <article class="plan" data-card="PRO_7D"><h2>PRO</h2><div class="price-line"><span class="price">₹5</span><span class="duration">/ 7 days</span></div><button class="choose" type="button" data-plan="PRO_7D">Choose PRO</button></article>
+      <article class="plan" data-card="MAX_30D"><h2>MAX</h2><div class="price-line"><span class="price">₹20</span><span class="duration">/ 30 days</span></div><button class="choose" type="button" data-plan="MAX_30D">Choose MAX</button></article>
+      <article class="plan" data-card="BUSINESS_PRO"><h2>BUSINESS PRO</h2><div class="price-line"><span class="price">₹10</span><span class="duration">/ 7 days</span></div><button class="choose" type="button" data-plan="BUSINESS_PRO">Choose BUSINESS PRO</button></article>
+      <article class="plan" data-card="BUSINESS_MAX"><h2>BUSINESS MAX</h2><div class="price-line"><span class="price">₹30</span><span class="duration">/ 30 days</span></div><button class="choose" type="button" data-plan="BUSINESS_MAX">Choose BUSINESS MAX</button></article>
     </section>
 
     <div class="message" id="pro-message" role="status" aria-live="polite"></div>
-    <p class="note">Your Google profile remains saved on this device. Selecting a plan only saves your choice locally. Your Gmail address is sent to the PRO database only after payment is successfully verified. Payment activation is not connected yet.</p>
+    <p class="note">Your account email is saved to the subscription database only after FamGateway confirms the full payment. Orders are verified by the Sho1re1 server.</p>
   </main>
 
   <script src="./google-login.js"></script>
   <script>
   (function () {
     "use strict";
+    const API = "https://sho1re1-payments.onrender.com";
     const PROFILE_KEY = "sho1re1_google_profile_v1";
-    const PLAN_KEY = "sho1re1_pro_selected_plan_v1";
+    const PENDING_KEY = "sho1re1_payment_pending_v1";
     const account = document.getElementById("pro-account");
     const message = document.getElementById("pro-message");
-    const page = document.getElementById("pro-page");
-    const plans = {
-      PRO_7D: { name: "Weekly PRO", price: 5, durationDays: 7 },
-      PRO_30D: { name: "Monthly PRO", price: 20, durationDays: 30 }
-    };
-
-    function readUser() {
-      try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); }
-      catch (_) { return null; }
+    const plans = { PRO_7D:{name:"PRO"}, MAX_30D:{name:"MAX"}, BUSINESS_PRO:{name:"BUSINESS PRO"}, BUSINESS_MAX:{name:"BUSINESS MAX"} };
+    let busy = false;
+    function readUser(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");}catch(_){return null;}}
+    function token(){try{return window.Sho1re1Auth&&window.Sho1re1Auth.getCredential();}catch(_){return "";}}
+    function show(value){message.textContent=value;message.classList.add("show");}
+    function renderAccount(){const u=readUser();account.textContent=u&&u.email?"Google account: "+u.email:"Sign in with Google first, then select a plan.";}
+    function setBusy(value){busy=value;document.querySelectorAll("[data-plan]").forEach(b=>b.disabled=value);}
+    async function startCheckout(planId){
+      if(busy)return;
+      const u=readUser(),credential=token();
+      if(!u||!u.email||!u.sub||!credential){show("Please sign in with Google again so the server can verify your account.");return;}
+      setBusy(true);show("Creating a secure payment order…");
+      try{
+        const r=await fetch(API+"/api/orders",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({planId,credential})});
+        const d=await r.json();
+        if(!r.ok||!d.success||!d.order||!d.order.orderId||!d.order.checkoutUrl)throw new Error(d.error||"Could not create the payment order.");
+        localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now()}));
+        show("Opening FamGateway checkout for ₹"+d.order.payableAmount+"…");location.href=d.order.checkoutUrl;
+      }catch(e){show(e.message||"Payment service is unavailable. Please try again.");setBusy(false);}
     }
-    function showMessage(text) {
-      message.textContent = text;
-      message.classList.add("show");
-    }
-    function paintSelection() {
-      let saved = null;
-      try { saved = JSON.parse(localStorage.getItem(PLAN_KEY) || "null"); } catch (_) {}
-      const user = readUser();
-      const matches = saved && user && saved.email &&
-        saved.email.toLowerCase() === String(user.email || "").toLowerCase() &&
-        saved.googleSub === user.sub;
-      document.querySelectorAll("[data-card]").forEach(card => {
-        card.classList.toggle("selected", !!(matches && card.dataset.card === saved.planId));
-      });
-      document.querySelectorAll("[data-plan]").forEach(button => {
-        button.textContent = matches && button.dataset.plan === saved.planId
-          ? "Selected" : button.dataset.plan === "PRO_7D"
-            ? "Select weekly plan" : "Select monthly plan";
-      });
-    }
-    function renderAccount() {
-      const user = readUser();
-      if (!user || !user.email) {
-        account.textContent = "Sign in with Google first, then select a plan.";
-        page.classList.remove("pro-active");
-        return;
+    async function resumePayment(){
+      let p=null;try{p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");}catch(_){}
+      if(!p||!p.orderId)return;
+      const credential=token();if(!readUser()||!credential){show("Your order is saved. Sign in again in this tab to verify it.");return;}
+      setBusy(true);show("Checking your payment securely…");const started=Date.now();
+      while(Date.now()-started<300000){
+        try{
+          const r=await fetch(API+"/api/verify",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({orderId:p.orderId,credential})});
+          const d=await r.json();
+          if(r.ok&&d.status==="paid"){localStorage.removeItem(PENDING_KEY);show("Payment verified. "+(plans[p.planId]?.name||"Your plan")+" is now active.");setBusy(false);return;}
+          if(r.ok&&d.status==="expired"){localStorage.removeItem(PENDING_KEY);show("This order expired. Select your plan again to create a fresh order.");setBusy(false);return;}
+          if(!r.ok&&r.status!==503)throw new Error(d.error||"Payment verification failed.");
+        }catch(e){if(Date.now()-started>15000)show("Waiting for confirmation. "+(e.message||""));}
+        await new Promise(resolve=>setTimeout(resolve,3000));
       }
-      account.innerHTML = "";
-      const label = document.createElement("span");
-      label.textContent = "Google account: ";
-      const email = document.createElement("strong");
-      email.textContent = user.email;
-      account.append(label, email);
-      paintSelection();
+      show("Still waiting for confirmation. Your order is saved; reload this page to check again.");setBusy(false);
     }
-    function selectPlan(planId) {
-      const user = readUser();
-      if (!user || !user.email || !user.sub) {
-        showMessage("Please sign in with Google first. Your account is saved locally on this device.");
-        return;
-      }
-      const plan = plans[planId];
-      if (!plan) return;
-      try {
-        localStorage.setItem(PLAN_KEY, JSON.stringify({
-          email: user.email,
-          googleSub: user.sub,
-          planId,
-          planName: plan.name,
-          price: plan.price,
-          durationDays: plan.durationDays,
-          selectedAt: Date.now()
-        }));
-      } catch (_) {
-        showMessage("Could not save your plan selection on this device. Check available storage.");
-        return;
-      }
-      paintSelection();
-      showMessage(plan.name + " · ₹" + plan.price + " for " + plan.durationDays +
-        " days selected. This is only a local selection; no payment has been taken and nothing has been sent to the database.");
-    }
-
-    document.querySelectorAll("[data-plan]").forEach(button => {
-      button.addEventListener("click", () => selectPlan(button.dataset.plan));
-    });
-    renderAccount();
-    window.addEventListener("storage", renderAccount);
-    window.addEventListener("sho1re1:authchange", renderAccount);
-    window.addEventListener("focus", renderAccount);
+    document.querySelectorAll("[data-plan]").forEach(b=>b.addEventListener("click",()=>startCheckout(b.dataset.plan)));
+    renderAccount();window.addEventListener("storage",renderAccount);window.addEventListener("sho1re1:authchange",renderAccount);window.addEventListener("focus",renderAccount);
+    if(new URLSearchParams(location.search).get("payment")==="return"||localStorage.getItem(PENDING_KEY))setTimeout(resumePayment,900);
   })();
   </script>
 </body>
