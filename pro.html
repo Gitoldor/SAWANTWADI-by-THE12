@@ -78,9 +78,20 @@
       try{
         const r=await fetch(API+"/api/orders",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({planId,credential})});
         const d=await r.json();
-        if(!r.ok||!d.success||!d.order||!d.order.orderId||!d.order.checkoutUrl)throw new Error(d.error||"Could not create the payment order.");
+        if(!r.ok||!d.success||!d.order||!d.order.orderId)throw new Error(d.error||"Could not create the payment order.");
+        const upiIntent=typeof d.order.upiIntent==="string"?d.order.upiIntent.trim():"";
+        const checkoutUrl=typeof d.order.checkoutUrl==="string"?d.order.checkoutUrl.trim():"";
+        if(!upiIntent&&!checkoutUrl)throw new Error("FamGateway did not return a UPI intent or checkout link. No payment was started.");
         localStorage.setItem(PENDING_KEY,JSON.stringify({orderId:d.order.orderId,planId,createdAt:Date.now()}));
-        show("Opening FamGateway checkout for ₹"+d.order.payableAmount+"…");location.href=d.order.checkoutUrl;
+        if(upiIntent){
+          show("Opening your UPI app for ₹"+d.order.payableAmount+"…");
+          // Prefer the native UPI intent so Android can hand off directly to GPay,
+          // PhonePe, Paytm or another installed UPI app. Never treat app launch as payment.
+          location.href=upiIntent;
+        }else{
+          show("UPI intent unavailable. Opening secure FamGateway checkout…");
+          location.href=checkoutUrl;
+        }
       }catch(e){show(e.message||"Payment service is unavailable. Please try again.");setBusy(false);}
     }
     async function resumePayment(){
