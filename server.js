@@ -133,7 +133,7 @@ const server = http.createServer(async (req, res) => {
     if (path === "/posts-by-email") {
       const requestedUrl = new URL(req.url || "/", "http://localhost");
       const email = String(requestedUrl.searchParams.get("email") || "").trim().toLowerCase();
-      if (!email || email.length > 320 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      if (!email || email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return send(res, 400, { success: false, error: "Valid email required" });
       }
       const result = await queryD1(
