@@ -113,6 +113,36 @@ async function verifyGoogleCredential(token) {
     name: String(identity.name || "Sho1re1 user").slice(0, 80)
   };
 }
+function createPaymentContinuation(orderId, identity) {
+  const payload = Buffer.from(JSON.stringify({
+    orderId, sub: identity.sub, email: identity.email, name: identity.name,
+    exp: Math.floor(Date.now() / 1000) + 7 * 86400
+  })).toString("base64url");
+  const signature = crypto.createHmac("sha256", FAMGATEWAY_API_KEY).update(payload).digest("base64url");
+  return payload + "." + signature;
+}
+function verifyPaymentContinuation(token, orderId) {
+  if (typeof token !== "string" || token.length > 3000) {
+    throw Object.assign(new Error("Payment continuation is unavailable. Open the original payment tab."), { status: 401 });
+  }
+  const parts = token.split(".");
+  if (parts.length !== 2) throw Object.assign(new Error("Invalid payment continuation"), { status: 401 });
+  const expected = crypto.createHmac("sha256", FAMGATEWAY_API_KEY).update(parts[0]).digest();
+  let supplied;
+  try { supplied = Buffer.from(parts[1], "base64url"); } catch { supplied = Buffer.alloc(0); }
+  if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+    throw Object.assign(new Error("Invalid payment continuation"), { status: 401 });
+  }
+  let data;
+  try { data = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")); }
+  catch { throw Object.assign(new Error("Invalid payment continuation"), { status: 401 }); }
+  if (!data.orderId || data.orderId !== orderId || !data.sub || !data.email ||
+      Number(data.exp) * 1000 <= Date.now()) {
+    throw Object.assign(new Error("Payment continuation expired. Your order remains saved; sign in only if a new order is needed."), { status: 401 });
+  }
+  return { sub: String(data.sub), email: String(data.email).toLowerCase(), name: String(data.name || "Sho1re1 user") };
+}
+
 async function gatewayRequest(path, options = {}) {
   const response = await fetch("https://famgateway.in" + path, {
     ...options,
@@ -300,6 +330,7 @@ const server = http.createServer(async (req, res) => {
           checkoutUrl: String(d.checkout_url || ""),
           qrUrl: String(d.qr_url || ""),
           upiIntent: String(d.upi_intent || ""),
+          continuationToken: createPaymentContinuation(orderId, identity),
           expiresAt: d.expires_at_ist || null
         }
       });
@@ -307,28 +338,30 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/verify") {
       const { body } = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
       const orderId = String(body.orderId || "");
       if (!orderId || orderId.length > 100) return send(res, 400, { success: false, error: "Order ID required" });
       const rows = await queryD1("SELECT * FROM sho1re1_payment_orders WHERE order_id=? LIMIT 1", [orderId]);
-      if (!rows.length || rows[0].google_sub !== identity.sub) {
+      if (!rows.length) return send(res, 404, { success: false, error: "Payment order not found" });
+      const order = rows[0];
+      // A signed, order-specific continuation lets the same checkout resume after
+      // Android switches to a UPI app, without storing or re-requesting Google login.
+      const identity = body.continuationToken
+        ? verifyPaymentContinuation(body.continuationToken, orderId)
+        : await verifyGoogleCredential(body.credential);
+      if (order.google_sub !== identity.sub) {
         return send(res, 404, { success: false, error: "Payment order not found for this account" });
       }
-      const order = rows[0];
-      if (Number(order.expires_at) < Math.floor(Date.now() / 1000) && order.status !== "PAID") {
-        return send(res, 200, { success: true, status: "expired" });
-      }
-      if (order.status !== "PAID") {
-        const verified = await authoritativeVerify(orderId);
-        const d = gatewayData(verified);
-        if (!paidStatus(verified)) return send(res, 200, { success: true, status: "pending" });
+      // Always ask FamGateway before expiring locally: a user may complete UPI
+      // just before the timer and return to Sho1re1 a little later.
+      const verified = await authoritativeVerify(orderId);
+      if (paidStatus(verified)) {
         const activation = await activatePaidOrder(order, identity, verified);
         return send(res, 200, { success: true, status: "paid", activation });
       }
-      const verified = await authoritativeVerify(orderId);
-      if (!paidStatus(verified)) return send(res, 409, { success: false, error: "Payment status could not be re-confirmed" });
-      const activation = await activatePaidOrder(order, identity, verified);
-      return send(res, 200, { success: true, status: "paid", activation });
+      if (Number(order.expires_at) < Math.floor(Date.now() / 1000) && order.status !== "PAID") {
+        return send(res, 200, { success: true, status: "expired" });
+      }
+      return send(res, 200, { success: true, status: "pending" });
     }
 
     if (req.method === "POST" && url.pathname === "/api/subscription") {
