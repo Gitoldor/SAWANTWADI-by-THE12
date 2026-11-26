@@ -150,6 +150,16 @@ async function activatePaidOrder(order, identity, verified) {
   if (!plan || identity.sub !== order.google_sub) {
     throw Object.assign(new Error("This payment belongs to a different Google account"), { status: 403 });
   }
+  if (order.status === "ACTIVATED") {
+    const current = await queryD1(
+      "SELECT personal_plan_id,personal_expires_at,business_plan_id,business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+      [identity.email]
+    );
+    const row = current[0] || {};
+    const planId = plan.family === "PERSONAL" ? row.personal_plan_id : row.business_plan_id;
+    const expiry = Number(plan.family === "PERSONAL" ? row.personal_expires_at : row.business_expires_at) || 0;
+    return { active: expiry > now, planId, family: plan.family, expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null };
+  }
 
   // Repeated verify/return requests must never extend the same paid order twice.
   const existing = await queryD1(
@@ -166,7 +176,7 @@ async function activatePaidOrder(order, identity, verified) {
 
   // The account email is first persisted here, only after gateway verification.
   await queryD1(
-    "UPDATE sho1re1_payment_orders SET status='PAID', utr=? WHERE order_id=? AND (utr IS NULL OR utr=?)",
+    "UPDATE sho1re1_payment_orders SET status='PAID', utr=? WHERE order_id=? AND status!='ACTIVATED' AND (utr IS NULL OR utr=?)",
     [utr, order.order_id, utr]
   );
   const oldExpiry = Number(expiryField) || 0;
@@ -204,6 +214,7 @@ async function markWebhookPaid(orderId, payload) {
   const rows = await queryD1("SELECT * FROM sho1re1_payment_orders WHERE order_id=? LIMIT 1", [orderId]);
   if (!rows.length) return false;
   const order = rows[0];
+  if (order.status === "ACTIVATED") return true;
   const verified = await authoritativeVerify(orderId);
   const d = gatewayData(verified);
   const utr = String(d.utr || d.bank_utr || d.transaction_id || payload.utr || "").trim();
@@ -277,7 +288,7 @@ const server = http.createServer(async (req, res) => {
       const now = Math.floor(Date.now() / 1000);
       await queryD1(
         "INSERT INTO sho1re1_payment_orders (order_id,google_sub,plan_id,base_amount,payable_amount,status,created_at,expires_at) VALUES (?,?,?,?,?,'PENDING',?,?)",
-        [orderId, identity.sub, body.planId, plan.amount, payable, now, now + 600]
+        [orderId, identity.sub, body.planId, plan.amount, payable, now, now + 300]
       );
       return send(res, 200, {
         success: true,
@@ -323,6 +334,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/subscription") {
       const { body } = await readBody(req);
       const identity = await verifyGoogleCredential(body.credential);
+      // If the buyer closed checkout before the return page loaded, the verified
+      // webhook leaves the order PAID. Reconcile it on the next authenticated visit.
+      const paidOrders = await queryD1(
+        "SELECT * FROM sho1re1_payment_orders WHERE google_sub=? AND status='PAID' ORDER BY created_at ASC",
+        [identity.sub]
+      );
+      for (const order of paidOrders) {
+        const verified = await authoritativeVerify(order.order_id);
+        if (paidStatus(verified)) await activatePaidOrder(order, identity, verified);
+      }
       const rows = await queryD1(
         "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, business_plan_id, business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
         [identity.email]
