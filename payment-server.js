@@ -351,7 +351,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/orders") {
       const { body } = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
+      const identity = await verifyAppCredential(body.credential);
       const plan = PLANS[String(body.planId || "")];
       if (!plan) return send(res, 400, { success: false, error: "Unknown plan" });
 
@@ -425,7 +425,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/subscription") {
       const { body } = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
+      const identity = await verifyAppCredential(body.credential);
       // If the buyer closed checkout before the return page loaded, the verified
       // webhook leaves the order PAID. Reconcile it on the next authenticated visit.
       const paidOrders = await queryD1(
