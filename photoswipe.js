@@ -188,6 +188,9 @@
     try {
       user = auth && typeof auth.getUser === "function" ? auth.getUser() : null;
     } catch (_) {}
+    if (!user) {
+      try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
+    }
     const email = String(user && user.email || "").trim().toLowerCase();
     if (!email) return false;
     try {
