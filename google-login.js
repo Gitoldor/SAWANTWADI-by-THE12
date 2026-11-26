@@ -217,6 +217,9 @@
   };
 
   loadGoogle();
+  // Notify page features after the saved localStorage profile is restored.
+  // Several feature scripts run before this deferred auth script.
+  window.dispatchEvent(new CustomEvent("sho1re1:authchange", { detail: { user } }));
   const isAccountPage = /(?:^|\/)account\.html$/.test(location.pathname);
   if (!isAccountPage && !user) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", showWelcome, { once: true });
