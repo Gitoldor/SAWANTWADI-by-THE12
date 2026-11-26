@@ -941,7 +941,7 @@ body{
     </a>
   </div>
 
-<!-- PRO paid-status check. The menu item stays visible; blue means D1 confirms an active paid account. -->
+<!-- PRO paid-status check. Reads the existing parent-page Google session; never opens Google sign-in from this menu. -->
 <script>
 (function () {
   "use strict";
@@ -951,18 +951,20 @@ body{
   if (!item) return;
 
   let requestId = 0;
-  let authLoading = false;
-  let credentialPrompted = false;
 
   function readUser() {
     try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); }
     catch (_) { return null; }
   }
+  function getAuth() {
+    try {
+      return window.Sho1re1Auth ||
+        (window.parent && window.parent !== window ? window.parent.Sho1re1Auth : null) ||
+        null;
+    } catch (_) { return window.Sho1re1Auth || null; }
+  }
   function paintPaid(active) {
     item.classList.toggle("pro-active", active === true);
-  }
-  function getAuth() {
-    return window.Sho1re1Auth || null;
   }
   function verifyPaid() {
     const auth = getAuth();
@@ -973,12 +975,6 @@ body{
 
     if (!email || !credential) {
       paintPaid(false);
-      if (email && auth && typeof auth.requestCredential === "function" && !credentialPrompted) {
-        credentialPrompted = true;
-        auth.requestCredential(function () {
-          window.setTimeout(verifyPaid, 0);
-        });
-      }
       return;
     }
 
@@ -1001,43 +997,17 @@ body{
     });
   }
 
-  function loadAuth() {
-    if (getAuth()) { verifyPaid(); return; }
-    if (authLoading) return;
-    const saved = readUser();
-    if (!saved || !saved.email) { paintPaid(false); return; }
-    authLoading = true;
-    const script = document.createElement("script");
-    script.src = "./google-login.js";
-    script.onload = function () {
-      authLoading = false;
-      verifyPaid();
-    };
-    script.onerror = function () {
-      authLoading = false;
-      paintPaid(false);
-    };
-    document.head.appendChild(script);
-  }
-
-  loadAuth();
-  window.addEventListener("sho1re1:authchange", function () {
-    credentialPrompted = false;
-    loadAuth();
-  });
-  window.addEventListener("sho1re1:credential", function () {
-    window.setTimeout(verifyPaid, 0);
-  });
-  window.addEventListener("focus", function () {
-    credentialPrompted = false;
-    loadAuth();
-  });
+  verifyPaid();
+  window.addEventListener("focus", verifyPaid);
   window.addEventListener("storage", function (event) {
-    if (!event.key || event.key === PROFILE_KEY) {
-      credentialPrompted = false;
-      loadAuth();
-    }
+    if (!event.key || event.key === PROFILE_KEY) verifyPaid();
   });
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.addEventListener("sho1re1:authchange", verifyPaid);
+      window.parent.addEventListener("sho1re1:credential", verifyPaid);
+    }
+  } catch (_) {}
 })();
 </script>
 
