@@ -2376,12 +2376,11 @@ function renderMapAndCarousel() {
     card.onclick = (e) => {
       if (e.target.closest('.card-save-btn')) return;
 
-      // Media opens on the very first tap; don't wait for carousel centering
-      // or map animation to finish. Place cards keep their original behaviour.
+      // Media cards open directly on the first tap. Do not run place-card
+      // selection or map animation before opening the player.
       if (place.contentKind) {
         e.preventDefault();
-        e.stopPropagation();
-        setActive(idx);
+        e.stopImmediatePropagation();
         openPlaceLink(place);
         return;
       }
