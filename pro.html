@@ -126,6 +126,15 @@
         const r=await fetch(API+"/api/subscription",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({credential}),cache:"no-store"});
         const d=await r.json();
         if(version!==authVersion)return;
+        if(!r.ok&&(r.status===401||r.status===403)){
+          membershipView("Google sign-in needs refreshing","Your saved profile is still here, but Google needs to issue a fresh secure credential. Tap the button below once.",false,false);
+          googleRecovery.hidden=false;
+          if(!renderingGoogle&&window.Sho1re1Auth&&typeof window.Sho1re1Auth.renderButton==="function"){
+            renderingGoogle=true;
+            window.Sho1re1Auth.renderButton(googleButton);
+          }
+          return;
+        }
         if(!r.ok||!d.success||!Array.isArray(d.subscriptions))throw new Error(d.error||"Could not read your membership from the database.");
         const live=d.subscriptions;
         if(live.length){
