@@ -3,8 +3,7 @@
 const API="https://sawantwadi-read-api.onrender.com/notifications",
       START=5000,
       INTERVAL=1000,
-      MAX=3,
-      PAID_EMAIL="rajguruowais@gmail.com";
+      MAX=3;
 
 
 /* =========================
@@ -1012,11 +1011,34 @@ function start(){
 
   const cards=[];
 
+  let paidSwipeAccess=false, paidAccessRequest=0;
+
   function canSwipeDismiss(){
+    return paidSwipeAccess;
+  }
+
+  async function refreshPaidSwipeAccess(){
+    const request=++paidAccessRequest;
+    paidSwipeAccess=false;
     const auth=window.Sho1re1Auth;
     const user=auth&&typeof auth.getUser==="function"?auth.getUser():null;
-    return !!(user&&String(user.email||"").trim().toLowerCase()===PAID_EMAIL);
+    const email=String(user&&user.email||"").trim().toLowerCase();
+    const credential=auth&&typeof auth.getCredential==="function"?auth.getCredential():"";
+    if(!email||!credential)return;
+    try{
+      const response=await fetch("https://sawantwadi-read-api.onrender.com/location-custom-access",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({credential:credential,email:email}),cache:"no-store"
+      });
+      if(!response.ok)throw new Error("PRO access check failed");
+      const result=await response.json();
+      if(request===paidAccessRequest)paidSwipeAccess=result.success===true&&result.allowed===true;
+    }catch(_){if(request===paidAccessRequest)paidSwipeAccess=false;}
   }
+
+  refreshPaidSwipeAccess();
+  window.addEventListener("sho1re1:authchange",refreshPaidSwipeAccess);
+  window.addEventListener("sho1re1:credential",refreshPaidSwipeAccess);
 
 
   let opened=false,
