@@ -129,7 +129,7 @@
       }catch(e){
         if(version!==authVersion)return;
         membershipView("Couldn't check your membership",e.message||"Database check failed. Your membership status is unknown, so purchase options are hidden to prevent duplicate purchases.",false,true);
-      }finally{}
+      }
     }
     membershipRetry.addEventListener("click",loadSubscription);
     async function startCheckout(planId){
