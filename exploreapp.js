@@ -1227,7 +1227,6 @@
     const tab = document.getElementById("sho1re1StudioTab");
     if (!tab) return;
 
-    const PAID_EMAIL = "rajguruowais@gmail.com";
 
     function currentUser(){
       try {
@@ -1246,20 +1245,37 @@
       }
     }
 
-    function refresh(){
-      const user = currentUser();
-      const paid = !!(
-        user &&
-        String(user.email || "").trim().toLowerCase() === PAID_EMAIL
-      );
+    const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
+    let requestId = 0;
+
+    function paint(paid){
       tab.style.display = paid ? "flex" : "none";
       tab.setAttribute("aria-hidden", paid ? "false" : "true");
     }
 
-    refresh();
+    async function refresh(){
+      const current = ++requestId;
+      const user = currentUser();
+      let auth = null;
+      try { auth = window.parent && window.parent.Sho1re1Auth; } catch (_) {}
+      const email = String(user && user.email || "").trim().toLowerCase();
+      const credential = auth && typeof auth.getCredential === "function" ? auth.getCredential() : "";
+      if (!email || !credential) { paint(false); return; }
+      try {
+        const response = await fetch(API, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: credential, email: email }), cache: "no-store"
+        });
+        if (!response.ok) throw new Error("PRO access check failed");
+        const result = await response.json();
+        if (current === requestId) paint(result.success === true && result.allowed === true);
+      } catch (_) { if (current === requestId) paint(false); }
+    }
 
+    refresh();
     try {
       window.parent.addEventListener("sho1re1:authchange", refresh);
+      window.parent.addEventListener("sho1re1:credential", refresh);
       window.parent.addEventListener("storage", refresh);
     } catch (_) {}
   })();
