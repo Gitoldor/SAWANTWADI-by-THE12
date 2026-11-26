@@ -88,7 +88,8 @@
       const encodedData = params.get("data");
       let shareUrl = "";
 
-      function setProfile(profile) {\n        $("profileCard").classList.remove("hidden");
+      function setProfile(profile) {
+        $("profileCard").classList.remove("hidden");
         const name = String(profile.name || "Sho1re1 user").slice(0, 32);
         $("displayName").textContent = name;
         $("claimName").textContent = name;
