@@ -2275,9 +2275,17 @@ document.addEventListener('pointercancel', () => { hActive = false; });
 MAP INITIALIZATION & UI EVENTS
 ========================= */
 const map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true, doubleClickZoom: false }).setView([15.9041, 73.8219], 15);
-const normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 });
-const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-const darkMap = L.tileLayer('https://{s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+// Wait until map movement settles before requesting more tiles. Keep a small
+// buffer so panning stays smooth without downloading a large off-screen area.
+const tileEfficiency = {
+  updateWhenIdle: true,
+  updateWhenZooming: false,
+  keepBuffer: 1,
+  detectRetina: false
+};
+const normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { ...tileEfficiency, maxZoom: 20 });
+const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { ...tileEfficiency, maxZoom: 19 });
+const darkMap = L.tileLayer('https://{s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { ...tileEfficiency, maxZoom: 20 });
 
 satelliteMap.addTo(map);
 
@@ -2363,7 +2371,7 @@ function renderMapAndCarousel() {
       <button class="card-save-btn ${isSaved ? 'is-saved' : ''}">
         <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
       </button>
-      <img src="${place.image}" loading="lazy" alt="${place.title || ''}" />
+      <img src="${place.image}" loading="lazy" decoding="async" fetchpriority="low" alt="${place.title || ''}" />
       <div class="card-overlay">
         <div class="card-title">${place.title || ''}</div>
         <div class="card-type">${place.contentKind ? place.contentKind.replace('_', ' ') : (place.type || '')}</div>
@@ -2418,7 +2426,7 @@ function renderMapAndCarousel() {
     const markerHeight = place.contentKind === 'long_form' ? 45 : 80;
     const markerMediaClass = place.contentKind === 'reel' ? 'media-reel' : (place.contentKind === 'long_form' ? 'media-video' : (place.contentKind === 'post' ? 'media-post' : ''));
     const customIcon = L.divIcon({
-      html: `<div class="custom-marker ${markerMediaClass}"><img src="${place.image}" loading="lazy" alt="" /></div>`,
+      html: `<div class="custom-marker ${markerMediaClass}"><img src="${place.image}" loading="lazy" decoding="async" fetchpriority="low" alt="" /></div>`,
       className: '',
       iconSize: [markerWidth, markerHeight],
       iconAnchor: [markerWidth / 2, markerHeight / 2]
@@ -2732,7 +2740,7 @@ const clusterLayer = L.markerClusterGroup({
   iconCreateFunction: (cluster) => {
     const total = cluster.getChildCount();
     const images = cluster.getAllChildMarkers().slice(0, 3).map(m => `
-      <div class="cluster-card"><img src="${m.options.place.image}" loading="lazy" alt=""></div>
+      <div class="cluster-card"><img src="${m.options.place.image}" loading="lazy" decoding="async" fetchpriority="low" alt=""></div>
     `).join('');
     return L.divIcon({
       html: `<div class="cluster-wrap"><div class="cluster-count">${total > 9 ? '10+' : total}</div>${images}</div>`,
