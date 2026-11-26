@@ -7,13 +7,19 @@
 
   const CONFIG = {
 
-    // Add as many images as you want
+    // First four slides are available to everyone.
     images: [
       "https://i.ibb.co/WN8t0hQc/1000001402-removebg-preview.png",
       "https://i.ibb.co/WN8t0hQc/1000001402-removebg-preview.png",
       "https://i.ibb.co/WN8t0hQc/1000001402-removebg-preview.png",
       "https://i.ibb.co/WN8t0hQc/1000001402-removebg-preview.png"
     ],
+
+    // Fifth slide is appended only after the same verified PRO access check
+    // used by the location-customization feature succeeds.
+    proImage: "https://i.ibb.co/WN8t0hQc/1000001402-removebg-preview.png",
+    proEmail: "rajguruowais@gmail.com",
+    proAccessAPI: "https://sawantwadi-read-api.onrender.com/location-custom-access",
 
     // 9:16 portrait
     width: "100%",
@@ -173,70 +179,99 @@
 
 
   /* ==========================================================
+     PRO ACCESS
+     ========================================================== */
+
+  async function hasProAccess() {
+    let auth = window.Sho1re1Auth || null;
+    let user = null;
+
+    try {
+      if (auth && typeof auth.getUser === "function") {
+        user = auth.getUser();
+      }
+      if (!user) {
+        user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
+      }
+    } catch (_) {}
+
+    const email = String(user && user.email || "").trim().toLowerCase();
+
+    // Match the existing owner exception used by the PRO location feature.
+    if (email === CONFIG.proEmail) return true;
+
+    // Use the same Google-credential verification endpoint as PRO features.
+    // Never open a Google popup just to decide whether to show slide five.
+    const credential = auth && typeof auth.getCredential === "function"
+      ? auth.getCredential()
+      : "";
+
+    if (!credential) return false;
+
+    try {
+      const response = await fetch(CONFIG.proAccessAPI, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credential }),
+        cache: "no-store"
+      });
+
+      if (!response.ok) return false;
+
+      const result = await response.json();
+      return result.success === true && result.allowed === true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
+  /* ==========================================================
      START
      ========================================================== */
 
   let current = 0;
 
-
   function showNext() {
-
     if (current >= imageElements.length - 1) {
-
-      /*
-        Final image reached.
-
-        STOP EVERYTHING.
-
-        Final image remains visible indefinitely.
-      */
-
+      // Final available slide remains visible indefinitely.
       return;
-
     }
-
 
     current++;
 
-
-    /*
-      Move exactly ONE image height upward.
-
-      Because every image has the same height,
-      each swipe reveals only the next image.
-    */
-
-    const offset =
-      current * imageElements[0].offsetHeight;
-
+    const offset = current * imageElements[0].offsetHeight;
 
     track.style.transition =
       `transform ${CONFIG.swipeDuration}ms cubic-bezier(.22,1,.36,1)`;
 
-
     track.style.transform =
       `translate3d(0, -${offset}px, 0)`;
 
-
-    /*
-      Wait 1 second on this image,
-      then bring the next one from below.
-    */
-
     setTimeout(showNext, CONFIG.displayTime);
-
   }
 
 
   /* ==========================================================
-     FIRST IMAGE
-
-     Image 1 is already visible immediately.
-
-     Wait 1 second before first swipe.
+     FIRST FOUR SLIDES ARE SHOWN TO EVERYONE.
+     THE FIFTH SLIDE IS ADDED ONLY FOR VERIFIED PRO ACCOUNTS.
      ========================================================== */
 
-  setTimeout(showNext, CONFIG.displayTime);
+  hasProAccess().then(function (allowed) {
+    if (allowed) {
+      const img = document.createElement("img");
+      img.className = "photoSwipeImage";
+      img.src = CONFIG.proImage;
+      img.alt = "";
+      img.draggable = false;
+      img.decoding = "async";
+      track.appendChild(img);
+      imageElements.push(img);
+    }
+
+    // Image 1 is already visible. Start the first swipe after its display time.
+    setTimeout(showNext, CONFIG.displayTime);
+  });
 
 
 })();
