@@ -933,6 +933,106 @@ body{
     </a>
   </div>
 
+<!-- PRO paid-status check. The menu item stays visible; blue means D1 confirms an active paid account. -->
+<script>
+(function () {
+  "use strict";
+  const PROFILE_KEY = "sho1re1_google_profile_v1";
+  const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
+  const item = document.getElementById("pro-menu-link");
+  if (!item) return;
+
+  let requestId = 0;
+  let authLoading = false;
+  let credentialPrompted = false;
+
+  function readUser() {
+    try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); }
+    catch (_) { return null; }
+  }
+  function paintPaid(active) {
+    item.classList.toggle("pro-active", active === true);
+  }
+  function getAuth() {
+    return window.Sho1re1Auth || null;
+  }
+  function verifyPaid() {
+    const auth = getAuth();
+    const user = (auth && typeof auth.getUser === "function" ? auth.getUser() : null) || readUser();
+    const email = String(user && user.email || "").trim().toLowerCase();
+    const credential = auth && typeof auth.getCredential === "function" ? auth.getCredential() : "";
+    const currentRequest = ++requestId;
+
+    if (!email || !credential) {
+      paintPaid(false);
+      if (email && auth && typeof auth.requestCredential === "function" && !credentialPrompted) {
+        credentialPrompted = true;
+        auth.requestCredential(function () {
+          window.setTimeout(verifyPaid, 0);
+        });
+      }
+      return;
+    }
+
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: credential, email: user.email }),
+      cache: "no-store"
+    }).then(function (response) {
+      if (!response.ok) throw new Error("PRO status request failed");
+      return response.json();
+    }).then(function (result) {
+      const latest = readUser();
+      const latestEmail = String(latest && latest.email || "").trim().toLowerCase();
+      if (currentRequest === requestId && latestEmail === email) {
+        paintPaid(result.success === true && result.allowed === true);
+      }
+    }).catch(function () {
+      if (currentRequest === requestId) paintPaid(false);
+    });
+  }
+
+  function loadAuth() {
+    if (getAuth()) { verifyPaid(); return; }
+    if (authLoading) return;
+    const saved = readUser();
+    if (!saved || !saved.email) { paintPaid(false); return; }
+    authLoading = true;
+    const script = document.createElement("script");
+    script.src = "./google-login.js";
+    script.onload = function () {
+      authLoading = false;
+      verifyPaid();
+    };
+    script.onerror = function () {
+      authLoading = false;
+      paintPaid(false);
+    };
+    document.head.appendChild(script);
+  }
+
+  loadAuth();
+  window.addEventListener("sho1re1:authchange", function () {
+    credentialPrompted = false;
+    loadAuth();
+  });
+  window.addEventListener("sho1re1:credential", function () {
+    window.setTimeout(verifyPaid, 0);
+  });
+  window.addEventListener("focus", function () {
+    credentialPrompted = false;
+    loadAuth();
+  });
+  window.addEventListener("storage", function (event) {
+    if (!event.key || event.key === PROFILE_KEY) {
+      credentialPrompted = false;
+      loadAuth();
+    }
+  });
+})();
+</script>
+
 
 <!-- =======================================================
      YOUR EXISTING DATA FILE
