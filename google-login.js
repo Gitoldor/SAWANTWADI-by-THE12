@@ -112,11 +112,11 @@
     google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: onCredential,
-      auto_select: true,
+      auto_select: false,
       cancel_on_tap_outside: true
     });
     ready = true;
-    if (pendingCredentialRequest) { pendingCredentialRequest = false; try { google.accounts.id.prompt(); } catch (_) {} }
+    pendingCredentialRequest = false;
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
 
     // A returning user may still have a saved profile after the short-lived
@@ -209,8 +209,10 @@
       if (credential) { if (typeof callback === "function") callback(credential); return; }
       if (typeof callback === "function") credentialWaiters.add(callback);
       pendingCredentialRequest = true;
-      if (ready) { pendingCredentialRequest = false; try { google.accounts.id.prompt(); } catch (_) {} }
-      else loadGoogle();
+      // Do not open the Google bottom-sheet prompt automatically. The saved
+      // local profile is used for PRO status checks; sign-in remains explicit
+      // through the visible Google button.
+      if (!ready) loadGoogle();
     },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
