@@ -69,36 +69,87 @@ function Sho1re1BuildDatabase() {
 
 window.Sho1re1GetPlaces=function(){return window.Sho1re1VisiblePlaces||[];};
 
-window.Sho1re1DataReady=fetch(window.Sho1re1DataAPI+"/places",{
-  method:"GET",headers:{"Accept":"application/json"},cache:"no-store"
-}).then(function(response){
-  if(!response.ok)throw new Error("D1 API returned HTTP "+response.status);
+window.Sho1re1MediaItems = [];
+
+function Sho1re1LoadMedia() {
+  return fetch(window.Sho1re1DataAPI + "/media", {
+    method: "GET",
+    headers: { "Accept": "application/json" },
+    cache: "no-store"
+  }).then(function(response) {
+    if (!response.ok) throw new Error("D1 media API returned HTTP " + response.status);
+    return response.json();
+  }).then(function(payload) {
+    if (!payload || payload.success !== true) throw new Error("Invalid D1 media response");
+    var items = []
+      .concat(Array.isArray(payload.posts) ? payload.posts : [])
+      .concat(Array.isArray(payload.reels) ? payload.reels : [])
+      .concat(Array.isArray(payload.long_forms) ? payload.long_forms : []);
+    window.Sho1re1MediaItems = Sho1re1RandomShuffle(items);
+    try { localStorage.setItem("sho1re1_d1_media_cache_v1", JSON.stringify(items)); } catch (_) {}
+    window.Sho1re1MediaOffline = false;
+    return window.Sho1re1MediaItems;
+  }).catch(function(error) {
+    console.warn("Sho1re1 media request failed; checking the last media snapshot.", error);
+    try {
+      var cached = JSON.parse(localStorage.getItem("sho1re1_d1_media_cache_v1") || "[]");
+      window.Sho1re1MediaItems = Array.isArray(cached) ? Sho1re1RandomShuffle(cached) : [];
+    } catch (_) {
+      window.Sho1re1MediaItems = [];
+    }
+    window.Sho1re1MediaOffline = true;
+    return window.Sho1re1MediaItems;
+  });
+}
+
+window.Sho1re1GetMediaItems = function() {
+  return (window.Sho1re1MediaItems || []).filter(function(item) {
+    return Sho1re1IsActive(item.plan);
+  });
+};
+
+window.Sho1re1DataReady = fetch(window.Sho1re1DataAPI + "/places", {
+  method: "GET", headers: { "Accept": "application/json" }, cache: "no-store"
+}).then(function(response) {
+  if (!response.ok) throw new Error("D1 API returned HTTP " + response.status);
   return response.json();
-}).then(function(payload){
-  if(!payload||payload.success!==true||!Array.isArray(payload.places))throw new Error("Invalid D1 places response");
-  window.Sho1re1OriginalPlaces=payload.places.slice();
-  try{localStorage.setItem("sho1re1_d1_places_cache_v1",JSON.stringify(payload.places));}catch(_){}
-  window.Sho1re1DataOffline=false;
-  window.Sho1re1Places=Sho1re1RandomShuffle(payload.places.slice());
-  Sho1re1BuildDatabase();
-  window.dispatchEvent(new Event("Sho1re1DataLoaded"));
-  return window.Sho1re1Places;
-}).catch(function(error){
-  console.warn("Sho1re1 D1 data request failed; checking the last offline snapshot.",error);
-  try{
-    var cached=JSON.parse(localStorage.getItem("sho1re1_d1_places_cache_v1")||"null");
-    if(Array.isArray(cached)){
-      window.Sho1re1OriginalPlaces=cached.slice();
-      window.Sho1re1Places=Sho1re1RandomShuffle(cached.slice());
+}).then(function(payload) {
+  if (!payload || payload.success !== true || !Array.isArray(payload.places)) {
+    throw new Error("Invalid D1 places response");
+  }
+  window.Sho1re1OriginalPlaces = payload.places.slice();
+  try { localStorage.setItem("sho1re1_d1_places_cache_v1", JSON.stringify(payload.places)); } catch (_) {}
+  window.Sho1re1DataOffline = false;
+  return Sho1re1LoadMedia().then(function() {
+    window.Sho1re1Places = Sho1re1RandomShuffle(payload.places.slice());
+    Sho1re1BuildDatabase();
+    window.dispatchEvent(new Event("Sho1re1DataLoaded"));
+    return window.Sho1re1Places;
+  });
+}).catch(function(error) {
+  console.warn("Sho1re1 D1 places request failed; checking the last offline snapshot.", error);
+  try {
+    var cached = JSON.parse(localStorage.getItem("sho1re1_d1_places_cache_v1") || "null");
+    if (Array.isArray(cached)) {
+      window.Sho1re1OriginalPlaces = cached.slice();
+      window.Sho1re1Places = Sho1re1RandomShuffle(cached.slice());
+      try {
+        var cachedMedia = JSON.parse(localStorage.getItem("sho1re1_d1_media_cache_v1") || "[]");
+        window.Sho1re1MediaItems = Array.isArray(cachedMedia) ? Sho1re1RandomShuffle(cachedMedia) : [];
+      } catch (_) { window.Sho1re1MediaItems = []; }
       Sho1re1BuildDatabase();
-      window.Sho1re1DataOffline=true;
+      window.Sho1re1DataOffline = true;
+      window.Sho1re1MediaOffline = true;
       window.dispatchEvent(new Event("Sho1re1DataLoaded"));
       return window.Sho1re1Places;
     }
-  }catch(_){}
-  console.error("Sho1re1 has no cached D1 data available:",error);
-  window.Sho1re1Places=[];window.Sho1re1OriginalPlaces=[];window.Sho1re1VisiblePlaces=[];
-  window.Sho1re1DataError=error;
+  } catch (_) {}
+  console.error("Sho1re1 has no cached D1 data available:", error);
+  window.Sho1re1Places = [];
+  window.Sho1re1OriginalPlaces = [];
+  window.Sho1re1VisiblePlaces = [];
+  window.Sho1re1MediaItems = [];
+  window.Sho1re1DataError = error;
   window.dispatchEvent(new Event("Sho1re1DataError"));
   return [];
 });
