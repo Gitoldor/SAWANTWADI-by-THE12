@@ -81,102 +81,70 @@
   <script>
     (function () {
       "use strict";
-      const API = "https://sawantwadi-read-api.onrender.com";
       const $ = (id) => document.getElementById(id);
       const params = new URLSearchParams(location.search);
-      const token = params.get("token");
-      const encodedData = params.get("data");
+      const encodedProfile = params.get("profile");
       let shareUrl = "";
+
+      function encodeProfile(profile) {
+        const bytes = new TextEncoder().encode(JSON.stringify(profile));
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function decodeProfile(value) {
+        const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = base64 + "=".repeat((4 - base64.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        return JSON.parse(new TextDecoder().decode(bytes));
+      }
 
       function setProfile(profile) {
         $("profileCard").classList.remove("hidden");
-        const name = String(profile.name || "Sho1re1 user").slice(0, 32);
-        $("displayName").textContent = name;
-        $("claimName").textContent = name;
+        const name = String(profile.name || "Sho1re1 user").trim().slice(0, 48);
+        $("displayName").textContent = name || "Sho1re1 user";
+        $("claimName").textContent = name || "This user";
         $("email").textContent = String(profile.email || "");
-        if (profile.picture) {
-          $("avatar").src = profile.picture;
-        } else {
-          $("avatar").src = "data:image/svg+xml," + encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#292929"/><circle cx="100" cy="75" r="38" fill="#777"/><path d="M25 200c5-48 34-72 75-72s70 24 75 72" fill="#777"/></svg>'
-          );
-        }
+        $("avatar").src = profile.picture || "data:image/svg+xml," + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#292929"/><circle cx="100" cy="75" r="38" fill="#777"/><path d="M25 200c5-48 34-72 75-72s70 24 75 72" fill="#777"/></svg>'
+        );
       }
 
-      function setStatus(message) { $("status").textContent = message || ""; }
-
-      async function verifyPublicLink() {
-        $("pageEyebrow").textContent = "Verified community profile";
-        if (!token || !encodedData) {
-          setStatus("This profile link is incomplete.");
-          return;
-        }
-        try {
-          const response = await fetch(API + "/pro-share/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: token, data: encodedData }),
-            cache: "no-store"
-          });
-          const result = await response.json();
-          if (!response.ok || result.success !== true || !result.profile) {
-            setStatus(result.error || "This PRO profile link could not be verified.");
-            $("displayName").textContent = "Profile unavailable";
-            $("claimName").textContent = "This profile";
-            return;
-          }
-          setProfile(result.profile);
-          setStatus("");
-        } catch (_) {
-          setStatus("Couldn't verify this profile. Check your connection and try again.");
-        }
+      function setStatus(message) {
+        $("status").textContent = message || "";
       }
 
-      async function createOwnerLink() {
-        $("ownerActions").classList.remove("hidden");
+      function createOwnerPage() {
         let user = null;
-        try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
+        try {
+          user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
+        } catch (_) {}
+
         if (!user || !user.email) {
           $("displayName").textContent = "Sign in required";
           $("claimName").textContent = "This profile";
-          setStatus("Sign in to your Sho1re1 Google account to create your PRO share link.");
+          setStatus("Sign in to your Google account in Sho1re1, then reopen this page.");
           return;
         }
+
         const name = String(user.displayName || user.googleName || user.email.split("@")[0]).trim();
-        setProfile({ name: name, email: user.email, picture: user.picture || "" });
+        const profile = {
+          name: name || user.email.split("@")[0],
+          email: String(user.email),
+          picture: String(user.picture || "")
+        };
+        setProfile(profile);
+        $("ownerActions").classList.remove("hidden");
 
-        let session = null;
-        try { session = JSON.parse(sessionStorage.getItem("sho1re1_google_credential_session_v1") || "null"); } catch (_) {}
-        const credential = session && typeof session.token === "string" && Number(session.exp) * 1000 > Date.now()
-          ? session.token : "";
-        if (!credential) {
-          setStatus("Your secure Google session has expired. Sign in again in Sho1re1, then reopen this page.");
-          return;
-        }
-
-        setStatus("Preparing your verified PRO share link…");
-        try {
-          const response = await fetch(API + "/pro-share/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ credential: credential, displayName: name }),
-            cache: "no-store"
-          });
-          const result = await response.json();
-          if (!response.ok || result.success !== true || !result.token || !result.data) {
-            setStatus(result.error || "Couldn't create your PRO share link.");
-            return;
-          }
-          const url = new URL("pro-share.html", location.href);
-          url.searchParams.set("token", result.token);
-          url.searchParams.set("data", result.data);
-          shareUrl = url.href;
-          $("shareButton").disabled = false;
-          $("copyButton").disabled = false;
-          setStatus("Your verified PRO profile link is ready to share.");
-        } catch (_) {
-          setStatus("Couldn't connect to Sho1re1. Try again when you're online.");
-        }
+        const url = new URL("pro-share.html", location.href);
+        url.search = "";
+        url.searchParams.set("profile", encodeProfile(profile));
+        shareUrl = url.href;
+        $("shareButton").disabled = false;
+        $("copyButton").disabled = false;
+        setStatus("Your share link is ready.");
       }
 
       async function copyLink() {
@@ -195,7 +163,7 @@
             document.execCommand("copy");
             setStatus("Link copied.");
           } catch (_) {
-            setStatus("Copy wasn't available on this browser. Use Share instead.");
+            setStatus("Copy isn't available here. Use Share instead.");
           }
           field.remove();
         }
@@ -206,17 +174,40 @@
         if (!shareUrl) return;
         if (navigator.share) {
           try {
-            await navigator.share({ title: "My Sho1re1 PRO profile", text: "I'm a PRO Sawantwadi user on Sho1re1.", url: shareUrl });
+            await navigator.share({
+              title: "My Sho1re1 PRO profile",
+              text: "I'm a PRO Sawantwadi user on Sho1re1.",
+              url: shareUrl
+            });
           } catch (error) {
-            if (error && error.name !== "AbortError") setStatus("Sharing was unavailable. You can copy the link instead.");
+            if (error && error.name !== "AbortError") {
+              setStatus("Sharing wasn't available. You can copy the link instead.");
+            }
           }
         } else {
           await copyLink();
         }
       });
 
-      if (token || encodedData) verifyPublicLink();
-      else createOwnerLink();
+      if (encodedProfile) {
+        $("pageEyebrow").textContent = "Sho1re1 · Sawantwadi";
+        $("ownerActions").classList.add("hidden");
+        try {
+          const profile = decodeProfile(encodedProfile);
+          if (!profile || typeof profile.email !== "string" || typeof profile.name !== "string") {
+            throw new Error("Invalid profile data");
+          }
+          setProfile(profile);
+          setStatus("");
+        } catch (_) {
+          $("displayName").textContent = "Invalid profile link";
+          $("claimName").textContent = "This profile";
+          setStatus("The profile information in this link could not be read.");
+        }
+      } else {
+        $("pageEyebrow").textContent = "Share your PRO page";
+        createOwnerPage();
+      }
     })();
   </script>
 </body>
