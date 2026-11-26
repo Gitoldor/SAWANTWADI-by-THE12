@@ -1948,6 +1948,18 @@ button,
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   MEDIA CARD RATIOS — keep the square place card as the baseline
+   ============================================================ */
+.carousel{align-items:center;}
+.card.media-post{width:200px;height:200px;}
+.card.media-reel{width:112.5px;height:200px;border-radius:30px;}
+.card.media-video{width:200px;height:112.5px;border-radius:30px;align-self:center;}
+.custom-marker.media-post{width:80px;height:80px;border-radius:22px;}
+.custom-marker.media-reel{width:45px;height:80px;border-radius:17px;}
+.custom-marker.media-video{width:80px;height:45px;border-radius:17px;}
+
 </style>
   <link rel="stylesheet" href="./google-login.css">
 <script src="./clarity.js" defer></script>
@@ -2338,7 +2350,8 @@ function renderMapAndCarousel() {
   activePlaces.forEach((place, idx) => {
     // 1. Create Carousel Card
     const card = document.createElement('div');
-    card.className = 'card';
+    const mediaClass = place.contentKind === 'reel' ? 'media-reel' : (place.contentKind === 'long_form' ? 'media-video' : (place.contentKind === 'post' ? 'media-post' : ''));
+    card.className = 'card' + (mediaClass ? ' ' + mediaClass : '');
     const isSaved = savedPlacesMap.has(place.id);
 
     card.innerHTML = `
@@ -2363,39 +2376,33 @@ function renderMapAndCarousel() {
       if (place.contentKind) openPlaceLink(place);
     };
 
-    // Double-click Carousel Card navigation
-    card.ondblclick = (e) => {
-      if (e.target.closest('.card-save-btn')) return;
-      openPlaceLink(place);
-    };
-
     carousel.appendChild(card);
     cardRefs.push(card);
 
     // 2. Create Leaflet Marker
+    const markerWidth = place.contentKind === 'reel' ? 45 : 80;
+    const markerHeight = place.contentKind === 'long_form' ? 45 : 80;
+    const markerMediaClass = place.contentKind === 'reel' ? 'media-reel' : (place.contentKind === 'long_form' ? 'media-video' : (place.contentKind === 'post' ? 'media-post' : ''));
     const customIcon = L.divIcon({
-      html: `<div class="custom-marker"><img src="${place.image}" loading="lazy" alt="" /></div>`,
+      html: `<div class="custom-marker ${markerMediaClass}"><img src="${place.image}" loading="lazy" alt="" /></div>`,
       className: '',
-      iconSize: [80, 80],
-      iconAnchor: [40, 40]
+      iconSize: [markerWidth, markerHeight],
+      iconAnchor: [markerWidth / 2, markerHeight / 2]
     });
 
     const marker = L.marker([place.lat, place.lng], { icon: customIcon, place: place });
     
-    marker.on('click', () => {
+    marker.on('click', (e) => {
       setActive(idx);
-      // In map-only mode the carousel is translated off-screen. Do not ask
-      // the browser to scroll that hidden card into view, which can move the
-      // document viewport and expose the black body background.
+      if (place.contentKind) {
+        if (L.DomEvent) L.DomEvent.stopPropagation(e);
+        openPlaceLink(place);
+        return;
+      }
+      // Place markers only select their matching carousel card.
       if (!document.body.classList.contains('sho-map-only')) {
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
-    });
-
-    // Double-click Map Marker navigation
-    marker.on('dblclick', (e) => {
-      if (L.DomEvent) L.DomEvent.stopPropagation(e);
-      openPlaceLink(place);
     });
 
     clusterLayer.addLayer(marker);
