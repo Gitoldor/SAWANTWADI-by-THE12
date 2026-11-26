@@ -112,13 +112,21 @@
     google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: onCredential,
-      auto_select: false,
+      auto_select: true,
       cancel_on_tap_outside: true
     });
     ready = true;
     pendingCredentialRequest = false;
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
 
+    // Restore an existing Google session when the browser still has the
+    // user's Google authorization. GIS can silently return a fresh ID token
+    // for auto-selected accounts; no long-lived bearer token is stored here.
+    if (user && google.accounts.id.prompt) {
+      try { google.accounts.id.prompt(); } catch (error) {
+        console.warn("Sho1re1 automatic Google session restore was unavailable.", error);
+      }
+    }
   }
   function renderButton(target) {
     if (!target) return;
