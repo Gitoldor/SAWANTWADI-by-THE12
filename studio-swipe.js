@@ -3,7 +3,6 @@
  'use strict';
  if(window.__sho1re1StudioLoaded)return;
  window.__sho1re1StudioLoaded=true;
- const ALLOWED_EMAIL='rajguruowais@gmail.com';
  const API='https://sawantwadi-read-api.onrender.com/location-custom-access';
  let allowed=false,checking=false,start=null,overlay=null,frame=null;
  const style=document.createElement('style');
@@ -18,15 +17,21 @@
  document.head.appendChild(style);
  function toast(message){let el=document.getElementById('s1-studio-toast');if(!el){el=document.createElement('div');el.id='s1-studio-toast';document.body.appendChild(el)}el.textContent=message;el.classList.add('show');clearTimeout(el._timer);el._timer=setTimeout(()=>el.classList.remove('show'),1900)}
  function authUser(){const a=window.Sho1re1Auth;try{return a&&a.getUser?a.getUser():null}catch(_){return null}}
- function checkAccess(){
-  if(checking)return;checking=true;
+ async function checkAccess(){
+  if(checking)return false;
+  checking=true;
   const a=window.Sho1re1Auth,user=authUser();
-  if(user&&String(user.email||'').trim().toLowerCase()===ALLOWED_EMAIL)allowed=true;
-  if(a&&typeof a.getCredential==='function'){
-   const token=a.getCredential();
-   if(token){fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:token}),cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Access check failed');return r.json()}).then(d=>{allowed=d.success===true&&d.allowed===true}).catch(()=>{}).finally(()=>{checking=false});return}
-  }
+  const email=String(user&&user.email||'').trim().toLowerCase();
+  const token=a&&typeof a.getCredential==='function'?a.getCredential():'';
+  if(!email||!token){allowed=false;checking=false;return false}
+  try{
+   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:token,email:email}),cache:'no-store'});
+   if(!response.ok)throw Error('Access check failed');
+   const data=await response.json();
+   allowed=data.success===true&&data.allowed===true;
+  }catch(_){allowed=false}
   checking=false;
+  return allowed;
  }
  function build(){
   if(overlay)return;
@@ -34,9 +39,8 @@
   frame=document.createElement('iframe');frame.id='s1-studio-frame';frame.title='Sho1re1 Studio';frame.src='./studio.html';
   overlay.appendChild(frame);document.body.appendChild(overlay);
  }
- function openStudio(){
-  checkAccess();
-  if(!allowed){toast('Studio is available to paid accounts');return}
+ async function openStudio(){
+  if(!await checkAccess()){toast('Studio is available to paid accounts');return}
   build();requestAnimationFrame(()=>overlay.classList.add('open'));
   document.body.classList.add('sho1re1-studio-open');
  }
