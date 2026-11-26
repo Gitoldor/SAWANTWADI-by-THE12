@@ -82,7 +82,7 @@
     const membershipRetry = document.getElementById("membership-retry");
     const planSection = document.getElementById("membership-plans");
     const plans = { PRO_7D:{name:"PRO"}, MAX_30D:{name:"MAX"}, BUSINESS_PRO:{name:"BUSINESS PRO"}, BUSINESS_MAX:{name:"BUSINESS MAX"} };
-    let busy = false, verifying = false, verifyTimer = null, subscriptionLoading = false, authVersion = 0;
+    let busy = false, verifying = false, verifyTimer = null, authVersion = 0;
     function readUser(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");}catch(_){return null;}}
     function token(){try{return window.Sho1re1Auth&&window.Sho1re1Auth.getCredential();}catch(_){return "";}}
     function readPending(){try{const p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");return p&&p.orderId?p:null;}catch(_){return null;}}
@@ -106,8 +106,6 @@
         membershipView("Google sign-in required","We need to verify your Google account before showing membership or purchase options. Your existing database membership has not been changed.",false,false);
         return;
       }
-      if(subscriptionLoading)return;
-      subscriptionLoading=true;
       try{
         const r=await fetch(API+"/api/subscription",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({credential}),cache:"no-store"});
         const d=await r.json();
@@ -131,7 +129,7 @@
       }catch(e){
         if(version!==authVersion)return;
         membershipView("Couldn't check your membership",e.message||"Database check failed. Your membership status is unknown, so purchase options are hidden to prevent duplicate purchases.",false,true);
-      }finally{subscriptionLoading=false;}
+      }finally{}
     }
     membershipRetry.addEventListener("click",loadSubscription);
     async function startCheckout(planId){
