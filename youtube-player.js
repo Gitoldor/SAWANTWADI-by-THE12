@@ -7,6 +7,8 @@
   var apiPromise = null;
   var player = null;
   var overlay = null;
+  var previewPlayer = null;
+  var previewHost = null;
 
   function getVideoId(value) {
     var raw = String(value || "").trim();
@@ -69,6 +71,9 @@
       "#sho1re1-youtube-shell{position:relative;width:min(100%,900px);aspect-ratio:16/9;background:#000;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55);}",
       "#sho1re1-youtube-shell.is-vertical{width:min(100%,420px);height:min(78vh,740px);aspect-ratio:9/16;}",
       "#sho1re1-youtube-player{width:100%;height:100%;}",
+      ".card .sho1re1-card-preview{position:absolute;inset:0;z-index:2;background:#000;overflow:hidden;border-radius:inherit;}",
+      ".card .sho1re1-card-preview .sho1re1-inline-youtube{width:100%;height:100%;pointer-events:none;}",
+      ".card .sho1re1-card-preview iframe{width:100%;height:100%;object-fit:cover;}",
       "#sho1re1-youtube-close{position:absolute;right:10px;top:10px;z-index:3;width:42px;height:42px;border:0;border-radius:50%;background:rgba(20,20,20,.8);color:#fff;font-size:27px;line-height:1;cursor:pointer;}",
       "@media(max-width:600px){#sho1re1-youtube-overlay{padding:10px;}#sho1re1-youtube-shell{width:100%;}#sho1re1-youtube-shell.is-vertical{width:min(88vw,420px);height:min(82vh,740px);}}"
     ].join("");
@@ -100,7 +105,60 @@
     }
   }
 
+
+  function stopPreview() {
+    if (previewPlayer && typeof previewPlayer.destroy === "function") {
+      try { previewPlayer.destroy(); } catch (_) {}
+    }
+    previewPlayer = null;
+    if (previewHost) {
+      previewHost.innerHTML = "";
+      previewHost.classList.remove("is-playing");
+    }
+    previewHost = null;
+  }
+
+  window.Sho1re1StopYouTubePreview = stopPreview;
+
+  window.Sho1re1PreviewYouTube = function (url, host) {
+    var videoId = getVideoId(url);
+    if (!videoId || !host) return false;
+    if (previewHost === host && previewPlayer) return true;
+    stopPreview();
+    previewHost = host;
+    host.innerHTML = '<div class="sho1re1-inline-youtube"></div>';
+    host.classList.add("is-playing");
+    var target = host.firstElementChild;
+    loadApi().then(function () {
+      if (previewHost !== host || !host.isConnected) return;
+      previewPlayer = new window.YT.Player(target, {
+        videoId: videoId,
+        width: "100%",
+        height: "100%",
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          mute: 1
+        },
+        events: {
+          onReady: function (event) {
+            event.target.mute();
+            event.target.playVideo();
+          }
+        }
+      });
+    }).catch(function (error) {
+      console.warn("[Sho1re1 YouTube] Muted preview could not start:", error);
+    });
+    return true;
+  };
+
   window.Sho1re1PlayYouTube = function (url, title, contentKind) {
+    stopPreview();
     var videoId = getVideoId(url);
     if (!videoId) {
       console.warn("[Sho1re1 YouTube] Invalid video URL:", url);
