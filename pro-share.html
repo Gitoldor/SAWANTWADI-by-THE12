@@ -59,6 +59,13 @@
     button:active { transform: scale(.98); }
     button:disabled { opacity: .4; cursor: default; }
     .status { min-height: 20px; margin: 15px 4px 0; color: #aaa; font-size: 12px; line-height: 1.5; }
+    .posts-section { margin-top: 26px; text-align: left; }
+    .posts-heading { margin: 0 2px 13px; font-size: 17px; font-weight: 750; letter-spacing: -.035em; }
+    .posts-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .post-card { display: block; min-width: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 17px; color: #f7f7f7; background: rgba(255,255,255,.055); text-decoration: none; }
+    .post-card img { display: block; width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #222; }
+    .post-title { display: block; padding: 10px; font-size: 12px; line-height: 1.35; font-weight: 650; overflow-wrap: anywhere; }
+    .posts-empty { grid-column: 1/-1; margin: 0; padding: 20px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; color: #999; text-align: center; font-size: 12px; }
     .footer { margin-top: 23px; color: #686868; font-size: 11px; letter-spacing: .04em; }
     .hidden { display: none !important; }
     @media (max-width: 360px) {
@@ -81,6 +88,10 @@
       <h2 class="name" id="displayName">Loading profile…</h2>
       <p class="email" id="email"></p>
       <p class="claim"><strong id="claimName">This user</strong> is a <strong>PRO Sawantwadi user</strong>.</p>
+    </section>
+    <section class="posts-section hidden" id="postsSection" aria-live="polite">
+      <h2 class="posts-heading" id="postsHeading">Posts</h2>
+      <div class="posts-grid" id="postsGrid"></div>
     </section>
     <div class="actions hidden" id="ownerActions">
       <button type="button" id="shareButton" disabled>Share</button>
@@ -118,9 +129,73 @@
         $("displayName").textContent = name || "Sho1re1 user";
         $("claimName").textContent = name || "This user";
         $("email").textContent = String(profile.email || "");
+        if (profile.email) loadUserPosts(String(profile.email), name);
         $("avatar").src = profile.picture || "data:image/svg+xml," + encodeURIComponent(
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#292929"/><circle cx="100" cy="75" r="38" fill="#777"/><path d="M25 200c5-48 34-72 75-72s70 24 75 72" fill="#777"/></svg>'
         );
+      }
+
+      async function loadUserPosts(email, name) {
+        const section = $("postsSection");
+        const grid = $("postsGrid");
+        section.classList.remove("hidden");
+        $("postsHeading").textContent = "Posts by " + (name || email);
+        grid.replaceChildren();
+        const empty = document.createElement("p");
+        empty.className = "posts-empty";
+        empty.textContent = "Loading posts…";
+        grid.appendChild(empty);
+        try {
+          const response = await fetch("https://sawantwadi-read-api.onrender.com/places", {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+          });
+          if (!response.ok) throw new Error("Posts could not be loaded");
+          const data = await response.json();
+          const posts = Array.isArray(data.places) ? data.places : [];
+          const matches = posts.filter(post =>
+            String(post.email || "").trim().toLowerCase() === String(email).trim().toLowerCase()
+          );
+          grid.replaceChildren();
+          if (!matches.length) {
+            empty.textContent = "No posts linked to this email yet.";
+            grid.appendChild(empty);
+            return;
+          }
+          matches.forEach(post => {
+            const rawLink = String(post.link || "").trim();
+            let target = "";
+            try {
+              const parsed = new URL(rawLink, location.href);
+              if (parsed.protocol === "https:" || parsed.protocol === "http:") target = parsed.href;
+            } catch (_) {}
+            const card = document.createElement("a");
+            card.className = "post-card";
+            card.href = target || "#";
+            if (target) {
+              card.target = "_blank";
+              card.rel = "noopener noreferrer";
+            } else {
+              card.addEventListener("click", event => event.preventDefault());
+              card.setAttribute("aria-disabled", "true");
+            }
+            const image = document.createElement("img");
+            image.loading = "lazy";
+            image.decoding = "async";
+            image.alt = String(post.title || "Post");
+            image.src = String(post.image || "");
+            const title = document.createElement("span");
+            title.className = "post-title";
+            title.textContent = String(post.title || "Untitled post");
+            card.append(image, title);
+            grid.appendChild(card);
+          });
+        } catch (_) {
+          grid.replaceChildren();
+          empty.textContent = "Posts are temporarily unavailable.";
+          grid.appendChild(empty);
+        }
       }
 
       function setStatus(message) {
