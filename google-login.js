@@ -119,12 +119,6 @@
     pendingCredentialRequest = false;
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
 
-    // A returning user may still have a saved profile after the short-lived
-    // Google ID token expires. Refresh the credential through Google Identity
-    // Services instead of leaving every PRO feature permanently locked.
-    if (user && !credential) {
-      try { google.accounts.id.prompt(); } catch (_) {}
-    }
   }
   function renderButton(target) {
     if (!target) return;
