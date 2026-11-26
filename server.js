@@ -137,7 +137,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { success: false, error: "Valid email required" });
       }
       const result = await queryD1(
-        "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn FROM places WHERE email = ? COLLATE NOCASE ORDER BY id DESC",
+        "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn,email FROM places WHERE email = ? COLLATE NOCASE ORDER BY id DESC",
         [email]
       );
       const rows = result[0]?.results;
