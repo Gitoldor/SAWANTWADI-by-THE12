@@ -946,7 +946,7 @@ body{
 (function () {
   "use strict";
 
-  const API = "https://sawantwadi-read-api.onrender.com/location-custom-access";
+  const API = "https://sawantwadi-read-api.onrender.com/pro-status";
   const item = document.getElementById("pro-menu-link");
   if (!item) return;
 
@@ -979,37 +979,25 @@ body{
     item.classList.toggle("pro-active", active === true);
   }
 
-  function verifyPaid() {
+  async function verifyPaid() {
     const currentRequest = ++requestId;
-    const auth = getAuth();
-    const user = getUser(auth);
+    const user = getUser(getAuth());
     const email = String(user && user.email || "").trim().toLowerCase();
-    const credential = auth && typeof auth.getCredential === "function"
-      ? auth.getCredential()
-      : "";
+    if (!email) { paintPaid(false); return; }
 
-    // The saved profile is not proof of payment. Verify this live Google
-    // credential against its email and the enabled PRO row in D1.
-    if (!email || !credential) {
-      paintPaid(false);
-      return;
-    }
-
-    fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential: credential, email: email }),
-      cache: "no-store"
-    }).then(function (response) {
-      if (!response.ok) throw new Error("PRO access check failed");
-      return response.json();
-    }).then(function (result) {
-      if (currentRequest === requestId) {
-        paintPaid(result.success === true && result.allowed === true);
-      }
-    }).catch(function () {
+    try {
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email }),
+        cache: "no-store"
+      });
+      if (!response.ok) throw new Error("PRO status check failed");
+      const result = await response.json();
+      if (currentRequest === requestId) paintPaid(result.success === true && result.active === true);
+    } catch (_) {
       if (currentRequest === requestId) paintPaid(false);
-    });
+    }
   }
 
   verifyPaid();
