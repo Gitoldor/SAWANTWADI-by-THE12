@@ -121,7 +121,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method !== "GET" || !["/places", "/notifications"].includes(path)) {
+  if (req.method !== "GET" || !["/places", "/notifications", "/posts-by-email"].includes(path)) {
     return send(res, 404, { success: false, error: "Not found" });
   }
 
@@ -130,6 +130,23 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    if (path === "/posts-by-email") {
+      const requestedUrl = new URL(req.url || "/", "http://localhost");
+      const email = String(requestedUrl.searchParams.get("email") || "").trim().toLowerCase();
+      if (!email || email.length > 320 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+        return send(res, 400, { success: false, error: "Valid email required" });
+      }
+      const result = await queryD1(
+        "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn FROM places WHERE email = ? COLLATE NOCASE ORDER BY id DESC",
+        [email]
+      );
+      const rows = result[0]?.results;
+      if (!Array.isArray(rows)) {
+        return send(res, 502, { success: false, error: "Unexpected D1 response" });
+      }
+      return send(res, 200, { success: true, places: rows });
+    }
+
     if (path === "/notifications") {
       // Preserve the previous 24-hour notification lifetime.
       await queryD1(
@@ -150,7 +167,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const result = await queryD1(
-      "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn,email FROM places ORDER BY id DESC"
+      "SELECT id,title,topic,type,subtype,plan,lat,lng,image,link,plan2,createdOn FROM places ORDER BY id DESC"
     );
     const rows = result[0]?.results;
 
