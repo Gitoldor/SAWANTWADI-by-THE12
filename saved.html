@@ -507,10 +507,14 @@
     const foldersReq = folderStore.getAll();
     let liveIds = null;
 
-    // app.js is the source of truth. Match by stable post ID only:
-    // titles/names are not unique and can accidentally preserve deleted posts.
+    // Places and media share the same saved_places store.
+    // Include posts, reels and long-form media or this page would delete valid media saves.
     if (Array.isArray(window.Sho1re1Places)) {
-      liveIds = new Set(window.Sho1re1Places.map(post => String(post.id)));
+      const liveItems = window.Sho1re1Places.slice();
+      if (typeof window.Sho1re1GetMediaItems === 'function') {
+        liveItems.push(...window.Sho1re1GetMediaItems());
+      }
+      liveIds = new Set(liveItems.filter(post => post && post.id != null).map(post => String(post.id)));
     }
 
     placesReq.onsuccess = () => {
@@ -637,7 +641,11 @@
       if (!payload || payload.v !== 1 || !Array.isArray(payload.ids)) throw new Error('Invalid collection');
 
       const wanted = new Set(payload.ids.map(String));
-      const items = window.Sho1re1Places.filter(place => wanted.has(String(place.id)));
+      const liveItems = window.Sho1re1Places.slice();
+      if (typeof window.Sho1re1GetMediaItems === 'function') {
+        liveItems.push(...window.Sho1re1GetMediaItems());
+      }
+      const items = liveItems.filter(item => item && wanted.has(String(item.id)));
       sharedCollectionMode = true;
       document.getElementById('foldersGrid').style.display = 'none';
       document.getElementById('actionBtn').style.display = 'none';
