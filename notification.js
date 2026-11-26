@@ -1023,16 +1023,15 @@ function start(){
     const auth=window.Sho1re1Auth;
     const user=auth&&typeof auth.getUser==="function"?auth.getUser():null;
     const email=String(user&&user.email||"").trim().toLowerCase();
-    const credential=auth&&typeof auth.getCredential==="function"?auth.getCredential():"";
-    if(!email||!credential)return;
+    if(!email)return;
     try{
-      const response=await fetch("https://sawantwadi-read-api.onrender.com/location-custom-access",{
+      const response=await fetch("https://sawantwadi-read-api.onrender.com/pro-status",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({credential:credential,email:email}),cache:"no-store"
+        body:JSON.stringify({email:email}),cache:"no-store"
       });
-      if(!response.ok)throw new Error("PRO access check failed");
+      if(!response.ok)throw new Error("PRO status check failed");
       const result=await response.json();
-      if(request===paidAccessRequest)paidSwipeAccess=result.success===true&&result.allowed===true;
+      if(request===paidAccessRequest)paidSwipeAccess=result.success===true&&result.active===true;
     }catch(_){if(request===paidAccessRequest)paidSwipeAccess=false;}
   }
 
