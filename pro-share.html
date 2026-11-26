@@ -251,18 +251,12 @@
             });
             const data = await response.json();
             const personal = data && Array.isArray(data.subscriptions) ? data.subscriptions.filter(item => item.family === "PERSONAL") : [];
-            if (response.ok && personal.length) planId = personal.some(item => item.planId === "MAX_30D") ? "MAX_30D" : "PRO_7D";
+            if (response.ok && personal.length) {
+              planId = personal.some(item => item.planId === "MAX_30D") ? "MAX_30D" : "PRO_7D";
+            }
           }
-        } catch (_) {}
-        if (!planId) {
-          try {
-            const legacy = await fetch("https://sawantwadi-read-api.onrender.com/pro-status", {
-              method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" },
-              body: JSON.stringify({ email: String(user.email) })
-            });
-            const legacyData = await legacy.json();
-            if (legacy.ok && legacyData.active === true) planId = "PRO_7D";
-          } catch (_) {}
+        } catch (_) {
+          // Fail closed: do not use an unauthenticated email-only status fallback.
         }
         if (!planId) {
           $("displayName").textContent = String(user.displayName || user.email);
