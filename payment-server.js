@@ -76,18 +76,23 @@ async function ensureSchema() {
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL
     )`);
-    await queryD1(`CREATE TABLE IF NOT EXISTS sho1re1_subscriptions (
-      email TEXT NOT NULL,
-      google_sub TEXT NOT NULL,
-      family TEXT NOT NULL,
-      plan_id TEXT NOT NULL,
-      started_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL,
-      last_order_id TEXT NOT NULL,
-      PRIMARY KEY (email, family)
-    )`);
+    // Membership stays in the app's existing `pro` table. Additive migration only:
+    // existing email/enabled/created_at rows are preserved.
+    const columns = await queryD1("PRAGMA table_info(pro)");
+    const present = new Set(columns.map(column => column.name));
+    const additions = [
+      ["google_sub", "TEXT"],
+      ["personal_plan_id", "TEXT"],
+      ["personal_expires_at", "INTEGER"],
+      ["personal_last_order_id", "TEXT"],
+      ["business_plan_id", "TEXT"],
+      ["business_expires_at", "INTEGER"],
+      ["business_last_order_id", "TEXT"]
+    ];
+    for (const [name, type] of additions) {
+      if (!present.has(name)) await queryD1("ALTER TABLE pro ADD COLUMN " + name + " " + type);
+    }
     await queryD1("CREATE INDEX IF NOT EXISTS idx_sho1re1_orders_google_sub ON sho1re1_payment_orders(google_sub)");
-    await queryD1("CREATE INDEX IF NOT EXISTS idx_sho1re1_subscriptions_expiry ON sho1re1_subscriptions(expires_at)");
   })().catch(error => { schemaReady = null; throw error; });
   return schemaReady;
 }
@@ -146,32 +151,55 @@ async function activatePaidOrder(order, identity, verified) {
     throw Object.assign(new Error("This payment belongs to a different Google account"), { status: 403 });
   }
 
-  // The email is first written to the database here, after authoritative payment verification.
+  // Repeated verify/return requests must never extend the same paid order twice.
+  const existing = await queryD1(
+    "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, personal_last_order_id, business_plan_id, business_expires_at, business_last_order_id FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+    [identity.email]
+  );
+  const row = existing[0] || {};
+  const lastOrder = plan.family === "PERSONAL" ? row.personal_last_order_id : row.business_last_order_id;
+  const expiryField = plan.family === "PERSONAL" ? row.personal_expires_at : row.business_expires_at;
+  const planField = plan.family === "PERSONAL" ? row.personal_plan_id : row.business_plan_id;
+  if (lastOrder === order.order_id) {
+    return { active: Number(expiryField) > now, planId: planField, family: plan.family, expiresAt: new Date(Number(expiryField) * 1000).toISOString() };
+  }
+
+  // The account email is first persisted here, only after gateway verification.
   await queryD1(
     "UPDATE sho1re1_payment_orders SET status='PAID', utr=? WHERE order_id=? AND (utr IS NULL OR utr=?)",
     [utr, order.order_id, utr]
   );
-  const previous = await queryD1(
-    "SELECT expires_at FROM sho1re1_subscriptions WHERE email=? COLLATE NOCASE AND family=? LIMIT 1",
-    [identity.email, plan.family]
-  );
-  const oldExpiry = previous.length ? Number(previous[0].expires_at) : 0;
+  const oldExpiry = Number(expiryField) || 0;
   const start = Math.max(now, oldExpiry);
   const expiry = start + plan.days * 86400;
-  await queryD1(
-    `INSERT INTO sho1re1_subscriptions
-      (email,google_sub,family,plan_id,started_at,expires_at,last_order_id)
-     VALUES (?,?,?,?,?,?,?)
-     ON CONFLICT(email,family) DO UPDATE SET
-       google_sub=excluded.google_sub,
-       plan_id=excluded.plan_id,
-       started_at=excluded.started_at,
-       expires_at=excluded.expires_at,
-       last_order_id=excluded.last_order_id`,
-    [identity.email, identity.sub, plan.family, order.plan_id, start, expiry, order.order_id]
-  );
+
+  if (plan.family === "PERSONAL") {
+    await queryD1(
+      `INSERT INTO pro (email, enabled, google_sub, personal_plan_id, personal_expires_at, personal_last_order_id)
+       VALUES (?, 1, ?, ?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET
+         enabled=1, google_sub=excluded.google_sub,
+         personal_plan_id=excluded.personal_plan_id,
+         personal_expires_at=excluded.personal_expires_at,
+         personal_last_order_id=excluded.personal_last_order_id`,
+      [identity.email, identity.sub, order.plan_id, expiry, order.order_id]
+    );
+  } else {
+    await queryD1(
+      `INSERT INTO pro (email, enabled, google_sub, business_plan_id, business_expires_at, business_last_order_id)
+       VALUES (?, 1, ?, ?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET
+         enabled=1, google_sub=excluded.google_sub,
+         business_plan_id=excluded.business_plan_id,
+         business_expires_at=excluded.business_expires_at,
+         business_last_order_id=excluded.business_last_order_id`,
+      [identity.email, identity.sub, order.plan_id, expiry, order.order_id]
+    );
+  }
+  await queryD1("UPDATE sho1re1_payment_orders SET status='ACTIVATED' WHERE order_id=? AND status='PAID'", [order.order_id]);
   return { active: true, planId: order.plan_id, family: plan.family, expiresAt: new Date(expiry * 1000).toISOString() };
 }
+
 async function markWebhookPaid(orderId, payload) {
   const rows = await queryD1("SELECT * FROM sho1re1_payment_orders WHERE order_id=? LIMIT 1", [orderId]);
   if (!rows.length) return false;
@@ -296,20 +324,24 @@ const server = http.createServer(async (req, res) => {
       const { body } = await readBody(req);
       const identity = await verifyGoogleCredential(body.credential);
       const rows = await queryD1(
-        "SELECT family,plan_id,expires_at FROM sho1re1_subscriptions WHERE email=? COLLATE NOCASE",
+        "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, business_plan_id, business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
         [identity.email]
       );
+      const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      const active = rows.filter(row => Number(row.expires_at) > now);
-      return send(res, 200, {
-        success: true,
-        email: identity.email,
-        subscriptions: active.map(row => ({
-          family: row.family,
-          planId: row.plan_id,
-          expiresAt: new Date(Number(row.expires_at) * 1000).toISOString()
-        }))
+      const legacyActive = Number(row.enabled) === 1 && !row.personal_plan_id && !row.business_plan_id &&
+        row.personal_expires_at == null && row.business_expires_at == null;
+      const subscriptions = [];
+      if (legacyActive) subscriptions.push({ family: "PERSONAL", planId: "PRO_LEGACY", expiresAt: null, legacy: true });
+      if (row.personal_plan_id && Number(row.personal_expires_at) > now) subscriptions.push({
+        family: "PERSONAL", planId: row.personal_plan_id,
+        expiresAt: new Date(Number(row.personal_expires_at) * 1000).toISOString()
       });
+      if (row.business_plan_id && Number(row.business_expires_at) > now) subscriptions.push({
+        family: "BUSINESS", planId: row.business_plan_id,
+        expiresAt: new Date(Number(row.business_expires_at) * 1000).toISOString()
+      });
+      return send(res, 200, { success: true, email: identity.email, subscriptions });
     }
 
     return send(res, 404, { success: false, error: "Not found" });
