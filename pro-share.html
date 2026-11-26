@@ -86,13 +86,13 @@
     <div class="exit-row"><a class="exit-button" href="index.html" aria-label="Exit and return to home">← Exit</a></div>
     <p class="eyebrow" id="pageEyebrow">Share your PRO page</p>
     <section class="card hidden" id="profileCard" aria-label="Sho1re1 PRO profile">
-      <h1 class="pro-title">PRO</h1>
+      <h1 class="pro-title" id="tierTitle">PRO</h1>
       <div class="avatar-wrap">
         <img class="avatar" id="avatar" alt="Google profile photo">
       </div>
       <h2 class="name" id="displayName">Loading profile…</h2>
       <p class="email" id="email"></p>
-      <p class="claim"><strong id="claimName">This user</strong> is a <strong>PRO Sawantwadi user</strong>.</p>
+      <p class="claim"><strong id="claimName">This user</strong> is a <strong id="claimTier">PRO Sawantwadi user</strong>.</p>
     </section>
     <div class="actions hidden" id="ownerActions">
       <button type="button" id="shareButton" disabled>Share</button>
@@ -105,6 +105,7 @@
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="footer">LOCAL DISCOVERY. LOCAL PEOPLE. SHO1RE1.</p>
   </main>
+  <script src="./google-login.js"></script>
   <script>
     (function () {
       "use strict";
@@ -131,6 +132,11 @@
       function setProfile(profile) {
         $("profileCard").classList.remove("hidden");
         const name = String(profile.name || "Sho1re1 user").trim().slice(0, 48);
+        const isMax = profile.planId === "MAX_30D";
+        const tier = isMax ? "MAX" : "PRO";
+        $("tierTitle").textContent = tier;
+        $("claimTier").textContent = tier + " Sawantwadi user";
+        $("pageEyebrow").textContent = "Share your " + tier + " page";
         $("displayName").textContent = name || "Sho1re1 user";
         $("claimName").textContent = name || "This user";
         $("email").textContent = String(profile.email || "");
@@ -226,35 +232,55 @@
         $("status").textContent = message || "";
       }
 
-      function createOwnerPage() {
+      async function createOwnerPage() {
         let user = null;
-        try {
-          user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
-        } catch (_) {}
-
+        try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
         if (!user || !user.email) {
           $("displayName").textContent = "Sign in required";
           $("claimName").textContent = "This profile";
           setStatus("Sign in to your Google account in Sho1re1, then reopen this page.");
           return;
         }
-
+        let planId = "";
+        try {
+          const credential = window.Sho1re1Auth && window.Sho1re1Auth.getCredential();
+          if (credential) {
+            const response = await fetch("https://sho1re1-payments.onrender.com/api/subscription", {
+              method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({ credential })
+            });
+            const data = await response.json();
+            const personal = data && Array.isArray(data.subscriptions) ? data.subscriptions.filter(item => item.family === "PERSONAL") : [];
+            if (response.ok && personal.length) planId = personal.some(item => item.planId === "MAX_30D") ? "MAX_30D" : "PRO_7D";
+          }
+        } catch (_) {}
+        if (!planId) {
+          try {
+            const legacy = await fetch("https://sawantwadi-read-api.onrender.com/pro-status", {
+              method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({ email: String(user.email) })
+            });
+            const legacyData = await legacy.json();
+            if (legacy.ok && legacyData.active === true) planId = "PRO_7D";
+          } catch (_) {}
+        }
+        if (!planId) {
+          $("displayName").textContent = String(user.displayName || user.email);
+          $("claimName").textContent = "This profile";
+          setStatus("An active PRO or MAX membership is required to create a share page.");
+          return;
+        }
         const name = String(user.displayName || user.googleName || user.email.split("@")[0]).trim();
-        const profile = {
-          name: name || user.email.split("@")[0],
-          email: String(user.email),
-          picture: String(user.picture || "")
-        };
+        const profile = { name: name || user.email.split("@")[0], email: String(user.email), picture: String(user.picture || ""), planId };
         setProfile(profile);
         $("ownerActions").classList.remove("hidden");
-
         const url = new URL("pro-share.html", location.href);
         url.search = "";
         url.searchParams.set("profile", encodeProfile(profile));
         shareUrl = url.href;
         $("shareButton").disabled = false;
         $("copyButton").disabled = false;
-        setStatus("Your share link is ready.");
+        setStatus("Your " + (planId === "MAX_30D" ? "MAX" : "PRO") + " share link is ready.");
       }
 
       async function copyLink() {
