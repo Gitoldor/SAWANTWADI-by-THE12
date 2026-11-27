@@ -6,6 +6,7 @@
   const API = "https://sawantwadi-read-api.onrender.com/pro-status";
   const CACHE_MS = 10000;
   let cached = null;
+  let cachedPlanId = null;
   let checkedAt = 0;
   let pending = null;
   const listeners = new Set();
@@ -31,8 +32,9 @@
     } catch (_) { return null; }
   }
 
-  function publish(active) {
+  function publish(active, planId) {
     cached = active === true;
+    cachedPlanId = cached ? (typeof planId === "string" ? planId : null) : null;
     checkedAt = Date.now();
     listeners.forEach(function (fn) { try { fn(cached); } catch (_) {} });
     try { root.dispatchEvent(new CustomEvent("sho1re1:prochange", { detail: { active: cached } })); } catch (_) {}
@@ -91,7 +93,7 @@
       if (!latestUser || String(latestUser.email || "").trim().toLowerCase() !== requestedEmail || latestIdentity !== requestedIdentity) {
         return publish(false);
       }
-      return publish(result && result.success === true && result.active === true);
+      return publish(result && result.success === true && result.active === true, result && result.planId);
     }).catch(function () {
       return publish(false);
     }).finally(function () {
@@ -114,7 +116,8 @@
     check: function () { return check(false); },
     refresh: function () { return check(true); },
     onChange: onChange,
-    getCached: function () { return cached; }
+    getCached: function () { return cached; },
+    getPlanId: function () { return cachedPlanId; }
   };
 
   // All feature modules receive the same result when identity or credentials change.
