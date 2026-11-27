@@ -85,10 +85,9 @@ async function ensureSchema() {
       expires_at=COALESCE(expires_at, ${expiryFallback})
     WHERE plan IS NULL OR expires_at IS NULL`);
 
-    // Convert old legacy identifiers into the standard seven-day PRO plan.
-    // Existing expiry is preserved; rows without one receive seven days from migration.
+    // Ensure active standard PRO rows always have a seven-day expiry.
     await queryD1(
-      "UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'",
+      "UPDATE pro SET plan=COALESCE(plan,'PRO_7D'), expires_at=COALESCE(expires_at, ?) WHERE enabled=1 AND (plan IS NULL OR (plan='PRO_7D' AND expires_at IS NULL))",
       [Math.floor(Date.now() / 1000) + 7 * 86400]
     );
 
