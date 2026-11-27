@@ -201,7 +201,7 @@ async function activatePaidOrder(data, verified) {
     );
   } else {
     await queryD1(
-      "INSERT INTO pro (email,plan,enabled,created_at,expires_at) VALUES (?,?,1,?,?)",
+      "INSERT INTO pro (email,plan,enabled,created_at,expires_at) VALUES (?,?,1,?,?) ON CONFLICT(email) DO UPDATE SET plan=excluded.plan,enabled=1,created_at=excluded.created_at,expires_at=excluded.expires_at",
       [data.email, data.planId, orderStamp, expiry]
     );
   }
