@@ -27,7 +27,7 @@
   try{credential=auth&&((auth.getSessionToken&&auth.getSessionToken())||(auth.getCredential&&auth.getCredential()))||''}catch(_){}
   if(!user||!credential){allowed=false;checking=false;return false}
   try{
-   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:credential}),cache:'no-store'});
+   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:String(user.email||'').trim().toLowerCase(),credential:credential}),cache:'no-store'});
    if(!response.ok)throw Error('Access check failed');
    const data=await response.json();
    allowed=data.success===true&&data.active===true;
