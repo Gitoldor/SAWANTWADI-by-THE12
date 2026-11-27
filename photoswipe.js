@@ -196,13 +196,14 @@
     if (!user) {
       try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
     }
-    const email = String(user && user.email || "").trim().toLowerCase();
-    if (!email) return false;
+    let credential = "";
+    try { credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || ""; } catch (_) {}
+    if (!user || !credential) return false;
     try {
       const response = await fetch(CONFIG.proAccessAPI, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ credential: credential }),
         cache: "no-store"
       });
       if (!response.ok) return false;
