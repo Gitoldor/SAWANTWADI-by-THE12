@@ -1265,7 +1265,7 @@
       try {
         const response = await fetch(API, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credential: credential }), cache: "no-store"
+          body: JSON.stringify({ email: String(user.email || '').trim().toLowerCase(), credential: credential }), cache: "no-store"
         });
         if (!response.ok) throw new Error("PRO status check failed");
         const result = await response.json();
