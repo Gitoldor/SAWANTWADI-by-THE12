@@ -2556,24 +2556,30 @@ function setupCardSave(btn, place) {
       if (maxCloudSaveActive && window.Sho1re1CloudSaves) {
         const id = String(place.id);
         try {
-          if (cloudSavedIds.has(id)) {
-            await window.Sho1re1CloudSaves.remove(id);
-            cloudSavedIds.delete(id);
-            const localItems = await getSavedPlacesFromDB();
-            const localItem = localItems.find(item => String(item.id) === id);
-            if (localItem) {
-              savedPlacesMap.set(place.id, { place: localItem, folders: localItem.folders || ['Default'] });
-            } else {
-              savedPlacesMap.delete(place.id);
+          const localItems = await getSavedPlacesFromDB();
+          const localItem = localItems.find(item => String(item.id) === id);
+          const isCloudSaved = cloudSavedIds.has(id);
+          const isLocallySaved = !!localItem;
+
+          // Treat cloud + device saves as one toggle for MAX users.
+          // This restores unsave for items saved before MAX Cloud Saves existed,
+          // and removes both copies when the same post exists in both places.
+          if (isCloudSaved || isLocallySaved) {
+            if (isCloudSaved) {
+              await window.Sho1re1CloudSaves.remove(id);
+              cloudSavedIds.delete(id);
             }
-            btn.classList.toggle('is-saved', savedPlacesMap.has(place.id));
+            if (isLocallySaved) {
+              await removePlaceFromDB(place.id);
+            }
+            savedPlacesMap.delete(place.id);
+            btn.classList.remove('is-saved');
           } else {
             await window.Sho1re1CloudSaves.save(id);
             cloudSavedIds.add(id);
-            const previous = savedPlacesMap.get(place.id);
             savedPlacesMap.set(place.id, {
               place: place,
-              folders: previous && previous.folders ? previous.folders : ['Default'],
+              folders: ['Default'],
               cloud: true
             });
             btn.classList.add('is-saved');
