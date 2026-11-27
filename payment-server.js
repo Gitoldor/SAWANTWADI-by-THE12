@@ -10,10 +10,10 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "89011073863-98b4vrionc
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://sawantwadi-by-the12.pages.dev";
 
 const PLANS = Object.freeze({
-  PRO_7D:       { amount: 5,  days: 7,  family: "PERSONAL", label: "PRO" },
-  MAX_30D:      { amount: 20, days: 30, family: "PERSONAL", label: "MAX" },
-  BUSINESS_PRO: { amount: 10, days: 7, family: "BUSINESS", label: "BUSINESS PRO" },
-  BUSINESS_MAX: { amount: 30, days: 30, family: "BUSINESS", label: "BUSINESS MAX" }
+  PRO_7D:       { amount: 5,  days: 7,  label: "PRO" },
+  MAX_30D:      { amount: 20, days: 30, label: "MAX" },
+  BUSINESS_PRO: { amount: 10, days: 7,  label: "BUSINESS PRO" },
+  BUSINESS_MAX: { amount: 30, days: 30, label: "BUSINESS MAX" }
 });
 
 const cors = {
@@ -39,7 +39,7 @@ function readBody(req, limit = 20000) {
       }
     });
     req.on("end", () => {
-      try { resolve({ raw, body: raw ? JSON.parse(raw) : {} }); }
+      try { resolve(JSON.parse(raw || "{}")); }
       catch { reject(Object.assign(new Error("Invalid JSON"), { status: 400 })); }
     });
     req.on("error", reject);
@@ -58,54 +58,11 @@ async function queryD1(sql, params = []) {
   const payload = await response.json();
   if (!response.ok || payload.success !== true) {
     console.error("D1 request failed", response.status, payload.errors || []);
-    throw new Error("Payment database request failed");
+    throw new Error("Membership database request failed");
   }
   return payload.result?.[0]?.results || [];
 }
-let schemaReady;
-async function ensureSchema() {
-  if (!schemaReady) schemaReady = (async () => {
-    await queryD1(`CREATE TABLE IF NOT EXISTS sho1re1_auth_sessions (
-      token_hash TEXT PRIMARY KEY,
-      google_sub TEXT NOT NULL,
-      email TEXT NOT NULL,
-      display_name TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL,
-      last_seen_at INTEGER NOT NULL
-    )`);
-    await queryD1("CREATE INDEX IF NOT EXISTS idx_sho1re1_sessions_expiry ON sho1re1_auth_sessions(expires_at)");
-    await queryD1(`CREATE TABLE IF NOT EXISTS sho1re1_payment_orders (
-      order_id TEXT PRIMARY KEY,
-      google_sub TEXT NOT NULL,
-      plan_id TEXT NOT NULL,
-      base_amount INTEGER NOT NULL,
-      payable_amount TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'PENDING',
-      utr TEXT UNIQUE,
-      created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL
-    )`);
-    // Membership stays in the app's existing `pro` table. Additive migration only:
-    // existing email/enabled/created_at rows are preserved.
-    const columns = await queryD1("PRAGMA table_info(pro)");
-    const present = new Set(columns.map(column => column.name));
-    const additions = [
-      ["google_sub", "TEXT"],
-      ["personal_plan_id", "TEXT"],
-      ["personal_expires_at", "INTEGER"],
-      ["personal_last_order_id", "TEXT"],
-      ["business_plan_id", "TEXT"],
-      ["business_expires_at", "INTEGER"],
-      ["business_last_order_id", "TEXT"]
-    ];
-    for (const [name, type] of additions) {
-      if (!present.has(name)) await queryD1("ALTER TABLE pro ADD COLUMN " + name + " " + type);
-    }
-    await queryD1("CREATE INDEX IF NOT EXISTS idx_sho1re1_orders_google_sub ON sho1re1_payment_orders(google_sub)");
-  })().catch(error => { schemaReady = null; throw error; });
-  return schemaReady;
-}
+
 async function verifyGoogleCredential(token) {
   if (typeof token !== "string" || token.length < 100 || token.length > 12000) {
     throw Object.assign(new Error("Google sign-in required"), { status: 401 });
@@ -124,73 +81,38 @@ async function verifyGoogleCredential(token) {
   };
 }
 
-function hashSessionToken(token) {
-  return crypto.createHash("sha256").update(String(token)).digest("hex");
-}
-async function issueAppSession(identity) {
-  const token = "s1_" + crypto.randomBytes(32).toString("base64url");
-  const now = Math.floor(Date.now() / 1000);
-  const expiresAt = now + 30 * 86400;
-  await queryD1(
-    "INSERT INTO sho1re1_auth_sessions (token_hash,google_sub,email,display_name,created_at,expires_at,last_seen_at) VALUES (?,?,?,?,?,?,?)",
-    [hashSessionToken(token), identity.sub, identity.email, identity.name, now, expiresAt, now]
-  );
-  return { token, expiresAt };
-}
-async function verifyAppSession(token) {
-  if (typeof token !== "string" || !token.startsWith("s1_") || token.length > 200) return null;
-  const now = Math.floor(Date.now() / 1000);
-  const rows = await queryD1(
-    "SELECT google_sub,email,display_name,expires_at FROM sho1re1_auth_sessions WHERE token_hash=? AND expires_at>? LIMIT 1",
-    [hashSessionToken(token), now]
-  );
-  if (!rows.length) return null;
-  await queryD1("UPDATE sho1re1_auth_sessions SET last_seen_at=? WHERE token_hash=?", [now, hashSessionToken(token)]);
-  return { sub: String(rows[0].google_sub), email: String(rows[0].email).toLowerCase(), name: String(rows[0].display_name || "Sho1re1 user") };
-}
-async function verifyAppCredential(token) {
-  const session = await verifyAppSession(token);
-  return session || await verifyGoogleCredential(token);
-}
-
-function createPaymentContinuation(orderId, identity) {
-  const payload = Buffer.from(JSON.stringify({
-    orderId, sub: identity.sub, email: identity.email, name: identity.name,
-    exp: Math.floor(Date.now() / 1000) + 7 * 86400
-  })).toString("base64url");
+function signContinuation(data) {
+  const payload = Buffer.from(JSON.stringify(data)).toString("base64url");
   const signature = crypto.createHmac("sha256", FAMGATEWAY_API_KEY).update(payload).digest("base64url");
   return payload + "." + signature;
 }
-function verifyPaymentContinuation(token, orderId) {
+function verifyContinuation(token, orderId) {
   if (typeof token !== "string" || token.length > 3000) {
-    throw Object.assign(new Error("Payment continuation is unavailable. Open the original payment tab."), { status: 401 });
+    throw Object.assign(new Error("Payment details are missing. Return to the plan page and retry."), { status: 401 });
   }
   const parts = token.split(".");
-  if (parts.length !== 2) throw Object.assign(new Error("Invalid payment continuation"), { status: 401 });
+  if (parts.length !== 2) throw Object.assign(new Error("Invalid payment details"), { status: 401 });
   const expected = crypto.createHmac("sha256", FAMGATEWAY_API_KEY).update(parts[0]).digest();
   let supplied;
   try { supplied = Buffer.from(parts[1], "base64url"); } catch { supplied = Buffer.alloc(0); }
   if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
-    throw Object.assign(new Error("Invalid payment continuation"), { status: 401 });
+    throw Object.assign(new Error("Invalid payment details"), { status: 401 });
   }
   let data;
   try { data = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")); }
-  catch { throw Object.assign(new Error("Invalid payment continuation"), { status: 401 }); }
-  if (!data.orderId || data.orderId !== orderId || !data.sub || !data.email ||
-      Number(data.exp) * 1000 <= Date.now()) {
-    throw Object.assign(new Error("Payment continuation expired. Your order remains saved; sign in only if a new order is needed."), { status: 401 });
+  catch { throw Object.assign(new Error("Invalid payment details"), { status: 401 }); }
+  if (data.orderId !== orderId || !data.sub || !data.email || !PLANS[data.planId] ||
+      !Number.isFinite(Number(data.payableAmount)) || !Number.isFinite(Number(data.issuedAt)) ||
+      Number(data.tokenExpiresAt) * 1000 <= Date.now()) {
+    throw Object.assign(new Error("Payment session expired. Choose your plan again."), { status: 401 });
   }
-  return { sub: String(data.sub), email: String(data.email).toLowerCase(), name: String(data.name || "Sho1re1 user") };
+  return data;
 }
 
 async function gatewayRequest(path, options = {}) {
   const response = await fetch("https://famgateway.in" + path, {
     ...options,
-    headers: {
-      "X-Api-Key": FAMGATEWAY_API_KEY,
-      Accept: "application/json",
-      ...(options.headers || {})
-    }
+    headers: { "X-Api-Key": FAMGATEWAY_API_KEY, Accept: "application/json", ...(options.headers || {}) }
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -208,93 +130,46 @@ function paidStatus(payload) {
 async function authoritativeVerify(orderId) {
   return gatewayRequest("/api/verify-order.php?order_id=" + encodeURIComponent(orderId));
 }
-async function activatePaidOrder(order, identity, verified) {
+
+async function activatePaidOrder(data, verified) {
   const d = gatewayData(verified);
   const utr = String(d.utr || d.bank_utr || d.transaction_id || "").trim();
-  const amount = String(d.payable_amount || d.amount || "");
-  if (!paidStatus(verified) || !utr || Number(amount) !== Number(order.payable_amount)) {
-    throw Object.assign(new Error("Payment is not verified for the expected amount"), { status: 409 });
+  const amount = Number(d.payable_amount || d.amount || 0);
+  if (!paidStatus(verified) || !utr || amount !== Number(data.payableAmount)) {
+    throw Object.assign(new Error("Payment is not confirmed for the expected amount"), { status: 409 });
   }
+
   const now = Math.floor(Date.now() / 1000);
-  const plan = PLANS[order.plan_id];
-  if (!plan || identity.sub !== order.google_sub) {
-    throw Object.assign(new Error("This payment belongs to a different Google account"), { status: 403 });
-  }
-  if (order.status === "ACTIVATED") {
-    const current = await queryD1(
-      "SELECT personal_plan_id,personal_expires_at,business_plan_id,business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
-      [identity.email]
-    );
-    const row = current[0] || {};
-    const planId = plan.family === "PERSONAL" ? row.personal_plan_id : row.business_plan_id;
-    const expiry = Number(plan.family === "PERSONAL" ? row.personal_expires_at : row.business_expires_at) || 0;
-    return { active: expiry > now, planId, family: plan.family, expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null };
-  }
-
-  // Repeated verify/return requests must never extend the same paid order twice.
-  const existing = await queryD1(
-    "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, personal_last_order_id, business_plan_id, business_expires_at, business_last_order_id FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
-    [identity.email]
+  const plan = PLANS[data.planId];
+  const rows = await queryD1(
+    "SELECT plan,enabled,created_at,expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+    [data.email]
   );
-  const row = existing[0] || {};
-  const lastOrder = plan.family === "PERSONAL" ? row.personal_last_order_id : row.business_last_order_id;
-  const expiryField = plan.family === "PERSONAL" ? row.personal_expires_at : row.business_expires_at;
-  const planField = plan.family === "PERSONAL" ? row.personal_plan_id : row.business_plan_id;
-  if (lastOrder === order.order_id) {
-    return { active: Number(expiryField) > now, planId: planField, family: plan.family, expiresAt: new Date(Number(expiryField) * 1000).toISOString() };
+  const current = rows[0] || null;
+  const orderStamp = String(data.issuedAt);
+
+  // created_at records the most recently activated checkout. This makes repeat
+  // return/poll requests idempotent without storing a separate order table.
+  if (current && String(current.created_at) === orderStamp) {
+    const expiry = Number(current.expires_at) || 0;
+    return { active: Number(current.enabled) === 1 && expiry > now, planId: current.plan, expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null };
   }
 
-  // The account email is first persisted here, only after gateway verification.
-  await queryD1(
-    "UPDATE sho1re1_payment_orders SET status='PAID', utr=? WHERE order_id=? AND status!='ACTIVATED' AND (utr IS NULL OR utr=?)",
-    [utr, order.order_id, utr]
-  );
-  const oldExpiry = Number(expiryField) || 0;
-  const start = Math.max(now, oldExpiry);
-  const expiry = start + plan.days * 86400;
+  const oldExpiry = current && Number(current.enabled) === 1 ? Number(current.expires_at) || 0 : 0;
+  const expiry = Math.max(now, oldExpiry) + plan.days * 86400;
 
-  if (plan.family === "PERSONAL") {
+  if (current) {
     await queryD1(
-      `INSERT INTO pro (email, enabled, google_sub, personal_plan_id, personal_expires_at, personal_last_order_id)
-       VALUES (?, 1, ?, ?, ?, ?)
-       ON CONFLICT(email) DO UPDATE SET
-         enabled=1, google_sub=excluded.google_sub,
-         personal_plan_id=excluded.personal_plan_id,
-         personal_expires_at=excluded.personal_expires_at,
-         personal_last_order_id=excluded.personal_last_order_id`,
-      [identity.email, identity.sub, order.plan_id, expiry, order.order_id]
+      "UPDATE pro SET plan=?,enabled=1,created_at=?,expires_at=? WHERE email=? COLLATE NOCASE",
+      [data.planId, orderStamp, expiry, data.email]
     );
   } else {
     await queryD1(
-      `INSERT INTO pro (email, enabled, google_sub, business_plan_id, business_expires_at, business_last_order_id)
-       VALUES (?, 1, ?, ?, ?, ?)
-       ON CONFLICT(email) DO UPDATE SET
-         enabled=1, google_sub=excluded.google_sub,
-         business_plan_id=excluded.business_plan_id,
-         business_expires_at=excluded.business_expires_at,
-         business_last_order_id=excluded.business_last_order_id`,
-      [identity.email, identity.sub, order.plan_id, expiry, order.order_id]
+      "INSERT INTO pro (email,plan,enabled,created_at,expires_at) VALUES (?,?,1,?,?)",
+      [data.email, data.planId, orderStamp, expiry]
     );
   }
-  await queryD1("UPDATE sho1re1_payment_orders SET status='ACTIVATED' WHERE order_id=? AND status='PAID'", [order.order_id]);
-  return { active: true, planId: order.plan_id, family: plan.family, expiresAt: new Date(expiry * 1000).toISOString() };
-}
-
-async function markWebhookPaid(orderId, payload) {
-  const rows = await queryD1("SELECT * FROM sho1re1_payment_orders WHERE order_id=? LIMIT 1", [orderId]);
-  if (!rows.length) return false;
-  const order = rows[0];
-  if (order.status === "ACTIVATED") return true;
-  const verified = await authoritativeVerify(orderId);
-  const d = gatewayData(verified);
-  const utr = String(d.utr || d.bank_utr || d.transaction_id || payload.utr || "").trim();
-  const amount = String(d.payable_amount || d.amount || payload.payable_amount || payload.amount || "");
-  if (!paidStatus(verified) || !utr || Number(amount) !== Number(order.payable_amount)) return false;
-  await queryD1(
-    "UPDATE sho1re1_payment_orders SET status='PAID', utr=? WHERE order_id=? AND (utr IS NULL OR utr=?)",
-    [utr, orderId, utr]
-  );
-  return true;
+  return { active: true, planId: data.planId, expiresAt: new Date(expiry * 1000).toISOString() };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -303,56 +178,14 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/health") {
     return send(res, 200, { success: true, service: "sho1re1-payments", configured: configured() });
   }
-  if (req.method === "POST" && url.pathname === "/webhook") {
-    if (!FAMGATEWAY_API_KEY) return send(res, 503, { success: false });
-    try {
-      const { raw, body } = await readBody(req, 30000);
-      const signature = String(req.headers["x-famgateway-signature"] || "");
-      const expected = crypto.createHmac("sha256", FAMGATEWAY_API_KEY).update(raw).digest();
-      const supplied = /^[a-f0-9]{64}$/i.test(signature) ? Buffer.from(signature, "hex") : Buffer.alloc(0);
-      if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
-        return send(res, 401, { success: false, error: "Invalid signature" });
-      }
-      if (body.event === "payment.success" || String(body.status).toLowerCase() === "success") {
-        if (!configured()) return send(res, 503, { success: false });
-        await ensureSchema();
-        const ok = await markWebhookPaid(String(body.order_id || ""), body);
-        if (!ok) return send(res, 409, { success: false, error: "Order not matched or payment not verified" });
-      }
-      return send(res, 200, { success: true });
-    } catch (error) {
-      console.error("Webhook processing failed:", error.message);
-      return send(res, error.status || 500, { success: false, error: "Webhook processing failed" });
-    }
-  }
-
   if (!configured()) return send(res, 503, { success: false, error: "Payment service is not configured" });
+
   try {
-    await ensureSchema();
-
-    if (req.method === "POST" && url.pathname === "/api/session") {
-      const { body } = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
-      const session = await issueAppSession(identity);
-      return send(res, 200, { success: true, sessionToken: session.token, expiresAt: new Date(session.expiresAt * 1000).toISOString(), user: { sub: identity.sub, email: identity.email, name: identity.name } });
-    }
-    if (req.method === "POST" && url.pathname === "/api/session/refresh") {
-      const { body } = await readBody(req);
-      const identity = await verifyAppCredential(body.sessionToken || body.credential);
-      const session = await issueAppSession(identity);
-      return send(res, 200, { success: true, sessionToken: session.token, expiresAt: new Date(session.expiresAt * 1000).toISOString() });
-    }
-    if (req.method === "POST" && url.pathname === "/api/session/logout") {
-      const { body } = await readBody(req);
-      const token = String(body.sessionToken || "");
-      if (token.startsWith("s1_")) await queryD1("DELETE FROM sho1re1_auth_sessions WHERE token_hash=?", [hashSessionToken(token)]);
-      return send(res, 200, { success: true });
-    }
-
     if (req.method === "POST" && url.pathname === "/api/orders") {
-      const { body } = await readBody(req);
-      const identity = await verifyAppCredential(body.credential);
-      const plan = PLANS[String(body.planId || "")];
+      const body = await readBody(req);
+      const identity = await verifyGoogleCredential(body.credential);
+      const planId = String(body.planId || "");
+      const plan = PLANS[planId];
       if (!plan) return send(res, 400, { success: false, error: "Unknown plan" });
 
       const gateway = await gatewayRequest("/api/create-order", {
@@ -361,8 +194,7 @@ const server = http.createServer(async (req, res) => {
         body: JSON.stringify({
           amount: plan.amount,
           customer_name: identity.name,
-          redirect_url: APP_ORIGIN + "/pro.html?payment=return",
-          webhook_url: process.env.FAMGATEWAY_WEBHOOK_URL || undefined
+          redirect_url: APP_ORIGIN + "/pro.html?payment=return"
         })
       });
       if (String(gateway.status || "").toLowerCase() !== "success") {
@@ -370,121 +202,63 @@ const server = http.createServer(async (req, res) => {
       }
       const d = gatewayData(gateway);
       const orderId = String(d.order_id || "");
-      const payable = String(d.payable_amount || d.amount || "");
-      if (!orderId || !Number.isFinite(Number(payable)) || Number(payable) < plan.amount) {
+      const payableAmount = Number(d.payable_amount || d.amount || 0);
+      if (!orderId || !Number.isFinite(payableAmount) || payableAmount < plan.amount) {
         return send(res, 502, { success: false, error: "Gateway returned an invalid order" });
       }
-      const now = Math.floor(Date.now() / 1000);
-      await queryD1(
-        "INSERT INTO sho1re1_payment_orders (order_id,google_sub,plan_id,base_amount,payable_amount,status,created_at,expires_at) VALUES (?,?,?,?,?,'PENDING',?,?)",
-        [orderId, identity.sub, body.planId, plan.amount, payable, now, now + 300]
-      );
+      const issuedAt = Date.now();
+      const continuationToken = signContinuation({
+        orderId, sub: identity.sub, email: identity.email, planId,
+        payableAmount, issuedAt, tokenExpiresAt: Math.floor(Date.now() / 1000) + 7 * 86400
+      });
       return send(res, 200, {
         success: true,
         order: {
-          orderId,
-          planId: body.planId,
-          baseAmount: plan.amount,
-          payableAmount: payable,
+          orderId, planId, baseAmount: plan.amount, payableAmount,
           checkoutUrl: String(d.checkout_url || ""),
           qrUrl: String(d.qr_url || ""),
           upiIntent: String(d.upi_intent || ""),
-          continuationToken: createPaymentContinuation(orderId, identity),
+          continuationToken,
           expiresAt: d.expires_at_ist || null
         }
       });
     }
 
     if (req.method === "POST" && url.pathname === "/api/verify") {
-      const { body } = await readBody(req);
+      const body = await readBody(req);
       const orderId = String(body.orderId || "");
       if (!orderId || orderId.length > 100) return send(res, 400, { success: false, error: "Order ID required" });
-      const rows = await queryD1("SELECT * FROM sho1re1_payment_orders WHERE order_id=? LIMIT 1", [orderId]);
-      if (!rows.length) return send(res, 404, { success: false, error: "Payment order not found" });
-      const order = rows[0];
-      // A signed, order-specific continuation lets the same checkout resume after
-      // Android switches to a UPI app, without storing or re-requesting Google login.
-      const identity = body.continuationToken
-        ? verifyPaymentContinuation(body.continuationToken, orderId)
-        : await verifyAppCredential(body.credential);
-      if (order.google_sub !== identity.sub) {
-        return send(res, 404, { success: false, error: "Payment order not found for this account" });
-      }
-      // PAID is written only after a server-side FamGateway verification
-      // (including signed webhooks). Reconcile it locally without depending on
-      // another gateway round-trip; ACTIVATED is fully idempotent.
-      if (order.status === "PAID" || order.status === "ACTIVATED") {
-        const verified = {
-          status: "success",
-          data: {
-            payment_status: "success",
-            utr: order.utr,
-            payable_amount: order.payable_amount
-          }
-        };
-        const activation = await activatePaidOrder(order, identity, verified);
-        return send(res, 200, { success: true, status: "paid", activation });
-      }
-
-      // Always ask FamGateway before expiring locally: a user may complete UPI
-      // just before the timer and return to Sho1re1 a little later.
+      const data = verifyContinuation(body.continuationToken, orderId);
       const verified = await authoritativeVerify(orderId);
-      if (paidStatus(verified)) {
-        const activation = await activatePaidOrder(order, identity, verified);
-        return send(res, 200, { success: true, status: "paid", activation });
-      }
-      const now = Math.floor(Date.now() / 1000);
-      if (Number(order.expires_at) < now) {
-        await queryD1(
-          "UPDATE sho1re1_payment_orders SET status='EXPIRED' WHERE order_id=? AND status='PENDING' AND expires_at<?",
-          [orderId, now]
-        );
-        return send(res, 200, { success: true, status: "expired" });
-      }
-      return send(res, 200, { success: true, status: "pending" });
+      if (!paidStatus(verified)) return send(res, 200, { success: true, status: "pending" });
+      const activation = await activatePaidOrder(data, verified);
+      return send(res, 200, { success: true, status: "paid", activation });
     }
 
     if (req.method === "POST" && url.pathname === "/api/subscription") {
-      const { body } = await readBody(req);
-      const identity = await verifyAppCredential(body.credential);
-      // If the buyer closed checkout before the return page loaded, the verified
-      // webhook leaves the order PAID. Reconcile it on the next authenticated visit.
-      const paidOrders = await queryD1(
-        "SELECT * FROM sho1re1_payment_orders WHERE google_sub=? AND status='PAID' ORDER BY created_at ASC",
-        [identity.sub]
-      );
-      for (const order of paidOrders) {
-        // A PAID row is persisted only after an authoritative gateway check.
-        // Reconcile it locally so a temporary gateway outage cannot block login
-        // or hide an already-paid membership.
-        const verified = {
-          status: "success",
-          data: {
-            payment_status: "success",
-            utr: order.utr,
-            payable_amount: order.payable_amount
-          }
-        };
-        await activatePaidOrder(order, identity, verified);
-      }
+      const body = await readBody(req);
+      const identity = await verifyGoogleCredential(body.credential);
       const rows = await queryD1(
-        "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, business_plan_id, business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+        "SELECT plan,enabled,created_at,expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
         [identity.email]
       );
-      const row = rows[0] || {};
+      const row = rows[0] || null;
       const now = Math.floor(Date.now() / 1000);
-      const legacyActive = Number(row.enabled) === 1 && !row.personal_plan_id && !row.business_plan_id &&
-        row.personal_expires_at == null && row.business_expires_at == null;
-      const subscriptions = [];
-      if (legacyActive) subscriptions.push({ family: "PERSONAL", planId: "PRO_LEGACY", expiresAt: null, legacy: true });
-      if (row.personal_plan_id && Number(row.personal_expires_at) > now) subscriptions.push({
-        family: "PERSONAL", planId: row.personal_plan_id,
-        expiresAt: new Date(Number(row.personal_expires_at) * 1000).toISOString()
-      });
-      if (row.business_plan_id && Number(row.business_expires_at) > now) subscriptions.push({
-        family: "BUSINESS", planId: row.business_plan_id,
-        expiresAt: new Date(Number(row.business_expires_at) * 1000).toISOString()
-      });
+      if (!row || Number(row.enabled) !== 1) {
+        return send(res, 200, { success: true, email: identity.email, subscriptions: [] });
+      }
+      const expiry = row.expires_at == null ? 0 : Number(row.expires_at);
+      if (expiry && expiry <= now) {
+        await queryD1("UPDATE pro SET enabled=0 WHERE email=? COLLATE NOCASE", [identity.email]);
+        return send(res, 200, { success: true, email: identity.email, subscriptions: [] });
+      }
+      const legacy = !row.plan && !expiry;
+      const subscriptions = [{
+        family: row.plan && row.plan.startsWith("BUSINESS_") ? "BUSINESS" : "PERSONAL",
+        planId: row.plan || "PRO_LEGACY",
+        expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null,
+        legacy
+      }];
       return send(res, 200, { success: true, email: identity.email, subscriptions });
     }
 
@@ -495,4 +269,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log("Sho1re1 payment service listening on", PORT));
+server.listen(PORT, () => console.log("Sho1re1 simple payment service listening on", PORT));
