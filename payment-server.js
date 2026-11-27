@@ -70,6 +70,7 @@ async function ensureSchema() {
     const present = new Set(columns.map(column => column.name));
     if (!present.has("plan")) await queryD1("ALTER TABLE pro ADD COLUMN plan TEXT");
     if (!present.has("expires_at")) await queryD1("ALTER TABLE pro ADD COLUMN expires_at INTEGER");
+    if (!present.has("logger")) await queryD1("ALTER TABLE pro ADD COLUMN logger TEXT");
 
     // One-time migration: preserve existing memberships, then keep only the
     // five fields used by the simple membership model.
@@ -178,7 +179,7 @@ async function activatePaidOrder(data, verified) {
   const now = Math.floor(Date.now() / 1000);
   const plan = PLANS[data.planId];
   const rows = await queryD1(
-    "SELECT plan,enabled,created_at,expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+    "SELECT plan,enabled,created_at,expires_at,logger FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
     [data.email]
   );
   const current = rows[0] || null;
@@ -196,13 +197,13 @@ async function activatePaidOrder(data, verified) {
 
   if (current) {
     await queryD1(
-      "UPDATE pro SET plan=?,enabled=1,created_at=?,expires_at=? WHERE email=? COLLATE NOCASE",
-      [data.planId, orderStamp, expiry, data.email]
+      "UPDATE pro SET plan=?,enabled=1,created_at=?,expires_at=?,logger=? WHERE email=? COLLATE NOCASE",
+      [data.planId, orderStamp, expiry, data.sub, data.email]
     );
   } else {
     await queryD1(
-      "INSERT INTO pro (email,plan,enabled,created_at,expires_at) VALUES (?,?,1,?,?) ON CONFLICT(email) DO UPDATE SET plan=excluded.plan,enabled=1,created_at=excluded.created_at,expires_at=excluded.expires_at",
-      [data.email, data.planId, orderStamp, expiry]
+      "INSERT INTO pro (email,plan,enabled,created_at,expires_at,logger) VALUES (?,?,1,?,?,?) ON CONFLICT(email) DO UPDATE SET plan=excluded.plan,enabled=1,created_at=excluded.created_at,expires_at=excluded.expires_at,logger=excluded.logger",
+      [data.email, data.planId, orderStamp, expiry, data.sub]
     );
   }
   return { active: true, planId: data.planId, expiresAt: new Date(expiry * 1000).toISOString() };
@@ -274,20 +275,35 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/subscription") {
       const body = await readBody(req);
-      const identity = await verifyGoogleCredential(body.credential);
+      let identity = null;
+      if (body.credential) identity = await verifyGoogleCredential(body.credential);
+      const email = String(identity?.email || body.email || "").trim().toLowerCase();
+      const logger = String(identity?.sub || body.logger || "");
+      if (!email || !logger || logger.length > 200) {
+        throw Object.assign(new Error("Saved Google account details are missing"), { status: 401 });
+      }
       const rows = await queryD1(
-        "SELECT plan,enabled,created_at,expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
-        [identity.email]
+        "SELECT plan,enabled,created_at,expires_at,logger FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
+        [email]
       );
       const row = rows[0] || null;
       const now = Math.floor(Date.now() / 1000);
       if (!row || Number(row.enabled) !== 1) {
-        return send(res, 200, { success: true, email: identity.email, subscriptions: [] });
+        return send(res, 200, { success: true, email, subscriptions: [] });
+      }
+      if (row.logger && row.logger !== logger) {
+        throw Object.assign(new Error("This membership belongs to a different Google account"), { status: 403 });
+      }
+      if (!row.logger) {
+        if (!identity || identity.email !== email) {
+          throw Object.assign(new Error("Sign in once to link this existing membership to your Google account"), { status: 401 });
+        }
+        await queryD1("UPDATE pro SET logger=? WHERE email=? COLLATE NOCASE", [logger, email]);
       }
       const expiry = row.expires_at == null ? 0 : Number(row.expires_at);
       if (expiry && expiry <= now) {
         await queryD1("UPDATE pro SET enabled=0 WHERE email=? COLLATE NOCASE", [identity.email]);
-        return send(res, 200, { success: true, email: identity.email, subscriptions: [] });
+        return send(res, 200, { success: true, email, subscriptions: [] });
       }
       const legacy = !row.plan && !expiry;
       const subscriptions = [{
@@ -296,7 +312,7 @@ const server = http.createServer(async (req, res) => {
         expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null,
         legacy
       }];
-      return send(res, 200, { success: true, email: identity.email, subscriptions });
+      return send(res, 200, { success: true, email, subscriptions });
     }
 
     return send(res, 404, { success: false, error: "Not found" });
