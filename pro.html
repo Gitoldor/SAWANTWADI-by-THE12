@@ -161,7 +161,7 @@
               clearInterval(expiryTimer);expiryTimer=null;loadSubscription();
             }
           };
-          membershipView("Your membership is active","",false,false);
+          membershipView("Your membership is active","",true,false);
           renderActivePlans();
           expiryTimer=setInterval(renderActivePlans,30000);
           document.getElementById("pro-page").classList.add("pro-active");
