@@ -207,12 +207,8 @@
     const loc=window.Sho1re1LocateMe;
     // my-location.js owns the actual GPS marker; hide its marker DOM and accuracy circle
     // by hiding only the known user marker pane elements while Drive is active.
-    document.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon').forEach(el=>{
-      if(el!==car?.getElement()) el.dataset.driveHidden='1',el.style.opacity='0';
-    });
-    document.querySelectorAll('.leaflet-overlay-pane path').forEach(el=>{
-      if(el.classList.contains('leaflet-interactive')) return;
-      if(el.getAttribute('stroke')==='#2588ff') el.dataset.driveHidden='1',el.style.opacity='0';
+    document.querySelectorAll('.sho1re1-live-user-marker,.sho1re1-user-accuracy').forEach(el=>{
+      el.dataset.driveHidden='1';el.style.opacity='0';
     });
   }
   function restoreRealMarker() {
