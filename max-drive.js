@@ -74,7 +74,7 @@
   }
 
   async function loadRoads(point) {
-    const q = '[out:json][timeout:25];(way(around:' + ROAD_RADIUS + ',' + point.lat + ',' + point.lng + ')["highway"]["area"!="yes"];);out geom;';
+    const q = '[out:json][timeout:25];(way(around:' + ROAD_RADIUS + ',' + point.lat + ',' + point.lng + ')["highway"]["area"!="yes"]["highway"!~"footway|path|steps|pedestrian|cycleway|bridleway|corridor|construction|proposed"];);out geom;';
     const response = await fetch(OVERPASS, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -178,6 +178,11 @@
     const dt=Math.min(.06,(now-lastFrame)/1000);lastFrame=now;
     const magnitude=Math.hypot(joystick.x,joystick.y);
     if(currentEdge&&magnitude>.15){
+      const travelFrom=direction===1?currentEdge.a:currentEdge.b;
+      const travelTo=direction===1?currentEdge.b:currentEdge.a;
+      const roadHeading=bearing(travelFrom,travelTo);
+      const joystickHeading=Math.atan2(joystick.x,-joystick.y);
+      if(Math.cos(joystickHeading-roadHeading)<-.25) direction*=-1;
       let remaining=SPEED_MPS*magnitude*dt;
       let edge=currentEdge,dir=direction;
       while(remaining>0&&edge){
