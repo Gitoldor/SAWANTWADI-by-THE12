@@ -89,7 +89,7 @@
   }
 
   function registerWorker() {
-    navigator.serviceWorker.register("./service-worker.js?v=6", { scope: "./", updateViaCache: "none" })
+    navigator.serviceWorker.register("./service-worker.js?v=5", { scope: "./", updateViaCache: "none" })
       .then(function (registration) {
         return registration.update().catch(function () {}).then(function () {
           return navigator.serviceWorker.ready;
