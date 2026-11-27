@@ -410,6 +410,22 @@ const server = http.createServer(async (req, res) => {
       if (order.google_sub !== identity.sub) {
         return send(res, 404, { success: false, error: "Payment order not found for this account" });
       }
+      // PAID is written only after a server-side FamGateway verification
+      // (including signed webhooks). Reconcile it locally without depending on
+      // another gateway round-trip; ACTIVATED is fully idempotent.
+      if (order.status === "PAID" || order.status === "ACTIVATED") {
+        const verified = {
+          status: "success",
+          data: {
+            payment_status: "success",
+            utr: order.utr,
+            payable_amount: order.payable_amount
+          }
+        };
+        const activation = await activatePaidOrder(order, identity, verified);
+        return send(res, 200, { success: true, status: "paid", activation });
+      }
+
       // Always ask FamGateway before expiring locally: a user may complete UPI
       // just before the timer and return to Sho1re1 a little later.
       const verified = await authoritativeVerify(orderId);
@@ -417,7 +433,12 @@ const server = http.createServer(async (req, res) => {
         const activation = await activatePaidOrder(order, identity, verified);
         return send(res, 200, { success: true, status: "paid", activation });
       }
-      if (Number(order.expires_at) < Math.floor(Date.now() / 1000) && order.status !== "PAID") {
+      const now = Math.floor(Date.now() / 1000);
+      if (Number(order.expires_at) < now) {
+        await queryD1(
+          "UPDATE sho1re1_payment_orders SET status='EXPIRED' WHERE order_id=? AND status='PENDING' AND expires_at<?",
+          [orderId, now]
+        );
         return send(res, 200, { success: true, status: "expired" });
       }
       return send(res, 200, { success: true, status: "pending" });
@@ -433,8 +454,18 @@ const server = http.createServer(async (req, res) => {
         [identity.sub]
       );
       for (const order of paidOrders) {
-        const verified = await authoritativeVerify(order.order_id);
-        if (paidStatus(verified)) await activatePaidOrder(order, identity, verified);
+        // A PAID row is persisted only after an authoritative gateway check.
+        // Reconcile it locally so a temporary gateway outage cannot block login
+        // or hide an already-paid membership.
+        const verified = {
+          status: "success",
+          data: {
+            payment_status: "success",
+            utr: order.utr,
+            payable_amount: order.payable_amount
+          }
+        };
+        await activatePaidOrder(order, identity, verified);
       }
       const rows = await queryD1(
         "SELECT enabled, google_sub, personal_plan_id, personal_expires_at, business_plan_id, business_expires_at FROM pro WHERE email=? COLLATE NOCASE LIMIT 1",
