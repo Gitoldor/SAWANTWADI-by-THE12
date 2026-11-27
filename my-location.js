@@ -141,6 +141,7 @@
         zIndexOffset: 1000
       }).addTo(mapInstance);
       if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.registerUserMarker(userMarker);
+      if (userMarker.getElement()) userMarker.getElement().classList.add('sho1re1-live-user-marker');
       userMarker.on('click', function (event) {
         if (L.DomEvent) L.DomEvent.stopPropagation(event);
         if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.open('user');
@@ -153,6 +154,7 @@
         fillColor: '#2588ff',
         fillOpacity: 0.10
       }).addTo(mapInstance);
+      if (accuracyCircle._path) accuracyCircle._path.classList.add('sho1re1-user-accuracy');
 
     } else {
       userMarker.setLatLng(userLocation);
