@@ -63,6 +63,40 @@ async function queryD1(sql, params = []) {
   return payload.result?.[0]?.results || [];
 }
 
+let schemaReady;
+async function ensureSchema() {
+  if (!schemaReady) schemaReady = (async () => {
+    let columns = await queryD1("PRAGMA table_info(pro)");
+    const present = new Set(columns.map(column => column.name));
+    if (!present.has("plan")) await queryD1("ALTER TABLE pro ADD COLUMN plan TEXT");
+    if (!present.has("expires_at")) await queryD1("ALTER TABLE pro ADD COLUMN expires_at INTEGER");
+
+    // One-time migration: preserve existing memberships, then keep only the
+    // five fields used by the simple membership model.
+    if (present.has("personal_plan_id") || present.has("business_plan_id")) {
+      await queryD1(`UPDATE pro SET
+        plan=COALESCE(plan, business_plan_id, personal_plan_id, CASE WHEN enabled=1 THEN 'PRO_LEGACY' END),
+        expires_at=COALESCE(expires_at, business_expires_at, personal_expires_at)
+      WHERE plan IS NULL OR expires_at IS NULL`);
+    } else {
+      await queryD1("UPDATE pro SET plan='PRO_LEGACY' WHERE enabled=1 AND plan IS NULL");
+    }
+
+    const removable = [
+      "google_sub", "personal_plan_id", "personal_expires_at", "personal_last_order_id",
+      "business_plan_id", "business_expires_at", "business_last_order_id"
+    ];
+    columns = await queryD1("PRAGMA table_info(pro)");
+    const existing = new Set(columns.map(column => column.name));
+    for (const name of removable) {
+      if (existing.has(name)) await queryD1("ALTER TABLE pro DROP COLUMN " + name);
+    }
+    await queryD1("DROP TABLE IF EXISTS sho1re1_payment_orders");
+    await queryD1("DROP TABLE IF EXISTS sho1re1_auth_sessions");
+  })().catch(error => { schemaReady = null; throw error; });
+  return schemaReady;
+}
+
 async function verifyGoogleCredential(token) {
   if (typeof token !== "string" || token.length < 100 || token.length > 12000) {
     throw Object.assign(new Error("Google sign-in required"), { status: 401 });
@@ -181,6 +215,7 @@ const server = http.createServer(async (req, res) => {
   if (!configured()) return send(res, 503, { success: false, error: "Payment service is not configured" });
 
   try {
+    await ensureSchema();
     if (req.method === "POST" && url.pathname === "/api/orders") {
       const body = await readBody(req);
       const identity = await verifyGoogleCredential(body.credential);
