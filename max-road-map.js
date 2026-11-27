@@ -40,9 +40,14 @@
     loading = (async () => {
       loadCss();
       await script(MAPLIBRE, () => !!root.maplibregl);
-      await script(BRIDGE, () => !!(root.L && root.L.maplibreGL));
+      await script(BRIDGE, () => !!(root.MaplibreGLLeaflet && root.MaplibreGLLeaflet.maplibreGL));
       if (!enabled) return null;
-      if (!root.L.maplibreGL) throw new Error("Leaflet/MapLibre bridge did not initialize");
+      // The CDN UMD build exports a namespace; it does NOT attach maplibreGL to L.
+      // Attach the factory to the exact global Leaflet instance used by this app.
+      if (!root.L.maplibreGL && root.MaplibreGLLeaflet) {
+        root.L.maplibreGL = root.MaplibreGLLeaflet.maplibreGL || root.MaplibreGLLeaflet.default;
+      }
+      if (typeof root.L.maplibreGL !== "function") throw new Error("Leaflet/MapLibre bridge factory missing");
       layer = root.L.maplibreGL({ style: STYLE, interactive: false, attribution: "© OpenStreetMap contributors · OpenFreeMap" });
       layer.addTo(map);
       return layer;
