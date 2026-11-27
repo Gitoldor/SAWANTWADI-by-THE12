@@ -2535,76 +2535,90 @@ async function loadMaxCloudSavedPosts() {
 function setupCardSave(btn, place) {
   let timer = null;
   let isLongPress = false;
+  let busy = false;
 
   btn.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
     isLongPress = false;
+    clearTimeout(timer);
     timer = setTimeout(() => {
       isLongPress = true;
       openFolderPage(false, place);
     }, 450);
   });
 
-  btn.addEventListener('pointerup', (e) => { e.stopPropagation(); clearTimeout(timer); });
-  btn.addEventListener('pointercancel', (e) => { e.stopPropagation(); clearTimeout(timer); });
+  const cancelLongPress = (e) => {
+    if (e) e.stopPropagation();
+    clearTimeout(timer);
+    timer = null;
+  };
+  btn.addEventListener('pointerup', cancelLongPress);
+  btn.addEventListener('pointercancel', cancelLongPress);
+  btn.addEventListener('pointerleave', cancelLongPress);
 
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (isLongPress) return;
-    
-    maxCloudSaveInitPromise.then(async () => {
-      if (maxCloudSaveActive && window.Sho1re1CloudSaves) {
-        const id = String(place.id);
-        try {
-          const localItems = await getSavedPlacesFromDB();
-          const localItem = localItems.find(item => String(item.id) === id);
-          const isCloudSaved = cloudSavedIds.has(id);
-          const isLocallySaved = !!localItem;
+    if (isLongPress) {
+      isLongPress = false;
+      return;
+    }
+    if (busy) return;
+    busy = true;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
 
-          // Treat cloud + device saves as one toggle for MAX users.
-          // This restores unsave for items saved before MAX Cloud Saves existed,
-          // and removes both copies when the same post exists in both places.
-          if (isCloudSaved || isLocallySaved) {
-            if (isCloudSaved) {
-              await window.Sho1re1CloudSaves.remove(id);
-              cloudSavedIds.delete(id);
-            }
-            if (isLocallySaved) {
-              await removePlaceFromDB(place.id);
-            }
-            savedPlacesMap.delete(place.id);
-            btn.classList.remove('is-saved');
-          } else {
-            await window.Sho1re1CloudSaves.save(id);
-            cloudSavedIds.add(id);
-            savedPlacesMap.set(place.id, {
-              place: place,
-              folders: ['Default'],
-              cloud: true
-            });
-            btn.classList.add('is-saved');
-          }
-          if (showOnlySaved) applyFilters();
-        } catch (error) {
-          alert(error.message || 'Could not sync this save. Please try again.');
-        }
-        return;
+    try {
+      // Wait for initial local DB reconciliation, but never let a rejected
+      // initial cloud lookup disable the ordinary save button.
+      try { await maxCloudSaveInitPromise; } catch (initError) {
+        console.warn('Cloud save initialisation failed; using local save:', initError);
+        maxCloudSaveActive = false;
       }
 
+      const rawId = place && (place.id ?? place.post_id ?? place.postId ?? place.link ?? place.title);
+      const id = rawId == null ? '' : String(rawId).trim();
       const existing = savedPlacesMap.get(place.id);
-      if (existing) {
-        removePlaceFromDB(place.id).then(() => {
+
+      if (maxCloudSaveActive && window.Sho1re1CloudSaves && id) {
+        const localItems = await getSavedPlacesFromDB();
+        const localItem = localItems.find(item => String(item.id) === id);
+        const isCloudSaved = cloudSavedIds.has(id);
+        const isLocallySaved = !!localItem;
+
+        if (isCloudSaved || isLocallySaved) {
+          if (isCloudSaved) {
+            await window.Sho1re1CloudSaves.remove(id);
+            cloudSavedIds.delete(id);
+          }
+          if (isLocallySaved) await removePlaceFromDB(localItem.id);
           savedPlacesMap.delete(place.id);
           btn.classList.remove('is-saved');
-          if (showOnlySaved) applyFilters();
-        });
-      } else {
-        savePlaceToDB(place, ['Default']).then(() => {
-          savedPlacesMap.set(place.id, { place, folders: ['Default'] });
+        } else {
+          await window.Sho1re1CloudSaves.save(id);
+          cloudSavedIds.add(id);
+          savedPlacesMap.set(place.id, { place, folders: ['Default'], cloud: true });
           btn.classList.add('is-saved');
-        });
+        }
+      } else if (existing) {
+        await removePlaceFromDB(place.id);
+        savedPlacesMap.delete(place.id);
+        btn.classList.remove('is-saved');
+      } else {
+        await savePlaceToDB(place, ['Default']);
+        savedPlacesMap.set(place.id, { place, folders: ['Default'] });
+        btn.classList.add('is-saved');
       }
-    });
+
+      if (showOnlySaved) applyFilters();
+    } catch (error) {
+      console.error('Save button action failed:', error);
+      alert((error && error.message) || 'Could not save this post. Please try again.');
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+    }
   });
 }
 
