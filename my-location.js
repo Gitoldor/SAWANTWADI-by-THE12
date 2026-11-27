@@ -123,7 +123,7 @@
 
     if (!userMarker) {
       userMarker = L.marker(userLocation, {
-        icon: L.divIcon({
+        icon: window.Sho1re1MarkerCustomizer ? window.Sho1re1MarkerCustomizer.createUserIcon() : L.divIcon({
           className: '',
           html: `
             <div style="
@@ -140,6 +140,11 @@
         }),
         zIndexOffset: 1000
       }).addTo(mapInstance);
+      if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.registerUserMarker(userMarker);
+      userMarker.on('click', function (event) {
+        if (L.DomEvent) L.DomEvent.stopPropagation(event);
+        if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.open('user');
+      });
 
       accuracyCircle = L.circle(userLocation, {
         radius: accuracy,
