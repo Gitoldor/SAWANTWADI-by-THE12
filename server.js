@@ -19,11 +19,10 @@ function send(res, status, body) {
 }
 
 async function verifyAccessCredential(credential) {
-  if (typeof credential !== "string" || credential.length < 100 || credential.length > 12000) {
-    return null;
-  }
+  if (typeof credential !== "string" || credential.length > 12000) return null;
   const now = Math.floor(Date.now() / 1000);
   if (credential.startsWith("s1_")) {
+    if (credential.length < 30 || credential.length > 200) return null;
     const tokenHash = crypto.createHash("sha256").update(credential).digest("hex");
     const result = await queryD1(
       "SELECT email,expires_at FROM sho1re1_auth_sessions WHERE token_hash=? AND expires_at>? LIMIT 1",
@@ -32,6 +31,7 @@ async function verifyAccessCredential(credential) {
     const rows = result[0]?.results || [];
     return rows[0] ? { email: String(rows[0].email || "").trim().toLowerCase() } : null;
   }
+  if (credential.length < 100) return null;
   const response = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
   if (!response.ok) return null;
   const identity = await response.json();
