@@ -73,14 +73,16 @@ async function ensureSchema() {
 
     // One-time migration: preserve existing memberships, then keep only the
     // five fields used by the simple membership model.
-    if (present.has("personal_plan_id") || present.has("business_plan_id")) {
-      await queryD1(`UPDATE pro SET
-        plan=COALESCE(plan, business_plan_id, personal_plan_id, CASE WHEN enabled=1 THEN 'PRO_LEGACY' END),
-        expires_at=COALESCE(expires_at, business_expires_at, personal_expires_at)
-      WHERE plan IS NULL OR expires_at IS NULL`);
-    } else {
-      await queryD1("UPDATE pro SET plan='PRO_LEGACY' WHERE enabled=1 AND plan IS NULL");
-    }
+    const planSources = ["business_plan_id", "personal_plan_id"].filter(name => present.has(name));
+    const expirySources = ["business_expires_at", "personal_expires_at"].filter(name => present.has(name));
+    const planFallback = planSources.length
+      ? planSources.join(", ") + ", CASE WHEN enabled=1 THEN 'PRO_LEGACY' END"
+      : "CASE WHEN enabled=1 THEN 'PRO_LEGACY' END";
+    const expiryFallback = expirySources.length ? expirySources.join(", ") : "NULL";
+    await queryD1(`UPDATE pro SET
+      plan=COALESCE(plan, ${planFallback}),
+      expires_at=COALESCE(expires_at, ${expiryFallback})
+    WHERE plan IS NULL OR expires_at IS NULL`);
 
     const removable = [
       "google_sub", "personal_plan_id", "personal_expires_at", "personal_last_order_id",
