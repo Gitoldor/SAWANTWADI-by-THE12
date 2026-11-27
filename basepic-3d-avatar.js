@@ -79,7 +79,7 @@
     if (!p) {
       // Keep a visible fallback marker while places/GPS are still loading.
       try {
-        if (typeof map !== 'undefined' && map && marker.getOpacity() === 0) {
+        if (typeof map !== 'undefined' && map) {
           marker.setLatLng(map.getCenter());
           marker.setOpacity(1);
         }
@@ -87,10 +87,7 @@
       return;
     }
     var key = String(p.id != null ? p.id : p.link || p.title || p.lat + ',' + p.lng);
-    if (key === lastPlaceKey) {
-      if (marker.getOpacity() !== 1) marker.setOpacity(1);
-      return;
-    }
+    if (key === lastPlaceKey) return;
     lastPlaceKey = key;
     marker.setLatLng([Number(p.lat), Number(p.lng)]);
     marker.setOpacity(1);
@@ -150,9 +147,6 @@
       var THREE = await import('https://esm.sh/three@' + THREE_VERSION);
       var GLTFLoaderModule = await import('https://esm.sh/three@' + THREE_VERSION + '/examples/jsm/loaders/GLTFLoader.js');
       var canvas = window.__sho1re1AvatarCanvas;
-      canvas.style.display = 'block';
-      var fallback = canvas.parentNode.querySelector('div');
-      if (fallback) fallback.style.display = 'none';
 
       renderer = new THREE.WebGLRenderer({
         canvas: canvas, alpha: true, antialias: false,
@@ -193,6 +187,9 @@
           gltf.animations[0];
         mixer.clipAction(clip).play();
       }
+      canvas.style.display = 'block';
+      var fallback = canvas.parentNode.querySelector('div');
+      if (fallback) fallback.style.display = 'none';
       moveToNearest();
       startRenderLoop(THREE);
       console.info('[Sho1re1 3D Avatar] Basepic model loaded; animations:', gltf.animations.length);
