@@ -129,6 +129,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 403, { success: false, allowed: false, error: "Signed-in account mismatch" });
       }
 
+      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [Math.floor(Date.now() / 1000) + 7 * 86400]);
       const result = await queryD1(
         "SELECT * FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
@@ -136,7 +137,6 @@ const server = http.createServer(async (req, res) => {
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [now + 7 * 86400]);
       const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_7D" : null);
       const expiry = row.expires_at ?? (row.business_plan_id ? row.business_expires_at : row.personal_expires_at);
       const active = Number(row.enabled) === 1 && Number(expiry) > now;
@@ -163,6 +163,7 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse(raw || "{}");
       const identity = await resolveIdentity(body);
       if (!identity) return send(res, 401, { success: false, active: false, error: "Valid sign-in required" });
+      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [Math.floor(Date.now() / 1000) + 7 * 86400]);
       const result = await queryD1(
         "SELECT enabled,plan,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
@@ -170,7 +171,6 @@ const server = http.createServer(async (req, res) => {
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [now + 7 * 86400]);
       const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_7D" : null);
       const expiry = row.expires_at ?? (row.business_plan_id ? row.business_expires_at : row.personal_expires_at);
       const active = Number(row.enabled) === 1 && Number(expiry) > now;
