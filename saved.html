@@ -458,6 +458,8 @@
 <!-- Ensure app.js is loaded so appPostsList is available -->
 <script src="shared-by.js"></script>
 <script src="app.js"></script>
+<script src="./google-login.js" defer></script>
+<script src="./cloud-saves.js" defer></script>
 
 <script>
   /* MATCHING MAP DB CONFIG */
@@ -470,6 +472,8 @@
   let allFolders = [];
   let currentEditingFolder = null;
   let activeCoverBase64 = '';
+  let maxCloudItems = [];
+  let maxCloudEnabled = false;
 
   // Open IndexedDB Connection
   function initDB() {
@@ -540,13 +544,55 @@
       }
 
       renderFolderGrid();
+      loadMaxCloudFolder();
     };
+  }
+
+  async function loadMaxCloudFolder() {
+    if (!window.Sho1re1CloudSaves) return;
+    try {
+      const ids = await window.Sho1re1CloudSaves.list();
+      const wanted = new Set(ids.map(String));
+      const liveItems = (window.Sho1re1Places || []).slice();
+      if (typeof window.Sho1re1GetMediaItems === 'function') {
+        liveItems.push(...window.Sho1re1GetMediaItems());
+      }
+      maxCloudItems = liveItems.filter(item => item && wanted.has(String(item.id)));
+      maxCloudEnabled = true;
+      renderFolderGrid();
+    } catch (error) {
+      maxCloudEnabled = false;
+      if (error && error.status !== 401 && error.status !== 403) {
+        console.warn('MAX Cloud Saves could not be loaded:', error.message || error);
+      }
+      renderFolderGrid();
+    }
   }
 
   // Render 2x2 Folder Grid
   function renderFolderGrid() {
     const grid = document.getElementById('foldersGrid');
     grid.innerHTML = '';
+
+    if (maxCloudEnabled) {
+      const cloudCard = document.createElement('div');
+      cloudCard.className = 'folder-card';
+      cloudCard.onclick = () => openFolder('MAX Cloud Saves', maxCloudItems);
+      const cover = maxCloudItems[0] && maxCloudItems[0].image
+        ? '<img src="' + maxCloudItems[0].image + '" class="folder-card-bg" alt="" />'
+        : '';
+      cloudCard.innerHTML = cover + `
+        <div class="folder-card-content">
+          <div class="folder-card-top">
+            <div class="folder-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg></div>
+          </div>
+          <div class="folder-card-info">
+            <div class="folder-card-name">MAX Cloud Saves</div>
+            <div class="folder-card-count">${maxCloudItems.length} saved ${maxCloudItems.length === 1 ? 'post' : 'posts'} · synced to your Gmail</div>
+          </div>
+        </div>`;
+      grid.appendChild(cloudCard);
+    }
 
     allFolders.forEach(folderObj => {
       const matchingItems = allSavedPlaces.filter(place => 
@@ -700,6 +746,24 @@
           ${typeHTML}
         </div>
       `;
+      if (folderName === 'MAX Cloud Saves') {
+        const remove = document.createElement('button');
+        remove.className = 'cloud-remove-btn';
+        remove.type = 'button';
+        remove.textContent = 'Remove';
+        remove.style.cssText = 'position:absolute;top:10px;right:10px;z-index:4;border:0;border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.94);color:#111;font:700 11px Inter,sans-serif;';
+        remove.onclick = async (event) => {
+          event.stopPropagation();
+          try {
+            await window.Sho1re1CloudSaves.remove(String(place.id));
+            maxCloudItems = maxCloudItems.filter(item => String(item.id) !== String(place.id));
+            openFolder('MAX Cloud Saves', maxCloudItems);
+          } catch (error) {
+            alert(error.message || 'Could not remove this cloud save.');
+          }
+        };
+        card.appendChild(remove);
+      }
       feed.appendChild(card);
     });
   }
