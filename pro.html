@@ -190,7 +190,14 @@
         }
       }
       const u=readUser(),credential=token();
-      if(!u||!u.email||!u.sub||!credential){show("Your Google session is not available. Please sign in once, then retry.");return;}
+      if(!u||!u.email||!u.sub){show("Your saved Google profile is unavailable. Sign in to continue.");return;}
+      if(!credential){
+        show("Refreshing your saved Google sign-in…");
+        if(window.Sho1re1Auth&&typeof window.Sho1re1Auth.requestCredential==="function"){
+          window.Sho1re1Auth.requestCredential(()=>startCheckout(planId));
+        }else show("Google sign-in needs refreshing. Please try again.");
+        return;
+      }
       setBusy(true);show("Creating a secure payment order…");
       try{
         const r=await fetch(API+"/api/orders",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({planId,credential})});
