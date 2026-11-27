@@ -187,33 +187,10 @@
      PRO ACCESS
      ========================================================== */
 
-  async function hasProAccess() {
-    const auth = window.Sho1re1Auth || null;
-    let user = null;
-    try {
-      user = auth && typeof auth.getUser === "function" ? auth.getUser() : null;
-    } catch (_) {}
-    if (!user) {
-      try { user = JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null"); } catch (_) {}
-    }
-    let credential = "";
-    try { credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || ""; } catch (_) {}
-    if (!user || !credential) return false;
-    try {
-      const response = await fetch(CONFIG.proAccessAPI, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: String(user.email || '').trim().toLowerCase(), credential: credential }),
-        cache: "no-store"
-      });
-      if (!response.ok) return false;
-      const result = await response.json();
-      return result.success === true && result.active === true;
-    } catch (_) {
-      return false;
-    }
+  function hasProAccess() {
+    const pro = window.Sho1re1Pro;
+    return pro ? pro.check() : Promise.resolve(false);
   }
-
 
   /* ==========================================================
      START
@@ -280,8 +257,7 @@
 
   // The Google ID token can expire while the local profile remains saved.
   // Re-check after the auth layer silently refreshes that token.
-  window.addEventListener("sho1re1:credential", refreshProSlide);
-  window.addEventListener("sho1re1:authchange", refreshProSlide);
+  if (window.Sho1re1Pro) window.Sho1re1Pro.onChange(function (allowed) { if (allowed) addProSlide(); });
   refreshProSlide();
 
 
