@@ -19,6 +19,9 @@
     // used by the location-customization feature succeeds.
     proImage: "https://i.ibb.co/Zp8VjjXV/1000014335-removebg-preview.png",
 
+    // MAX members see this image in place of the standard PRO fifth slide.
+    maxImage: "https://i.ibb.co/S7XQstn1/1000014686-removebg-preview.png",
+
     // 9:16 portrait
     width: "100%",
     height: "56.25vw",
@@ -231,15 +234,19 @@
     proSlideAdded = true;
     const img = document.createElement("img");
     img.className = "photoSwipeImage proShareSlide";
-    img.src = CONFIG.proImage;
-    img.alt = "Share your Sho1re1 PRO profile";
+    const planId = window.Sho1re1Pro && window.Sho1re1Pro.getPlanId ? window.Sho1re1Pro.getPlanId() : null;
+    const isMax = planId === "MAX_30D";
+    img.src = isMax ? CONFIG.maxImage : CONFIG.proImage;
+    img.alt = isMax ? "Sho1re1 MAX" : "Share your Sho1re1 PRO profile";
     img.draggable = false;
     img.decoding = "async";
-    img.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      window.location.href = new URL("pro-share.html", window.location.href).href;
-    });
+    if (!isMax) {
+      img.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.href = new URL("pro-share.html", window.location.href).href;
+      });
+    }
     track.appendChild(img);
     imageElements.push(img);
     if (swipeStarted && wasAtEnd) setTimeout(showNext, 40);
