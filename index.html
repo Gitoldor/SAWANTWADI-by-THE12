@@ -2941,6 +2941,16 @@ function reconcileSavedPostsWithLiveData() {
 // Wait for Cloudflare D1 before building map cards.
 window.Sho1re1DataReady.then(() => {
   rawPlaces = (window.Sho1re1Places || []).concat(typeof window.Sho1re1GetMediaItems === "function" ? window.Sho1re1GetMediaItems() : []);
+  // Assign stable IDs only after async D1 data has arrived. The earlier
+  // normalization ran while rawPlaces was still empty, leaving save buttons
+  // with undefined IDs and causing the API's "Valid post ID required" error.
+  rawPlaces.forEach((item, index) => {
+    if (item.id === undefined || item.id === null || String(item.id).trim() === '') {
+      item.id = item.post_id || item.postId || item.sourceId || item.link ||
+        item.title || `content_${index}_${item.lat ?? ''}_${item.lng ?? ''}`;
+    }
+    item.id = String(item.id);
+  });
   return initDB();
 }).then(() => {
   reconcileSavedPostsWithLiveData().then(savedItems => {
