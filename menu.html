@@ -941,78 +941,22 @@ body{
     </a>
   </div>
 
-<!-- PRO menu state uses the same verified access check as PRO features. No GIS prompt is opened. -->
+<!-- PRO menu uses the shared app-wide membership checker. -->
 <script>
 (function () {
   "use strict";
-
-  const API = "https://sawantwadi-read-api.onrender.com/pro-status";
   const item = document.getElementById("pro-menu-link");
   if (!item) return;
-
-  let requestId = 0;
-
-  function getAuth() {
-    try {
-      if (window.parent && window.parent.Sho1re1Auth) {
-        return window.parent.Sho1re1Auth;
-      }
-    } catch (_) {}
-    return window.Sho1re1Auth || null;
+  function paint(active) { item.classList.toggle("pro-active", active === true); }
+  function refresh() {
+    const pro = (window.parent && window.parent.Sho1re1Pro) || window.Sho1re1Pro;
+    if (!pro) { paint(false); return; }
+    pro.check().then(paint);
   }
-
-  function getUser(auth) {
-    try {
-      if (auth && typeof auth.getUser === "function") {
-        const user = auth.getUser();
-        if (user) return user;
-      }
-    } catch (_) {}
-    try {
-      return JSON.parse(localStorage.getItem("sho1re1_google_profile_v1") || "null");
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function paintPaid(active) {
-    item.classList.toggle("pro-active", active === true);
-  }
-
-  async function verifyPaid() {
-    const currentRequest = ++requestId;
-    const auth = getAuth();
-    const user = getUser(auth);
-    let credential = "";
-    try { credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || ""; } catch (_) {}
-    if (!user || !credential) { paintPaid(false); return; }
-
-    try {
-      const response = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: String(user.email || '').trim().toLowerCase(), credential: credential }),
-        cache: "no-store"
-      });
-      if (!response.ok) throw new Error("PRO status check failed");
-      const result = await response.json();
-      if (currentRequest === requestId) paintPaid(result.success === true && result.active === true);
-    } catch (_) {
-      if (currentRequest === requestId) paintPaid(false);
-    }
-  }
-
-  verifyPaid();
-  window.addEventListener("focus", verifyPaid);
-  window.addEventListener("storage", function (event) {
-    if (!event.key || event.key === "sho1re1_google_profile_v1") verifyPaid();
-  });
-  window.addEventListener("sho1re1:authchange", verifyPaid);
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.addEventListener("sho1re1:authchange", verifyPaid);
-    }
-  } catch (_) {}
+  const pro = (window.parent && window.parent.Sho1re1Pro) || window.Sho1re1Pro;
+  if (pro) pro.onChange(paint);
+  refresh();
+  window.addEventListener("focus", refresh);
 })();
 </script>
 
