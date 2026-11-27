@@ -35,7 +35,23 @@
       return saved.token;
     } catch (_) { return ""; }
   }
-  function readAppSession() {\n    try { const saved = JSON.parse(localStorage.getItem(APP_SESSION_KEY) || "null"); if (!saved || typeof saved.token !== "string" || Number(saved.exp) * 1000 <= Date.now()) { localStorage.removeItem(APP_SESSION_KEY); return ""; } return saved.token; } catch (_) { return ""; }\n  }\n  function saveAppSession(token, exp) {\n    try { if (!token || Number(exp) * 1000 <= Date.now()) return; localStorage.setItem(APP_SESSION_KEY, JSON.stringify({ token, exp: Number(exp) })); } catch (_) {}\n  }\n  // Sho1re1 uses a signed, expiring app session after the first Google verification.
+  function readAppSession() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(APP_SESSION_KEY) || "null");
+      if (!saved || typeof saved.token !== "string" || Number(saved.exp) * 1000 <= Date.now()) {
+        localStorage.removeItem(APP_SESSION_KEY);
+        return "";
+      }
+      return saved.token;
+    } catch (_) { return ""; }
+  }
+  function saveAppSession(token, exp) {
+    try {
+      if (!token || Number(exp) * 1000 <= Date.now()) return;
+      localStorage.setItem(APP_SESSION_KEY, JSON.stringify({ token, exp: Number(exp) }));
+    } catch (_) {}
+  }
+  // Sho1re1 uses a signed, expiring app session after the first Google verification.
   function saveSessionCredential(token, data) {
     try {
       const exp = Number(data && data.exp) || 0;
