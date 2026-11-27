@@ -11,6 +11,7 @@
   var gpsPosition = null;
   var activeOrigin = null;
   var originMode = 'gps';
+  var selectedPointMarker = null;
   var originalRender = window.renderMapAndCarousel;
 
   if (typeof originalRender !== 'function') {
@@ -99,6 +100,25 @@
     if (!validPoint(point)) return;
     activeOrigin = point;
     originMode = 'manual';
+
+    // Separate visual marker for the temporary search origin; the real blue
+    // GPS marker in my-location.js is never moved or replaced.
+    if (selectedPointMarker && map.hasLayer(selectedPointMarker)) {
+      map.removeLayer(selectedPointMarker);
+    }
+    if (typeof L !== 'undefined' && typeof map !== 'undefined') {
+      selectedPointMarker = L.circleMarker([point.latitude, point.longitude], {
+        radius: 8,
+        color: '#ffffff',
+        weight: 3,
+        opacity: 1,
+        fillColor: '#171717',
+        fillOpacity: 1,
+        interactive: false,
+        bubblingMouseEvents: false
+      }).addTo(map);
+    }
+
     renderSorted();
     notifyOriginChange();
   }
@@ -107,6 +127,11 @@
     if (!gpsPosition) return false;
     activeOrigin = gpsPosition;
     originMode = 'gps';
+    if (selectedPointMarker && typeof map !== 'undefined' &&
+        map.hasLayer(selectedPointMarker)) {
+      map.removeLayer(selectedPointMarker);
+    }
+    selectedPointMarker = null;
     renderSorted();
     notifyOriginChange();
     return true;
