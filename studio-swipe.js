@@ -16,15 +16,18 @@
  `;
  document.head.appendChild(style);
  function toast(message){let el=document.getElementById('s1-studio-toast');if(!el){el=document.createElement('div');el.id='s1-studio-toast';document.body.appendChild(el)}el.textContent=message;el.classList.add('show');clearTimeout(el._timer);el._timer=setTimeout(()=>el.classList.remove('show'),1900)}
- function authUser(){const a=window.Sho1re1Auth;try{return a&&a.getUser?a.getUser():null}catch(_){return null}}
+ function authInstance(){return window.Sho1re1Auth||null}
+ function authUser(){const a=authInstance();try{return a&&a.getUser?a.getUser():null}catch(_){return null}}
  async function checkAccess(){
   if(checking)return false;
   checking=true;
+  const auth=authInstance();
   const user=authUser();
-  const email=String(user&&user.email||'').trim().toLowerCase();
-  if(!email){allowed=false;checking=false;return false}
+  let credential='';
+  try{credential=auth&&((auth.getSessionToken&&auth.getSessionToken())||(auth.getCredential&&auth.getCredential()))||''}catch(_){}
+  if(!user||!credential){allowed=false;checking=false;return false}
   try{
-   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email}),cache:'no-store'});
+   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:credential}),cache:'no-store'});
    if(!response.ok)throw Error('Access check failed');
    const data=await response.json();
    allowed=data.success===true&&data.active===true;
