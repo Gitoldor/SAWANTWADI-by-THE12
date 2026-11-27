@@ -957,6 +957,15 @@ body{
   if (pro) pro.onChange(paint);
   refresh();
   window.addEventListener("focus", refresh);
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.addEventListener("sho1re1:prochange", function (event) {
+        paint(event.detail && event.detail.active === true);
+      });
+      window.parent.addEventListener("sho1re1:authchange", refresh);
+      window.parent.addEventListener("sho1re1:credential", refresh);
+    }
+  } catch (_) {}
 })();
 </script>
 
