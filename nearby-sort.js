@@ -78,6 +78,10 @@
 
   // Called by my-location.js. A late GPS response must never replace a
   // manually selected map point.
+  function notifyOriginChange() {
+    try { window.dispatchEvent(new Event('sho1re1:originchange')); } catch (_) {}
+  }
+
   function updateGps(latitude, longitude) {
     var point = { latitude: Number(latitude), longitude: Number(longitude) };
     if (!validPoint(point)) return;
@@ -86,6 +90,7 @@
       activeOrigin = point;
       originMode = 'gps';
       renderSorted();
+      notifyOriginChange();
     }
   }
 
@@ -95,6 +100,7 @@
     activeOrigin = point;
     originMode = 'manual';
     renderSorted();
+    notifyOriginChange();
   }
 
   function resetToGps() {
@@ -102,6 +108,7 @@
     activeOrigin = gpsPosition;
     originMode = 'gps';
     renderSorted();
+    notifyOriginChange();
     return true;
   }
 
