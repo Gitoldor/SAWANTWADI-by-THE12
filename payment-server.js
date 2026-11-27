@@ -77,13 +77,20 @@ async function ensureSchema() {
     const planSources = ["business_plan_id", "personal_plan_id"].filter(name => present.has(name));
     const expirySources = ["business_expires_at", "personal_expires_at"].filter(name => present.has(name));
     const planFallback = planSources.length
-      ? planSources.join(", ") + ", CASE WHEN enabled=1 THEN 'PRO_LEGACY' END"
-      : "CASE WHEN enabled=1 THEN 'PRO_LEGACY' END";
+      ? planSources.join(", ") + ", CASE WHEN enabled=1 THEN 'PRO_7D' END"
+      : "CASE WHEN enabled=1 THEN 'PRO_7D' END";
     const expiryFallback = expirySources.length ? expirySources.join(", ") : "NULL";
     await queryD1(`UPDATE pro SET
       plan=COALESCE(plan, ${planFallback}),
       expires_at=COALESCE(expires_at, ${expiryFallback})
     WHERE plan IS NULL OR expires_at IS NULL`);
+
+    // Convert old legacy identifiers into the standard seven-day PRO plan.
+    // Existing expiry is preserved; rows without one receive seven days from migration.
+    await queryD1(
+      "UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'",
+      [Math.floor(Date.now() / 1000) + 7 * 86400]
+    );
 
     const removable = [
       "google_sub", "personal_plan_id", "personal_expires_at", "personal_last_order_id",
@@ -305,12 +312,10 @@ const server = http.createServer(async (req, res) => {
         await queryD1("UPDATE pro SET enabled=0 WHERE email=? COLLATE NOCASE", [email]);
         return send(res, 200, { success: true, email, subscriptions: [] });
       }
-      const legacy = !row.plan && !expiry;
       const subscriptions = [{
         family: row.plan && row.plan.startsWith("BUSINESS_") ? "BUSINESS" : "PERSONAL",
-        planId: row.plan || "PRO_LEGACY",
-        expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null,
-        legacy
+        planId: row.plan || "PRO_7D",
+        expiresAt: expiry ? new Date(expiry * 1000).toISOString() : null
       }];
       return send(res, 200, { success: true, email, subscriptions });
     }
