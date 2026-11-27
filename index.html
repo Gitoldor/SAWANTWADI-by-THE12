@@ -2499,7 +2499,16 @@ let maxCloudSaveActive = false;
 let maxCloudSaveInitPromise = Promise.resolve();
 
 async function loadMaxCloudSavedPosts() {
-  if (!window.Sho1re1CloudSaves) return;
+  // This function is called by an inline script while the document is still parsing.
+  // Deferred scripts (google-login.js and cloud-saves.js) execute only after parsing.
+  // Wait for DOMContentLoaded so the MAX cloud module and auth module are available.
+  if (!window.Sho1re1CloudSaves && document.readyState === 'loading') {
+    await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+  }
+  if (!window.Sho1re1CloudSaves) {
+    console.error('MAX Cloud Saves module did not load; refusing to fall back silently.');
+    return;
+  }
   try {
     const ids = await window.Sho1re1CloudSaves.list();
     maxCloudSaveActive = true;
