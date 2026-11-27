@@ -63,5 +63,5 @@
   }
   function close(){if(!sheet)return;backdrop.classList.remove('open');sheet.classList.remove('open');document.body.style.overflow='';}
   window.Sho1re1MarkerCustomizer={open,close,decoratePlaceMarker,registerUserMarker,createUserIcon:userIcon,refresh:()=>refresh('user'),getSelection:()=>selected.user};
-  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{refresh('user');if(sheet&&sheet.classList.contains('open'))open('user');});
+  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{if(!max()){close();refresh('user');return;}refresh('user');if(sheet&&sheet.classList.contains('open'))open(current);});
 })();
