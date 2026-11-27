@@ -186,6 +186,13 @@
     renderButton(overlay.querySelector("[data-sho-google-button]"));
   }
   function startCredentialPrompt() {
+    // A valid Sho1re1 app session already proves this browser has a signed-in account.
+    // Do not ask the user to confirm Google again while that session is active.
+    if (readAppSession()) {
+      pendingCredentialRequest = false;
+      closeCredentialRefresh();
+      return;
+    }
     if (!ready || !user || !google.accounts || !google.accounts.id) {
       pendingCredentialRequest = false;
       showCredentialRefresh("Google sign-in is still loading. Please try again in a moment.");
