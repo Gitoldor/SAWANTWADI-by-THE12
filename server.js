@@ -129,7 +129,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 403, { success: false, allowed: false, error: "Signed-in account mismatch" });
       }
 
-      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [Math.floor(Date.now() / 1000) + 7 * 86400]);
+      await queryD1("UPDATE pro SET plan=COALESCE(plan,'PRO_7D'), expires_at=COALESCE(expires_at, ?) WHERE enabled=1 AND (plan IS NULL OR (plan='PRO_7D' AND expires_at IS NULL))", [Math.floor(Date.now() / 1000) + 7 * 86400]);
       const result = await queryD1(
         "SELECT * FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
@@ -163,7 +163,7 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse(raw || "{}");
       const identity = await resolveIdentity(body);
       if (!identity) return send(res, 401, { success: false, active: false, error: "Valid sign-in required" });
-      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [Math.floor(Date.now() / 1000) + 7 * 86400]);
+      await queryD1("UPDATE pro SET plan=COALESCE(plan,'PRO_7D'), expires_at=COALESCE(expires_at, ?) WHERE enabled=1 AND (plan IS NULL OR (plan='PRO_7D' AND expires_at IS NULL))", [Math.floor(Date.now() / 1000) + 7 * 86400]);
       const result = await queryD1(
         "SELECT enabled,plan,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
