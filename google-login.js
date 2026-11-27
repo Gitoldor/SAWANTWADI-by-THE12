@@ -113,7 +113,7 @@
     google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: onCredential,
-      auto_select: false,
+      auto_select: true,
       cancel_on_tap_outside: true
     });
     ready = true;
@@ -205,10 +205,13 @@
       if (credential) { if (typeof callback === "function") callback(credential); return; }
       if (typeof callback === "function") credentialWaiters.add(callback);
       pendingCredentialRequest = true;
-      // Do not open the Google bottom-sheet prompt automatically. The saved
-      // local profile is used for PRO status checks; sign-in remains explicit
-      // through the visible Google button.
-      if (!ready) loadGoogle();
+      if (!ready) {
+        loadGoogle();
+        return;
+      }
+      // Ask Google Identity Services to silently reselect the browser's
+      // existing Google account when possible; this avoids a repeated login.
+      try { google.accounts.id.prompt(); } catch (_) {}
     },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
