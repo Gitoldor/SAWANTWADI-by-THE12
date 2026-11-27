@@ -1011,34 +1011,20 @@ function start(){
 
   const cards=[];
 
-  let paidSwipeAccess=false, paidAccessRequest=0;
+  let paidSwipeAccess=false;
 
   function canSwipeDismiss(){
     return paidSwipeAccess;
   }
 
-  async function refreshPaidSwipeAccess(){
-    const request=++paidAccessRequest;
-    paidSwipeAccess=false;
-    const auth=window.Sho1re1Auth;
-    const user=auth&&typeof auth.getUser==="function"?auth.getUser():null;
-    let credential="";
-    try{credential=auth&&((auth.getSessionToken&&auth.getSessionToken())||(auth.getCredential&&auth.getCredential()))||""}catch(_){}
-    if(!user||!credential)return;
-    try{
-      const response=await fetch("https://sawantwadi-read-api.onrender.com/pro-status",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({email:String(user.email||'').trim().toLowerCase(),credential:credential}),cache:"no-store"
-      });
-      if(!response.ok)throw new Error("PRO status check failed");
-      const result=await response.json();
-      if(request===paidAccessRequest)paidSwipeAccess=result.success===true&&result.active===true;
-    }catch(_){if(request===paidAccessRequest)paidSwipeAccess=false;}
+  function refreshPaidSwipeAccess(){
+    const pro=window.Sho1re1Pro;
+    if(!pro){paidSwipeAccess=false;return Promise.resolve(false);}
+    return pro.check().then(function(active){paidSwipeAccess=active===true;return paidSwipeAccess;});
   }
 
+  if(window.Sho1re1Pro)window.Sho1re1Pro.onChange(function(active){paidSwipeAccess=active===true;});
   refreshPaidSwipeAccess();
-  window.addEventListener("sho1re1:authchange",refreshPaidSwipeAccess);
-  window.addEventListener("sho1re1:credential",refreshPaidSwipeAccess);
 
 
   let opened=false,
