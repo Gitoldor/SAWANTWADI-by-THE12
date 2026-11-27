@@ -1,7 +1,7 @@
 /* Sawantwadi full-site offline preload. */
 "use strict";
 
-const CACHE_NAME = "sawantwadi-static-v4";
+const CACHE_NAME = "sawantwadi-static-v5";
 const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
 const STATUS_URL = new URL("./offline-preload-status.json", self.registration.scope).href;
 
@@ -135,7 +135,7 @@ self.addEventListener("fetch", event => {
     const cache = await caches.open(CACHE_NAME);
     // Network-first: serve current code whenever online, retain cache for offline use.
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, request.mode === "navigate" ? { cache: "no-store" } : undefined);
       if (response.ok && response.type === "basic") {
         await cache.put(key, response.clone());
       }
