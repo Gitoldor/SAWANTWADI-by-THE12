@@ -246,27 +246,43 @@
      THE FIFTH SLIDE IS ADDED ONLY FOR VERIFIED PRO ACCOUNTS.
      ========================================================== */
 
-  hasProAccess().then(function (allowed) {
-    if (allowed) {
-      const img = document.createElement("img");
-      img.className = "photoSwipeImage";
-      img.src = CONFIG.proImage;
-      img.alt = "Share your Sho1re1 PRO profile";
-      img.draggable = false;
-      img.decoding = "async";
-      img.classList.add("proShareSlide");
-      img.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        window.location.href = new URL("pro-share.html", window.location.href).href;
-      });
-      track.appendChild(img);
-      imageElements.push(img);
-    }
+  let proSlideAdded = false;
+  let swipeStarted = false;
 
-    // Image 1 is already visible. Start the first swipe after its display time.
-    setTimeout(showNext, CONFIG.displayTime);
-  });
+  function addProSlide() {
+    if (proSlideAdded || track.querySelector(".proShareSlide")) return;
+    proSlideAdded = true;
+    const img = document.createElement("img");
+    img.className = "photoSwipeImage proShareSlide";
+    img.src = CONFIG.proImage;
+    img.alt = "Share your Sho1re1 PRO profile";
+    img.draggable = false;
+    img.decoding = "async";
+    img.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.href = new URL("pro-share.html", window.location.href).href;
+    });
+    track.appendChild(img);
+    imageElements.push(img);
+  }
+
+  function refreshProSlide() {
+    hasProAccess().then(function (allowed) {
+      if (allowed) addProSlide();
+      if (!swipeStarted) {
+        swipeStarted = true;
+        // Image 1 is already visible. Start the first swipe after its display time.
+        setTimeout(showNext, CONFIG.displayTime);
+      }
+    });
+  }
+
+  // The Google ID token can expire while the local profile remains saved.
+  // Re-check after the auth layer silently refreshes that token.
+  window.addEventListener("sho1re1:credential", refreshProSlide);
+  window.addEventListener("sho1re1:authchange", refreshProSlide);
+  refreshProSlide();
 
 
 })();
