@@ -66,10 +66,58 @@
   }
 
   function renderSorted() {
-    if (typeof window.renderMapAndCarousel === 'function' &&
-        Array.isArray(activePlaces)) {
-      window.renderMapAndCarousel();
+    if (typeof window.renderMapAndCarousel !== 'function' ||
+        !Array.isArray(activePlaces)) return;
+
+    var carousel = document.getElementById('carousel');
+    if (carousel) carousel.classList.add('sho1re1-nearby-refresh');
+
+    window.renderMapAndCarousel();
+
+    // Animate only composited properties on the newly ordered cards.
+    // The active card keeps its existing spring highlight animation.
+    if (carousel) {
+      var cards = carousel.querySelectorAll('.card:not(.active)');
+      cards.forEach(function (card, index) {
+        card.style.setProperty('--nearby-enter-delay', Math.min(index, 8) * 18 + 'ms');
+      });
+      window.setTimeout(function () {
+        carousel.classList.remove('sho1re1-nearby-refresh');
+        cards.forEach(function (card) {
+          card.style.removeProperty('--nearby-enter-delay');
+        });
+      }, 480);
     }
+  }
+
+  // Lightweight motion styling: opacity/transform only, with no animation
+  // library and no permanent will-change layer promotion.
+  if (!document.getElementById('sho1re1-nearby-motion-style')) {
+    var style = document.createElement('style');
+    style.id = 'sho1re1-nearby-motion-style';
+    style.textContent = `
+      @keyframes sho1re1NearbyCardIn {
+        from { opacity: 0; transform: translate3d(0, 9px, 0) scale(.985); }
+        to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      }
+      #carousel.sho1re1-nearby-refresh .card:not(.active) {
+        animation: sho1re1NearbyCardIn 320ms cubic-bezier(.2,.7,.2,1) both;
+        animation-delay: var(--nearby-enter-delay, 0ms);
+      }
+      .sho1re1-origin-marker {
+        animation: sho1re1OriginPulse 1.8s ease-out infinite;
+        transform-origin: center;
+      }
+      @keyframes sho1re1OriginPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .72; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #carousel.sho1re1-nearby-refresh .card:not(.active),
+        .sho1re1-origin-marker { animation: none !important; }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   window.renderMapAndCarousel = function () {
@@ -114,6 +162,7 @@
         opacity: 1,
         fillColor: '#171717',
         fillOpacity: 1,
+        className: 'sho1re1-origin-marker',
         interactive: false,
         bubblingMouseEvents: false
       }).addTo(map);
