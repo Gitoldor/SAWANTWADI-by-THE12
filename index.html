@@ -2435,7 +2435,11 @@ function renderMapAndCarousel() {
 
     const marker = L.marker([place.lat, place.lng], { icon: customIcon, place: place });
     
+    if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.decoratePlaceMarker(marker, place);
+
     marker.on('click', (e) => {
+      if (L.DomEvent) L.DomEvent.stopPropagation(e);
+      if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.open('places');
       setActive(idx);
       if (place.contentKind) {
         if (L.DomEvent) L.DomEvent.stopPropagation(e);
@@ -3004,7 +3008,8 @@ window.Sho1re1DataReady.then(() => {
 <script src="notification.js"></script>
     <script src="notification-share.js"></script>
     <script src="photoswipe.js"></script>
-    <script src="./my-location.js"></script>
+    <script src="./marker-customizer.js"></script>
+<script src="./my-location.js"></script>
 <script src="./map-only-swipe.js"></script>
 <script src="./photoswipe-guard.js"></script>
 <script src="./shared-collection-map.js"></script>
