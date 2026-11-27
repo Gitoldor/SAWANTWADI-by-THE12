@@ -55,11 +55,14 @@
     } catch (_) {}
     if (!credential) return Promise.resolve(publish(false));
 
+    const requestedEmail = String(user.email || "").trim().toLowerCase();
+    const requestedIdentity = String(user.sub || requestedEmail);
+
     pending = fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: String(user.email || "").trim().toLowerCase(),
+        email: requestedEmail,
         credential: credential
       }),
       cache: "no-store"
@@ -67,6 +70,12 @@
       if (!response.ok) throw new Error("PRO membership check failed");
       return response.json();
     }).then(function (result) {
+      const latest = authContext();
+      const latestUser = getUser(latest);
+      const latestIdentity = latestUser && String(latestUser.sub || String(latestUser.email || "").trim().toLowerCase());
+      if (!latestUser || String(latestUser.email || "").trim().toLowerCase() !== requestedEmail || latestIdentity !== requestedIdentity) {
+        return publish(false);
+      }
       return publish(result && result.success === true && result.active === true);
     }).catch(function () {
       return publish(false);
