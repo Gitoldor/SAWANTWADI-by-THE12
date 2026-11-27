@@ -1,7 +1,7 @@
 /* Sawantwadi full-site offline preload. */
 "use strict";
 
-const CACHE_NAME = "sawantwadi-static-v5";
+const CACHE_NAME = "sawantwadi-static-v6";
 const MANIFEST_URL = new URL("./offline-assets.json", self.registration.scope).href;
 const STATUS_URL = new URL("./offline-preload-status.json", self.registration.scope).href;
 
