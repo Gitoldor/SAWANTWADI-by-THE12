@@ -981,15 +981,17 @@ body{
 
   async function verifyPaid() {
     const currentRequest = ++requestId;
-    const user = getUser(getAuth());
-    const email = String(user && user.email || "").trim().toLowerCase();
-    if (!email) { paintPaid(false); return; }
+    const auth = getAuth();
+    const user = getUser(auth);
+    let credential = "";
+    try { credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || ""; } catch (_) {}
+    if (!user || !credential) { paintPaid(false); return; }
 
     try {
       const response = await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ credential: credential }),
         cache: "no-store"
       });
       if (!response.ok) throw new Error("PRO status check failed");
