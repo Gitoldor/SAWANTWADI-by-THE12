@@ -12,6 +12,7 @@
   var activeOrigin = null;
   var originMode = 'gps';
   var selectedPointMarker = null;
+  var nearbyMotionTimer = null;
   var originalRender = window.renderMapAndCarousel;
 
   if (typeof originalRender !== 'function') {
@@ -70,6 +71,7 @@
         !Array.isArray(activePlaces)) return;
 
     var carousel = document.getElementById('carousel');
+    if (nearbyMotionTimer) window.clearTimeout(nearbyMotionTimer);
     if (carousel) carousel.classList.add('sho1re1-nearby-refresh');
 
     window.renderMapAndCarousel();
@@ -81,11 +83,12 @@
       cards.forEach(function (card, index) {
         card.style.setProperty('--nearby-enter-delay', Math.min(index, 8) * 18 + 'ms');
       });
-      window.setTimeout(function () {
+      nearbyMotionTimer = window.setTimeout(function () {
         carousel.classList.remove('sho1re1-nearby-refresh');
         cards.forEach(function (card) {
           card.style.removeProperty('--nearby-enter-delay');
         });
+        nearbyMotionTimer = null;
       }, 480);
     }
   }
