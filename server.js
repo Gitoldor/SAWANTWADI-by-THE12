@@ -5,6 +5,7 @@ const PORT = Number(process.env.PORT || 10000);
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_DATABASE_ID = process.env.CF_DATABASE_ID;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
+const AUTH_SESSION_SECRET = process.env.AUTH_SESSION_SECRET || "";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,33 @@ async function verifyAccessCredential(credential) {
   if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
       !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) return null;
   return { email: String(identity.email).trim().toLowerCase() };
+}
+
+
+function createAppSession(email) {
+  if (!AUTH_SESSION_SECRET || AUTH_SESSION_SECRET.length < 32) throw new Error("App session signing is not configured");
+  const payload = Buffer.from(JSON.stringify({ email, typ: "sho1re1-session", exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60 })).toString("base64url");
+  const signature = crypto.createHmac("sha256", AUTH_SESSION_SECRET).update(payload).digest("base64url");
+  return payload + "." + signature;
+}
+function verifyAppSession(token) {
+  if (!AUTH_SESSION_SECRET || typeof token !== "string" || token.length > 2000) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const expected = crypto.createHmac("sha256", AUTH_SESSION_SECRET).update(parts[0]).digest();
+  let actual;
+  try { actual = Buffer.from(parts[1], "base64url"); } catch (_) { return null; }
+  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
+    if (payload.typ !== "sho1re1-session" || !payload.email || Number(payload.exp) * 1000 <= Date.now()) return null;
+    return { email: String(payload.email).trim().toLowerCase(), exp: Number(payload.exp) };
+  } catch (_) { return null; }
+}
+async function resolveIdentity(body) {
+  const session = verifyAppSession(body && body.sessionToken);
+  if (session) return session;
+  return verifyAccessCredential(body && body.credential);
 }
 
 async function queryD1(sql, params = []) {
@@ -61,6 +89,26 @@ const server = http.createServer(async (req, res) => {
   }
 
 
+
+  if (req.method === "POST" && path === "/auth-session") {
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 20000) return send(res, 413, { success: false, error: "Request too large" });
+      }
+      const body = JSON.parse(raw || "{}");
+      const identity = await verifyAccessCredential(body.credential);
+      if (!identity) return send(res, 401, { success: false, error: "Valid Google sign-in required" });
+      const sessionToken = createAppSession(identity.email);
+      const payload = JSON.parse(Buffer.from(sessionToken.split(".")[0], "base64url").toString("utf8"));
+      return send(res, 200, { success: true, sessionToken, expiresAt: payload.exp });
+    } catch (error) {
+      console.error("App session creation failed", error?.message || "Unknown error");
+      return send(res, 503, { success: false, error: "Persistent sign-in is temporarily unavailable" });
+    }
+  }
+
   if (req.method === "POST" && path === "/location-custom-access") {
     if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
       return send(res, 503, { success: false, error: "D1 connection is not configured" });
@@ -74,7 +122,7 @@ const server = http.createServer(async (req, res) => {
       }
       const body = JSON.parse(raw || "{}");
       const credential = typeof body.credential === "string" ? body.credential : "";
-      const identity = await verifyAccessCredential(credential);
+      const identity = await resolveIdentity(body);
       if (!identity) return send(res, 401, { success: false, allowed: false, error: "Valid sign-in required" });
       const requestedEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       if (requestedEmail && requestedEmail !== identity.email) {
@@ -113,7 +161,7 @@ const server = http.createServer(async (req, res) => {
         if (raw.length > 2000) return send(res, 413, { success: false, active: false, error: "Request too large" });
       }
       const body = JSON.parse(raw || "{}");
-      const identity = await verifyAccessCredential(body.credential);
+      const identity = await resolveIdentity(body);
       if (!identity) return send(res, 401, { success: false, active: false, error: "Valid sign-in required" });
       const result = await queryD1(
         "SELECT enabled,plan,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
