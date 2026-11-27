@@ -110,7 +110,9 @@
     if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<32&&routeDistance<routeTotal-18)return;
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
-      const from=await snapToRoad(currentPoint);
+      // currentPoint is already snapped to the road at start and remains on OSRM geometry.
+      // Avoid a second OSRM request per joystick update (public demo limit is ~1 req/sec).
+      const from=currentPoint;
       const target=destination(from,heading,260);
       const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+target.lng+','+target.lat+'?overview=full&geometries=geojson&steps=false');
       const coords=data.routes&&data.routes[0]&&data.routes[0].geometry&&data.routes[0].geometry.coordinates;
@@ -151,15 +153,24 @@
         document.body.classList.add('sho1re1-driving');setStatus('HOLD JOYSTICK TO DRIVE');
         mapRef.flyTo(currentPoint,Math.max(17,mapRef.getZoom()),{duration:.7});lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
-      }catch(err){loading=false;setStatus('ROAD SNAP FAILED');console.error('MAX Drive start:',err);if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.disable(mapRef);roadMapEnabled=false}
-    },err=>{loading=false;setStatus('LOCATION PERMISSION NEEDED');console.warn(err)},{enableHighAccuracy:true,timeout:20000,maximumAge:3000});
+      }catch(err){failStart('ROAD SNAP FAILED',err)}
+    },err=>{failStart('LOCATION PERMISSION NEEDED',err)},{enableHighAccuracy:true,timeout:20000,maximumAge:3000});
+  }
+  function failStart(label, err){
+    loading=false;
+    setStatus(label);
+    if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.disable(mapRef);
+    roadMapEnabled=false;
+    if(ui)ui.hidden=true;
+    syncVisibility();
+    if(err)console.warn('MAX Drive start:',err);
   }
   function stop(){
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){mapRef.removeLayer(car);car=null}clearRoute();restoreGpsMarker();
     if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.disable(mapRef);roadMapEnabled=false;
-    document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;document.body.classList.remove('sho-map-only');syncVisibility();
+    document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
   buildUI();
   const observer=new MutationObserver(syncVisibility);observer.observe(document.body,{attributes:true,attributeFilter:['class']});syncVisibility();
