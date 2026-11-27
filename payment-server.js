@@ -302,7 +302,7 @@ const server = http.createServer(async (req, res) => {
       }
       const expiry = row.expires_at == null ? 0 : Number(row.expires_at);
       if (expiry && expiry <= now) {
-        await queryD1("UPDATE pro SET enabled=0 WHERE email=? COLLATE NOCASE", [identity.email]);
+        await queryD1("UPDATE pro SET enabled=0 WHERE email=? COLLATE NOCASE", [email]);
         return send(res, 200, { success: true, email, subscriptions: [] });
       }
       const legacy = !row.plan && !expiry;
