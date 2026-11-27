@@ -87,6 +87,7 @@
       displayName: returningProfile ? previous.displayName : "",
       signedInAt: Date.now()
     });
+    closeCredentialRefresh();
     if (!returningProfile) promptName();
     else closeWelcome();
   }
@@ -124,7 +125,7 @@
     if (shouldPromptForCredential && user) {
       // A saved profile can outlive Google's short-lived ID token. Refresh it
       // through GIS so paid features recover without clearing the local profile.
-      try { google.accounts.id.prompt(); } catch (_) {}
+      startCredentialPrompt();
     }
 
   }
@@ -140,6 +141,52 @@
   function closeWelcome() {
     const overlay = document.getElementById("sho-login-overlay");
     if (overlay) overlay.remove();
+  }
+  function closeCredentialRefresh() {
+    const overlay = document.getElementById("sho-credential-refresh-overlay");
+    if (overlay) overlay.remove();
+  }
+  function showCredentialRefresh(message) {
+    if (!user || document.getElementById("sho-credential-refresh-overlay")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "sho-credential-refresh-overlay";
+    overlay.className = "sho-auth-overlay";
+    overlay.innerHTML = `
+      <section class="sho-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="sho-credential-refresh-title">
+        <button class="sho-auth-close" type="button" aria-label="Close">×</button>
+        <div class="sho-auth-mark">S</div>
+        <p class="sho-auth-kicker">SECURE ACCOUNT CHECK</p>
+        <h2 id="sho-credential-refresh-title">Confirm your Google account</h2>
+        <p class="sho-auth-copy">${message || "Your Sho1re1 profile is still saved. Confirm your Google account once to restore Pro access."}</p>
+        <div data-sho-google-button class="sho-google-button"></div>
+        <p class="sho-auth-footnote">You won't lose your profile or need to buy Pro again.</p>
+      </section>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector(".sho-auth-close").addEventListener("click", closeCredentialRefresh);
+    renderButton(overlay.querySelector("[data-sho-google-button]"));
+  }
+  function startCredentialPrompt() {
+    if (!ready || !user || !google.accounts || !google.accounts.id) {
+      pendingCredentialRequest = false;
+      showCredentialRefresh("Google sign-in is still loading. Please try again in a moment.");
+      return;
+    }
+    try {
+      google.accounts.id.prompt(function (notification) {
+        if (!notification) return;
+        const unavailable =
+          notification.isNotDisplayed && notification.isNotDisplayed() ||
+          notification.isSkippedMoment && notification.isSkippedMoment() ||
+          notification.isDismissedMoment && notification.isDismissedMoment();
+        if (unavailable) {
+          pendingCredentialRequest = false;
+          showCredentialRefresh();
+        }
+      });
+    } catch (_) {
+      pendingCredentialRequest = false;
+      showCredentialRefresh();
+    }
   }
   function promptName() {
     const existing = document.getElementById("sho-name-overlay");
@@ -239,19 +286,7 @@
       }
       // Ask Google Identity Services to silently reselect the browser's
       // existing Google account when possible; this avoids a repeated login.
-      try {
-        google.accounts.id.prompt(function (notification) {
-          if (notification && (
-            notification.isNotDisplayed && notification.isNotDisplayed() ||
-            notification.isSkippedMoment && notification.isSkippedMoment() ||
-            notification.isDismissedMoment && notification.isDismissedMoment()
-          )) {
-            pendingCredentialRequest = false;
-          }
-        });
-      } catch (_) {
-        pendingCredentialRequest = false;
-      }
+      startCredentialPrompt();
     },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
