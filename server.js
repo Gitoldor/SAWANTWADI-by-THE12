@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 
 const PORT = Number(process.env.PORT || 10000);
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
@@ -15,6 +16,29 @@ const headers = {
 function send(res, status, body) {
   res.writeHead(status, { ...headers, "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
+}
+
+async function verifyAccessCredential(credential) {
+  if (typeof credential !== "string" || credential.length < 100 || credential.length > 12000) {
+    return null;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  if (credential.startsWith("s1_")) {
+    const tokenHash = crypto.createHash("sha256").update(credential).digest("hex");
+    const result = await queryD1(
+      "SELECT email,expires_at FROM sho1re1_auth_sessions WHERE token_hash=? AND expires_at>? LIMIT 1",
+      [tokenHash, now]
+    );
+    const rows = result[0]?.results || [];
+    return rows[0] ? { email: String(rows[0].email || "").trim().toLowerCase() } : null;
+  }
+  const response = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
+  if (!response.ok) return null;
+  const identity = await response.json();
+  const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
+  if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
+      !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) return null;
+  return { email: String(identity.email).trim().toLowerCase() };
 }
 
 async function queryD1(sql, params = []) {
@@ -62,21 +86,11 @@ const server = http.createServer(async (req, res) => {
       }
       const body = JSON.parse(raw || "{}");
       const credential = typeof body.credential === "string" ? body.credential : "";
-      if (!credential || credential.length > 12000) {
-        return send(res, 400, { success: false, allowed: false, error: "Google sign-in required" });
-      }
-
-      const verifyResponse = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
-      if (!verifyResponse.ok) return send(res, 401, { success: false, allowed: false, error: "Invalid Google sign-in" });
-      const identity = await verifyResponse.json();
+      const identity = await verifyAccessCredential(credential);
+      if (!identity) return send(res, 401, { success: false, allowed: false, error: "Valid sign-in required" });
       const requestedEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-      if (requestedEmail && requestedEmail !== String(identity.email || "").trim().toLowerCase()) {
+      if (requestedEmail && requestedEmail !== identity.email) {
         return send(res, 403, { success: false, allowed: false, error: "Signed-in account mismatch" });
-      }
-      const expectedClientId = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
-      if (identity.aud !== expectedClientId || identity.email_verified !== "true" ||
-          !identity.email || !identity.sub || Number(identity.exp) * 1000 <= Date.now()) {
-        return send(res, 401, { success: false, allowed: false, error: "Google identity could not be verified" });
       }
 
       const result = await queryD1(
@@ -110,13 +124,11 @@ const server = http.createServer(async (req, res) => {
         if (raw.length > 2000) return send(res, 413, { success: false, active: false, error: "Request too large" });
       }
       const body = JSON.parse(raw || "{}");
-      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-      if (!email || email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return send(res, 400, { success: false, active: false, error: "Valid email required" });
-      }
+      const identity = await verifyAccessCredential(body.credential);
+      if (!identity) return send(res, 401, { success: false, active: false, error: "Valid sign-in required" });
       const result = await queryD1(
         "SELECT enabled,personal_plan_id,personal_expires_at,business_plan_id,business_expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
-        [email]
+        [identity.email]
       );
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
