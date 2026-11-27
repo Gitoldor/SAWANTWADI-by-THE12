@@ -70,6 +70,7 @@
   }
   function onCredential(response) {
     credential = response.credential || "";
+    pendingCredentialRequest = false;
     const data = decodeCredential(credential);
     if (!data || !data.sub) { credential = ""; return; }
     saveSessionCredential(credential, data);
@@ -238,7 +239,19 @@
       }
       // Ask Google Identity Services to silently reselect the browser's
       // existing Google account when possible; this avoids a repeated login.
-      try { google.accounts.id.prompt(); } catch (_) {}
+      try {
+        google.accounts.id.prompt(function (notification) {
+          if (notification && (
+            notification.isNotDisplayed && notification.isNotDisplayed() ||
+            notification.isSkippedMoment && notification.isSkippedMoment() ||
+            notification.isDismissedMoment && notification.isDismissedMoment()
+          )) {
+            pendingCredentialRequest = false;
+          }
+        });
+      } catch (_) {
+        pendingCredentialRequest = false;
+      }
     },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     renderButton,
