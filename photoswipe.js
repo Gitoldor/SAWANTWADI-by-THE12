@@ -18,7 +18,6 @@
     // Fifth slide is appended only after the same verified PRO access check
     // used by the location-customization feature succeeds.
     proImage: "https://i.ibb.co/Zp8VjjXV/1000014335-removebg-preview.png",
-    proAccessAPI: "https://sawantwadi-read-api.onrender.com/pro-status",
 
     // 9:16 portrait
     width: "100%",
