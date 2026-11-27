@@ -39,9 +39,9 @@
     if (loaded || loading) return;
     loading = true;
     try {
-      await addScript('./max-road-map.js');
+      await addScript('./max-road-map.js?v=20261128b');
       if (!isMax()) return;
-      await addScript('./max-drive.js');
+      await addScript('./max-drive.js?v=20261128b');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
