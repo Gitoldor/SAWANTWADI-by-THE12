@@ -34,17 +34,17 @@
     return L.divIcon({html:'<div class="custom-marker '+media+' '+cls('places')+'"><img src="'+src+'" loading="lazy" decoding="async" fetchpriority="low" alt=""></div>',className:'',iconSize:[w,h],iconAnchor:[w/2,h/2]});
   }
   function userIcon(){return L.divIcon({className:'',html:'<div class="max-user-marker '+cls('user')+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Zm0 2c-4.2 0-7.5 2.25-7.5 5.05 0 .65.53 1.18 1.18 1.18h12.64c.65 0 1.18-.53 1.18-1.18C19.5 16.25 16.2 14 12 14Z"/></svg></div>',iconSize:[52,52],iconAnchor:[26,26]});}
-  function refresh(type){if(type==='places')places.forEach((place,marker)=>marker.setIcon(placeIcon(marker,place)));else users.forEach(marker=>marker.setIcon(userIcon()));}
-  function decoratePlaceMarker(marker,place){if(!marker)return;places.set(marker,place);marker.setIcon(placeIcon(marker,place));}
+  function refresh(type){if(type==='user')users.forEach(marker=>marker.setIcon(userIcon()));}
+  function decoratePlaceMarker(){ /* Intentionally disabled: post/place markers always keep their original shape. */ }
   function registerUserMarker(marker){if(!marker)return;users.add(marker);marker.setIcon(userIcon());}
   function open(type){
     ensure();current=type==='user'?'user':'places';
     const access=window.Sho1re1Pro;
     if(access&&access.getCached()===null)access.check().then(()=>{if(sheet&&sheet.classList.contains('open'))open(current);}).catch(()=>{});
     const allowed=max();
-    sheet.querySelector('.heading').textContent=current==='user'?'Your location marker':'Place markers';
+    sheet.querySelector('.heading').textContent='Your location marker';
     sheet.querySelector('.sub').textContent=allowed?'10 designs · saved on this device':'MAX exclusive · upgrade to customize';
-    sheet.querySelector('.kind').textContent=current==='user'?'PERSONAL LOCATION':'ALL PLACE & CONTENT MARKERS';
+    sheet.querySelector('.kind').textContent='PERSONAL GPS LOCATION ONLY';
     const lock=sheet.querySelector('.lock');lock.hidden=allowed;lock.textContent='🔒 Marker Studio is a MAX-exclusive feature. Upgrade to MAX to select and save a marker design.';
     grid.innerHTML='';
     styles.forEach(s=>{
@@ -60,6 +60,6 @@
     backdrop.classList.add('open');sheet.classList.add('open');document.body.style.overflow='hidden';
   }
   function close(){if(!sheet)return;backdrop.classList.remove('open');sheet.classList.remove('open');document.body.style.overflow='';}
-  window.Sho1re1MarkerCustomizer={open,close,decoratePlaceMarker,registerUserMarker,createUserIcon:userIcon,refresh:()=>{refresh('places');refresh('user');},getSelection:type=>selected[type==='user'?'user':'places']};
-  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{refresh('places');refresh('user');if(sheet&&sheet.classList.contains('open'))open(current);});
+  window.Sho1re1MarkerCustomizer={open,close,decoratePlaceMarker,registerUserMarker,createUserIcon:userIcon,refresh:()=>refresh('user'),getSelection:()=>selected.user};
+  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{refresh('user');if(sheet&&sheet.classList.contains('open'))open('user');});
 })();
