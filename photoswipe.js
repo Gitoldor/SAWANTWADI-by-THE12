@@ -203,7 +203,7 @@
       const response = await fetch(CONFIG.proAccessAPI, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: credential }),
+        body: JSON.stringify({ email: String(user.email || '').trim().toLowerCase(), credential: credential }),
         cache: "no-store"
       });
       if (!response.ok) return false;
