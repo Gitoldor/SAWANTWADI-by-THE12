@@ -6,6 +6,7 @@
   const CLIENT_ID = "89011073863-98b4vrionc2nvimj6ffec9b99qi6qjdt.apps.googleusercontent.com";
   const STORAGE_KEY = "sho1re1_google_profile_v1";
   const CREDENTIAL_STORAGE_KEY = "sho1re1_google_credential_session_v1";
+  const APP_SESSION_KEY = "sho1re1_persistent_session_v1";
   let user = readUser();
   let credential = readSessionCredential();
   let ready = false;
@@ -34,7 +35,7 @@
       return saved.token;
     } catch (_) { return ""; }
   }
-  // Sho1re1 uses the Google ID credential directly; no server-side login-session table.
+  function readAppSession() {\n    try { const saved = JSON.parse(localStorage.getItem(APP_SESSION_KEY) || "null"); if (!saved || typeof saved.token !== "string" || Number(saved.exp) * 1000 <= Date.now()) { localStorage.removeItem(APP_SESSION_KEY); return ""; } return saved.token; } catch (_) { return ""; }\n  }\n  function saveAppSession(token, exp) {\n    try { if (!token || Number(exp) * 1000 <= Date.now()) return; localStorage.setItem(APP_SESSION_KEY, JSON.stringify({ token, exp: Number(exp) })); } catch (_) {}\n  }\n  // Sho1re1 uses a signed, expiring app session after the first Google verification.
   function saveSessionCredential(token, data) {
     try {
       const exp = Number(data && data.exp) || 0;
@@ -241,7 +242,7 @@
   }
   function signOut() {
     credential = "";
-    try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); localStorage.removeItem("sho1re1_app_session_v1"); } catch (_) {}
+    try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); localStorage.removeItem(APP_SESSION_KEY); localStorage.removeItem("sho1re1_app_session_v1"); } catch (_) {}
     saveUser(null);
     if (ready && google.accounts.id.disableAutoSelect) google.accounts.id.disableAutoSelect();
   }
@@ -266,7 +267,7 @@
       if (!credential && user) window.Sho1re1Auth.requestCredential();
       return credential;
     },
-    getSessionToken: () => "",
+    getSessionToken: () => readAppSession(),\n    setSessionToken: (token, exp) => saveAppSession(token, exp),
     requestCredential(callback) {
       if (credential) {
         const data = decodeCredential(credential);
