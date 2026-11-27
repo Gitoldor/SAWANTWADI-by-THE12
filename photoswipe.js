@@ -227,6 +227,7 @@
 
   function addProSlide() {
     if (proSlideAdded || track.querySelector(".proShareSlide")) return;
+    const wasAtEnd = current >= imageElements.length - 1;
     proSlideAdded = true;
     const img = document.createElement("img");
     img.className = "photoSwipeImage proShareSlide";
@@ -241,6 +242,7 @@
     });
     track.appendChild(img);
     imageElements.push(img);
+    if (swipeStarted && wasAtEnd) setTimeout(showNext, 40);
   }
 
   function refreshProSlide() {
