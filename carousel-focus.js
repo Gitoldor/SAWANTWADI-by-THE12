@@ -36,9 +36,20 @@
 
     // nearby-sort.js sorts activePlaces by the current GPS or tapped origin
     // before dispatching this event, so the first card is the closest valid post.
-    var nearestPlace = activePlaces[0];
-    var index = activePlaces.indexOf(nearestPlace);
-    var card = cardRefs[index];
+    var index = -1;
+    for (var i = 0; i < activePlaces.length; i++) {
+      var place = activePlaces[i];
+      if (!place || place.lat == null || place.lng == null ||
+          place.lat === '' || place.lng === '') continue;
+      var lat = Number(place.lat);
+      var lng = Number(place.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng) &&
+          Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+        index = i;
+        break;
+      }
+    }
+    var card = index >= 0 ? cardRefs[index] : null;
     if (!card) return;
 
     if (typeof window.setActive === 'function') {
