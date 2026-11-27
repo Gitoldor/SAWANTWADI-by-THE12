@@ -138,7 +138,7 @@
         if(!r.ok||!d.success||!Array.isArray(d.subscriptions))throw new Error(d.error||"Could not read your membership from the database.");
         const live=d.subscriptions;
         if(live.length){
-          const labels={PRO_7D:"PRO",MAX_30D:"MAX",BUSINESS_PRO:"BUSINESS PRO",BUSINESS_MAX:"BUSINESS MAX",PRO_7D:"PRO"};
+          const labels={PRO_7D:"PRO",MAX_30D:"MAX",BUSINESS_PRO:"BUSINESS PRO",BUSINESS_MAX:"BUSINESS MAX"};
           if(expiryTimer){clearInterval(expiryTimer);expiryTimer=null;}
           const renderActivePlans=()=>{
             const now=Date.now();
