@@ -2494,6 +2494,35 @@ savedFilterBtn.onclick = () => {
 /* =========================
 CARD SAVE INTERACTIONS
 ========================= */
+let cloudSavedIds = new Set();
+let maxCloudSaveActive = false;
+let maxCloudSaveInitPromise = Promise.resolve();
+
+async function loadMaxCloudSavedPosts() {
+  if (!window.Sho1re1CloudSaves) return;
+  try {
+    const ids = await window.Sho1re1CloudSaves.list();
+    maxCloudSaveActive = true;
+    cloudSavedIds = new Set(ids.map(String));
+    const liveById = new Map(rawPlaces.map(item => [String(item.id), item]));
+    cloudSavedIds.forEach(id => {
+      const place = liveById.get(id);
+      if (!place) return;
+      const existing = savedPlacesMap.get(place.id);
+      savedPlacesMap.set(place.id, {
+        place: place,
+        folders: existing && existing.folders ? existing.folders : ['Default'],
+        cloud: true
+      });
+    });
+  } catch (error) {
+    maxCloudSaveActive = false;
+    if (error && error.status !== 401 && error.status !== 403) {
+      console.warn('MAX Cloud Saves could not be loaded:', error.message || error);
+    }
+  }
+}
+
 function setupCardSave(btn, place) {
   let timer = null;
   let isLongPress = false;
@@ -2514,19 +2543,53 @@ function setupCardSave(btn, place) {
     e.stopPropagation();
     if (isLongPress) return;
     
-    const existing = savedPlacesMap.get(place.id);
-    if (existing) {
-      removePlaceFromDB(place.id).then(() => {
-        savedPlacesMap.delete(place.id);
-        btn.classList.remove('is-saved');
-        if (showOnlySaved) applyFilters();
-      });
-    } else {
-      savePlaceToDB(place, ['Default']).then(() => {
-        savedPlacesMap.set(place.id, { place, folders: ['Default'] });
-        btn.classList.add('is-saved');
-      });
-    }
+    maxCloudSaveInitPromise.then(async () => {
+      if (maxCloudSaveActive && window.Sho1re1CloudSaves) {
+        const id = String(place.id);
+        try {
+          if (cloudSavedIds.has(id)) {
+            await window.Sho1re1CloudSaves.remove(id);
+            cloudSavedIds.delete(id);
+            const localItems = await getSavedPlacesFromDB();
+            const localItem = localItems.find(item => String(item.id) === id);
+            if (localItem) {
+              savedPlacesMap.set(place.id, { place: localItem, folders: localItem.folders || ['Default'] });
+            } else {
+              savedPlacesMap.delete(place.id);
+            }
+            btn.classList.toggle('is-saved', savedPlacesMap.has(place.id));
+          } else {
+            await window.Sho1re1CloudSaves.save(id);
+            cloudSavedIds.add(id);
+            const previous = savedPlacesMap.get(place.id);
+            savedPlacesMap.set(place.id, {
+              place: place,
+              folders: previous && previous.folders ? previous.folders : ['Default'],
+              cloud: true
+            });
+            btn.classList.add('is-saved');
+          }
+          if (showOnlySaved) applyFilters();
+        } catch (error) {
+          alert(error.message || 'Could not sync this save. Please try again.');
+        }
+        return;
+      }
+
+      const existing = savedPlacesMap.get(place.id);
+      if (existing) {
+        removePlaceFromDB(place.id).then(() => {
+          savedPlacesMap.delete(place.id);
+          btn.classList.remove('is-saved');
+          if (showOnlySaved) applyFilters();
+        });
+      } else {
+        savePlaceToDB(place, ['Default']).then(() => {
+          savedPlacesMap.set(place.id, { place, folders: ['Default'] });
+          btn.classList.add('is-saved');
+        });
+      }
+    });
   });
 }
 
@@ -2873,15 +2936,18 @@ window.Sho1re1DataReady.then(() => {
 }).then(() => {
   reconcileSavedPostsWithLiveData().then(savedItems => {
     savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
-    buildFilterChips();
-    applyFilters();
+    maxCloudSaveInitPromise = loadMaxCloudSavedPosts();
+    return maxCloudSaveInitPromise;
   }).catch(error => {
     console.error('Could not reconcile saved posts:', error);
-    getSavedPlacesFromDB().then(savedItems => {
+    return getSavedPlacesFromDB().then(savedItems => {
       savedPlacesMap = new Map(savedItems.map(item => [item.id, { place: item, folders: item.folders || ['Default'] }]));
-      buildFilterChips();
-      applyFilters();
+      maxCloudSaveInitPromise = loadMaxCloudSavedPosts();
+      return maxCloudSaveInitPromise;
     });
+  }).finally(() => {
+    buildFilterChips();
+    applyFilters();
   });
 }).catch(error => {
   console.error('Sho1re1 D1 initialization failed:', error);
@@ -2891,6 +2957,7 @@ window.Sho1re1DataReady.then(() => {
 });
 </script>
 <script src="./google-login.js" defer></script>
+<script src="./cloud-saves.js" defer></script>
 <script src="./studio-swipe.js" defer></script>
 <script src="ai.js"></script>
 <script src="pw-gate.js"></script>
