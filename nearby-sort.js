@@ -66,6 +66,49 @@
     }).map(function (item) { return item.place; });
   }
 
+  var lastAutoFocusedPlaceId = null;
+
+  // Centre the map on the closest valid post for the current search origin.
+  // Stop any previous camera animation first so rapid taps/GPS refreshes do not fight.
+  function focusNearestPlace() {
+    if (!activeOrigin || !Array.isArray(activePlaces) || !activePlaces.length ||
+        typeof map === 'undefined' || !map || typeof map.flyTo !== 'function') return;
+
+    var nearest = null;
+    var nearestDistance = Infinity;
+    activePlaces.forEach(function (place) {
+      if (!place || place.lat == null || place.lng == null ||
+          place.lat === '' || place.lng === '') return;
+      var lat = Number(place.lat);
+      var lng = Number(place.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+          Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+      var distance = distanceInKm(place);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = place;
+      }
+    });
+
+    if (!nearest) return;
+    var placeId = String(nearest.id != null ? nearest.id : nearest.link || nearest.title || '');
+    if (placeId && placeId === lastAutoFocusedPlaceId) return;
+    lastAutoFocusedPlaceId = placeId;
+
+    try {
+      map.stop();
+      map.flyTo([Number(nearest.lat), Number(nearest.lng)],
+        Math.max(map.getZoom(), 16), {
+          animate: !(window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+          duration: 0.8,
+          easeLinearity: 0.2
+        });
+    } catch (error) {
+      console.warn('[Sho1re1 Nearby] Could not centre on nearest post:', error);
+    }
+  }
+
   function renderSorted() {
     if (typeof window.renderMapAndCarousel !== 'function' ||
         !Array.isArray(activePlaces)) return;
@@ -142,8 +185,8 @@
       activeOrigin = point;
       originMode = 'gps';
       renderSorted();
-      notifyOriginChange();
-    }
+      focusNearestPlace();
+      notifyOriginChange();    }
   }
 
   function setManualOrigin(latitude, longitude) {
@@ -172,6 +215,7 @@
     }
 
     renderSorted();
+    focusNearestPlace();
     notifyOriginChange();
   }
 
