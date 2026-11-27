@@ -232,7 +232,12 @@
           // Pending is neutral: the user may leave and resume payment later.
           // Do not pressure the user or display a failure-like message.
         }else if(!r.ok){
-          show(d.error||"We couldn't check the payment just now. Your order is saved; we'll retry automatically.");
+          if(r.status===401||r.status===404){
+            localStorage.removeItem(PENDING_KEY);stopPolling();setBusy(false);
+            show("This older payment session can't be resumed. Choose your plan again to create a fresh payment link.");
+          }else{
+            show(d.error||"We couldn't check the payment just now. Your order is saved; we'll retry automatically.");
+          }
         }
       }catch(_){show("Connection interrupted. Your order is saved; Sho1re1 will retry when you return or reconnect.");}
       finally{verifying=false;}
