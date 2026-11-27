@@ -116,9 +116,15 @@
       auto_select: true,
       cancel_on_tap_outside: true
     });
+    const shouldPromptForCredential = pendingCredentialRequest;
     ready = true;
     pendingCredentialRequest = false;
     document.querySelectorAll("[data-sho-google-button]").forEach(renderButton);
+    if (shouldPromptForCredential && user) {
+      // A saved profile can outlive Google's short-lived ID token. Refresh it
+      // through GIS so paid features recover without clearing the local profile.
+      try { google.accounts.id.prompt(); } catch (_) {}
+    }
 
   }
   function renderButton(target) {
@@ -199,11 +205,32 @@
   }
   window.Sho1re1Auth = {
     getUser: () => user ? { ...user } : null,
-    getCredential: () => credential,
+    getCredential: () => {
+      if (credential) {
+        const data = decodeCredential(credential);
+        if (!data || Number(data.exp) * 1000 <= Date.now()) {
+          credential = "";
+          try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); } catch (_) {}
+        }
+      }
+      // Feature gates call this getter. If the saved profile remains but its
+      // short-lived Google token expired, automatically request a fresh token.
+      if (!credential && user) window.Sho1re1Auth.requestCredential();
+      return credential;
+    },
     getSessionToken: () => "",
     requestCredential(callback) {
-      if (credential) { if (typeof callback === "function") callback(credential); return; }
+      if (credential) {
+        const data = decodeCredential(credential);
+        if (data && Number(data.exp) * 1000 > Date.now()) {
+          if (typeof callback === "function") callback(credential);
+          return;
+        }
+        credential = "";
+        try { sessionStorage.removeItem(CREDENTIAL_STORAGE_KEY); } catch (_) {}
+      }
       if (typeof callback === "function") credentialWaiters.add(callback);
+      if (pendingCredentialRequest) return;
       pendingCredentialRequest = true;
       if (!ready) {
         loadGoogle();
