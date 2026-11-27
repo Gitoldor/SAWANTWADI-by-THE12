@@ -2442,8 +2442,7 @@ function renderMapAndCarousel() {
       if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.open('places');
       setActive(idx);
       if (place.contentKind) {
-        if (L.DomEvent) L.DomEvent.stopPropagation(e);
-        openPlaceLink(place);
+        // The marker tap is reserved for Marker Studio; media still opens from its card.
         return;
       }
       // Place markers only select their matching carousel card.
