@@ -21,6 +21,16 @@
   let accuracyCircle = null;
 
   const THRESHOLD = 40;
+  const reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function cameraMotion(duration) {
+    return {
+      animate: !reduceMotion,
+      duration: duration,
+      easeLinearity: 0.2
+    };
+  }
 
   // Create button
   const button = document.createElement('button');
@@ -165,10 +175,7 @@
         mapInstance.flyTo(
           userLocation,
           Math.max(mapInstance.getZoom(), 16),
-          {
-            animate: true,
-            duration: 1.2
-          }
+          cameraMotion(1.25)
         );
 
         button.disabled = false;
@@ -185,7 +192,7 @@
           mapInstance.flyTo(
             userLocation,
             Math.max(mapInstance.getZoom(), 16),
-            { animate: true, duration: 1.2 }
+            cameraMotion(1.25)
           );
         }
 
