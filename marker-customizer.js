@@ -38,6 +38,8 @@
   function decoratePlaceMarker(){ /* Intentionally disabled: post/place markers always keep their original shape. */ }
   function registerUserMarker(marker){if(!marker)return;users.add(marker);marker.setIcon(userIcon());}
   function open(type){
+    // MAX-only feature: non-MAX accounts must not see a locked preview or teaser.
+    if(!max())return;
     ensure();current=type==='user'?'user':'places';
     const access=window.Sho1re1Pro;
     if(access&&access.getCached()===null)access.check().then(()=>{if(sheet&&sheet.classList.contains('open'))open(current);}).catch(()=>{});
