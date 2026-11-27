@@ -136,10 +136,10 @@ const server = http.createServer(async (req, res) => {
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_LEGACY" : null);
+      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [now + 7 * 86400]);
+      const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_7D" : null);
       const expiry = row.expires_at ?? (row.business_plan_id ? row.business_expires_at : row.personal_expires_at);
-      const legacyActive = Number(row.enabled) === 1 && (!plan || plan === "PRO_LEGACY") && expiry == null;
-      const active = Number(row.enabled) === 1 && (legacyActive || Number(expiry) > now);
+      const active = Number(row.enabled) === 1 && Number(expiry) > now;
       const businessActive = active && String(plan || "").startsWith("BUSINESS_");
       const personalActive = active && !businessActive;
       return send(res, 200, { success: true, allowed: active, personalActive, businessActive });
@@ -170,13 +170,13 @@ const server = http.createServer(async (req, res) => {
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_LEGACY" : null);
+      await queryD1("UPDATE pro SET plan='PRO_7D', expires_at=COALESCE(expires_at, ?) WHERE plan='PRO_LEGACY'", [now + 7 * 86400]);
+      const plan = row.plan || row.business_plan_id || row.personal_plan_id || (Number(row.enabled) === 1 ? "PRO_7D" : null);
       const expiry = row.expires_at ?? (row.business_plan_id ? row.business_expires_at : row.personal_expires_at);
-      const legacyActive = Number(row.enabled) === 1 && (!plan || plan === "PRO_LEGACY") && expiry == null;
-      const active = Number(row.enabled) === 1 && (legacyActive || Number(expiry) > now);
+      const active = Number(row.enabled) === 1 && Number(expiry) > now;
       const businessActive = active && String(plan || "").startsWith("BUSINESS_");
       const personalActive = active && !businessActive;
-      return send(res, 200, { success: true, active, planId: active ? (plan || "PRO_LEGACY") : null, personalActive, businessActive });
+      return send(res, 200, { success: true, active, planId: active ? (plan || "PRO_7D") : null, personalActive, businessActive });
     } catch (error) {
       console.error("PRO badge status check failed", error?.message || "Unknown error");
       return send(res, 500, { success: false, active: false, error: "Unable to check PRO status" });
