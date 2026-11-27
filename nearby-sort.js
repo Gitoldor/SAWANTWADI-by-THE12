@@ -194,6 +194,7 @@
     if (!validPoint(point)) return;
     activeOrigin = point;
     originMode = 'manual';
+    lastAutoFocusedPlaceId = null; // Every map tap should re-centre, even if the nearest post is unchanged.
 
     // Separate visual marker for the temporary search origin; the real blue
     // GPS marker in my-location.js is never moved or replaced.
