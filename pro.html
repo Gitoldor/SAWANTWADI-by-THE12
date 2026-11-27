@@ -111,9 +111,9 @@
     async function loadSubscription(){
       const version=++authVersion;
       const u=readUser(),credential=token();
-      membershipView("Checking your membership…","Looking up the signed-in Google account in the subscription database.",false,false);
+      membershipView("Checking your membership…","Looking up your saved Google account in the subscription database.",false,false);
       googleRecovery.hidden=true;
-      if(!u||!u.email||!u.sub||!credential){
+      if(!u||!u.email||!u.sub){
         membershipView(u&&u.email?"Refresh Google sign-in":"Google sign-in required",u&&u.email?"Your saved profile is recognised. Refresh your secure Google sign-in to check your membership.":"Sign in with Google to securely check your membership.",false,false);
         googleRecovery.hidden=false;
         if(!renderingGoogle&&window.Sho1re1Auth&&typeof window.Sho1re1Auth.renderButton==="function"){
@@ -123,7 +123,7 @@
         return;
       }
       try{
-        const r=await fetch(API+"/api/subscription",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({credential}),cache:"no-store"});
+        const r=await fetch(API+"/api/subscription",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({email:u.email,logger:u.sub,credential:credential||undefined}),cache:"no-store"});
         const d=await r.json();
         if(version!==authVersion)return;
         if(!r.ok&&(r.status===401||r.status===403)){
