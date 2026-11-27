@@ -150,7 +150,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const postId = typeof body.postId === "string" ? body.postId.trim() : "";
-      if (!postId || postId.length > 180 || /[\\u0000-\\u001f]/.test(postId)) {
+      if (!postId || postId.length > 180 || Array.from(postId).some(ch => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) {
         return send(res, 400, { success: false, error: "Valid post ID required" });
       }
       if (action === "save") {
