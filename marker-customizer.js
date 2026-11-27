@@ -12,7 +12,7 @@
   let sheet,backdrop,grid,current='places';
   function read(key){try{const v=localStorage.getItem(key);return styles.some(s=>s[0]===v)?v:'orbit';}catch(_){return 'orbit';}}
   function max(){const p=window.Sho1re1Pro;return !!(p&&p.getCached()===true&&/MAX/i.test(String(p.getPlanId()||'')));}
-  function cls(type){return 'max-marker-frame-'+selected[type];}
+  function cls(type){return 'max-marker-frame-'+(max()?selected[type]:'classic');}
   function ensure(){
     if(sheet)return;
     const css=document.createElement('style');
@@ -38,7 +38,10 @@
   function decoratePlaceMarker(marker,place){if(!marker)return;places.set(marker,place);marker.setIcon(placeIcon(marker,place));}
   function registerUserMarker(marker){if(!marker)return;users.add(marker);marker.setIcon(userIcon());}
   function open(type){
-    ensure();current=type==='user'?'user':'places';const allowed=max();
+    ensure();current=type==='user'?'user':'places';
+    const access=window.Sho1re1Pro;
+    if(access&&access.getCached()===null)access.check().then(()=>{if(sheet&&sheet.classList.contains('open'))open(current);}).catch(()=>{});
+    const allowed=max();
     sheet.querySelector('.heading').textContent=current==='user'?'Your location marker':'Place markers';
     sheet.querySelector('.sub').textContent=allowed?'10 designs · saved on this device':'MAX exclusive · upgrade to customize';
     sheet.querySelector('.kind').textContent=current==='user'?'PERSONAL LOCATION':'ALL PLACE & CONTENT MARKERS';
@@ -58,5 +61,5 @@
   }
   function close(){if(!sheet)return;backdrop.classList.remove('open');sheet.classList.remove('open');document.body.style.overflow='';}
   window.Sho1re1MarkerCustomizer={open,close,decoratePlaceMarker,registerUserMarker,createUserIcon:userIcon,refresh:()=>{refresh('places');refresh('user');},getSelection:type=>selected[type==='user'?'user':'places']};
-  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{if(sheet&&sheet.classList.contains('open'))open(current);});
+  if(window.Sho1re1Pro&&window.Sho1re1Pro.onChange)window.Sho1re1Pro.onChange(()=>{refresh('places');refresh('user');if(sheet&&sheet.classList.contains('open'))open(current);});
 })();
