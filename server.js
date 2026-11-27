@@ -109,6 +109,71 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // MAX-only cloud saves. Identity comes from a verified Google token or signed app session.
+  if (req.method === "POST" && path === "/max-saved-posts") {
+    if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
+      return send(res, 503, { success: false, error: "D1 connection is not configured" });
+    }
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 12000) return send(res, 413, { success: false, error: "Request too large" });
+      }
+      const body = JSON.parse(raw || "{}");
+      const identity = await resolveIdentity(body);
+      if (!identity) return send(res, 401, { success: false, error: "Valid sign-in required" });
+      const requestedEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (requestedEmail && requestedEmail !== identity.email) {
+        return send(res, 403, { success: false, error: "Signed-in account mismatch" });
+      }
+
+      const membershipResult = await queryD1(
+        "SELECT plan,enabled,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
+        [identity.email]
+      );
+      const membership = membershipResult[0]?.results?.[0] || {};
+      const now = Math.floor(Date.now() / 1000);
+      const maxActive = membership.plan === "MAX_30D" &&
+        Number(membership.enabled) === 1 && Number(membership.expires_at) > now;
+      if (!maxActive) {
+        return send(res, 403, { success: false, maxActive: false, error: "Active MAX membership required" });
+      }
+
+      const action = String(body.action || "list");
+      if (action === "list") {
+        const result = await queryD1(
+          "SELECT post_id,created_at FROM max_saved_posts WHERE email = ? COLLATE NOCASE ORDER BY created_at DESC",
+          [identity.email]
+        );
+        return send(res, 200, { success: true, maxActive: true, plan: "MAX_30D", saved: result[0]?.results || [] });
+      }
+
+      const postId = typeof body.postId === "string" ? body.postId.trim() : "";
+      if (!postId || postId.length > 180 || /[\\u0000-\\u001f]/.test(postId)) {
+        return send(res, 400, { success: false, error: "Valid post ID required" });
+      }
+      if (action === "save") {
+        await queryD1(
+          "INSERT OR IGNORE INTO max_saved_posts (email,post_id,created_at) VALUES (?,?,?)",
+          [identity.email, postId, now]
+        );
+        return send(res, 200, { success: true, maxActive: true, saved: true, postId });
+      }
+      if (action === "remove") {
+        await queryD1(
+          "DELETE FROM max_saved_posts WHERE email = ? COLLATE NOCASE AND post_id = ?",
+          [identity.email, postId]
+        );
+        return send(res, 200, { success: true, maxActive: true, saved: false, postId });
+      }
+      return send(res, 400, { success: false, error: "Unsupported action" });
+    } catch (error) {
+      console.error("MAX cloud saves failed", error?.message || "Unknown error");
+      return send(res, 500, { success: false, error: "Unable to sync cloud saves" });
+    }
+  }
+
   if (req.method === "POST" && path === "/location-custom-access") {
     if (!CF_ACCOUNT_ID || !CF_DATABASE_ID || !CF_API_TOKEN) {
       return send(res, 503, { success: false, error: "D1 connection is not configured" });
