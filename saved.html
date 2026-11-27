@@ -747,6 +747,10 @@
         </div>
       `;
       if (folderName === 'MAX Cloud Saves') {
+        if (place.link) {
+          card.style.cursor = 'pointer';
+          card.onclick = () => { window.location.href = place.link; };
+        }
         const remove = document.createElement('button');
         remove.className = 'cloud-remove-btn';
         remove.type = 'button';
