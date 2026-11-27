@@ -1256,12 +1256,16 @@
     async function refresh(){
       const current = ++requestId;
       const user = currentUser();
-      const email = String(user && user.email || "").trim().toLowerCase();
-      if (!email) { paint(false); return; }
+      let credential = "";
+      try {
+        const auth = window.parent && window.parent.Sho1re1Auth;
+        credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || "";
+      } catch (_) {}
+      if (!user || !credential) { paint(false); return; }
       try {
         const response = await fetch(API, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email }), cache: "no-store"
+          body: JSON.stringify({ credential: credential }), cache: "no-store"
         });
         if (!response.ok) throw new Error("PRO status check failed");
         const result = await response.json();
