@@ -89,24 +89,40 @@
 
   async function loadRoads(point) {
     const q = '[out:json][timeout:25];(way(around:' + ROAD_RADIUS + ',' + point.lat + ',' + point.lng + ')["highway"]["area"!="yes"]["highway"!~"footway|path|steps|pedestrian|cycleway|bridleway|corridor|construction|proposed"];);out geom;';
-    const response = await fetch(OVERPASS, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: 'data=' + encodeURIComponent(q),
-      signal: AbortSignal.timeout ? AbortSignal.timeout(28000) : undefined
-    });
-    if (!response.ok) throw new Error('Road map service unavailable (' + response.status + ')');
-    const data = await response.json();
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter'
+    ];
+    let data = null, lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 18000);
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(q),
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timer);
+        if (!response.ok) throw new Error('Road service returned ' + response.status);
+        const candidate = await response.json();
+        if (!candidate || !Array.isArray(candidate.elements)) throw new Error('Invalid road data');
+        data = candidate;
+        break;
+      } catch (error) { lastError = error; }
+    }
+    if (!data) throw new Error('All road data servers failed: ' + (lastError && lastError.message || 'network error'));
     graph = new Map(); edges = [];
     roadsLayer.clearLayers();
     (data.elements || []).forEach(way => {
       const pts = (way.geometry || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon))
         .map(p => L.latLng(p.lat,p.lon));
       if (pts.length < 2) return;
-      L.polyline(pts, { color:'#f7f8fb', weight:3, opacity:.68, lineCap:'round', lineJoin:'round', interactive:false }).addTo(roadsLayer);
       for (let i=1;i<pts.length;i++) addEdge(pts[i-1],pts[i]);
     });
-    roadsLayer.addTo(mapRef);
     if (!edges.length) throw new Error('No mapped roads found nearby');
   }
 
@@ -249,7 +265,9 @@
     navigator.geolocation.getCurrentPosition(async pos=>{
       gps=L.latLng(pos.coords.latitude,pos.coords.longitude);
       try{
-        setStatus('LOADING REAL ROAD NETWORK…');
+        setStatus('LOADING REAL ROAD MAP…');
+        if (window.Sho1re1RoadMap) await window.Sho1re1RoadMap.enable(mapRef);
+        setStatus('CONNECTING TO ROAD ROUTES…');
         await loadRoads(gps);
         const snap=nearestRoad(gps);
         if(!snap||!snap.edge)throw new Error('Could not find a nearby road');
@@ -275,6 +293,7 @@
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;}
     if(car){mapRef.removeLayer(car);car=null;}
     roadsLayer.clearLayers();mapRef.removeLayer(roadsLayer);
+    if (window.Sho1re1RoadMap) window.Sho1re1RoadMap.disable(mapRef);
     restoreRealMarker();document.body.classList.remove('sho1re1-driving');
     if(ui)ui.hidden=true;
     document.body.classList.remove('sho-map-only');
