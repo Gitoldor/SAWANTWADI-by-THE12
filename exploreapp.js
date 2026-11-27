@@ -1223,56 +1223,23 @@
      signed-in profile from the same-origin parent.
   ========================================= */
 
-  (function showPaidStudioTab(){
+(function showPaidStudioTab(){
     const tab = document.getElementById("sho1re1StudioTab");
     if (!tab) return;
-
-
-    function currentUser(){
-      try {
-        const auth = window.parent && window.parent.Sho1re1Auth;
-        if (auth && typeof auth.getUser === "function") {
-          const user = auth.getUser();
-          if (user) return user;
-        }
-      } catch (_) {}
-
-      try {
-        const raw = window.parent.localStorage.getItem("sho1re1_google_profile_v1");
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
-    }
-
-    const API = "https://sawantwadi-read-api.onrender.com/pro-status";
-    let requestId = 0;
 
     function paint(paid){
       tab.style.display = paid ? "flex" : "none";
       tab.setAttribute("aria-hidden", paid ? "false" : "true");
     }
 
-    async function refresh(){
-      const current = ++requestId;
-      const user = currentUser();
-      let credential = "";
-      try {
-        const auth = window.parent && window.parent.Sho1re1Auth;
-        credential = auth && ((auth.getSessionToken && auth.getSessionToken()) || (auth.getCredential && auth.getCredential())) || "";
-      } catch (_) {}
-      if (!user || !credential) { paint(false); return; }
-      try {
-        const response = await fetch(API, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: String(user.email || '').trim().toLowerCase(), credential: credential }), cache: "no-store"
-        });
-        if (!response.ok) throw new Error("PRO status check failed");
-        const result = await response.json();
-        if (current === requestId) paint(result.success === true && result.active === true);
-      } catch (_) { if (current === requestId) paint(false); }
+    function refresh(){
+      const pro = window.parent && window.parent.Sho1re1Pro;
+      if (!pro) { paint(false); return; }
+      pro.check().then(paint);
     }
 
+    const pro = window.parent && window.parent.Sho1re1Pro;
+    if (pro) pro.onChange(paint);
     refresh();
     try {
       window.parent.addEventListener("sho1re1:authchange", refresh);
