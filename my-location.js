@@ -79,7 +79,11 @@
       userLocation
     );
 
-    const shouldShow = distance > THRESHOLD;
+    const exploringSelectedPoint = !!(
+      window.Sho1re1NearbySort &&
+      window.Sho1re1NearbySort.getOriginMode() === 'manual'
+    );
+    const shouldShow = distance > THRESHOLD || exploringSelectedPoint;
 
     button.style.opacity = shouldShow ? '1' : '0';
     button.style.visibility = shouldShow ? 'visible' : 'hidden';
@@ -198,6 +202,10 @@
   }
 
   button.addEventListener('click', recenter);
+
+  // Keep Recenter visible while a temporary map point is selected, even
+  // when that point happens to be within 40m of the real GPS fix.
+  window.addEventListener('sho1re1:originchange', updateButton);
 
   // Detect map movement
   mapInstance.on('move', updateButton);
