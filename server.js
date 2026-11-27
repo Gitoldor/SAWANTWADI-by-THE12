@@ -19,19 +19,7 @@ function send(res, status, body) {
 }
 
 async function verifyAccessCredential(credential) {
-  if (typeof credential !== "string" || credential.length > 12000) return null;
-  const now = Math.floor(Date.now() / 1000);
-  if (credential.startsWith("s1_")) {
-    if (credential.length < 30 || credential.length > 200) return null;
-    const tokenHash = crypto.createHash("sha256").update(credential).digest("hex");
-    const result = await queryD1(
-      "SELECT email,expires_at FROM sho1re1_auth_sessions WHERE token_hash=? AND expires_at>? LIMIT 1",
-      [tokenHash, now]
-    );
-    const rows = result[0]?.results || [];
-    return rows[0] ? { email: String(rows[0].email || "").trim().toLowerCase() } : null;
-  }
-  if (credential.length < 100) return null;
+  if (typeof credential !== "string" || credential.length < 100 || credential.length > 12000) return null;
   const response = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
   if (!response.ok) return null;
   const identity = await response.json();
@@ -94,18 +82,17 @@ const server = http.createServer(async (req, res) => {
       }
 
       const result = await queryD1(
-        "SELECT enabled,personal_plan_id,personal_expires_at,business_plan_id,business_expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
+        "SELECT enabled,plan,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
       );
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      const legacyActive = Number(row.enabled) === 1 && !row.personal_plan_id && !row.business_plan_id &&
-        row.personal_expires_at == null && row.business_expires_at == null;
-      const personalActive = !!row.personal_plan_id && Number(row.personal_expires_at) > now;
-      const businessActive = !!row.business_plan_id && Number(row.business_expires_at) > now;
-      const allowed = legacyActive || personalActive || businessActive;
-      return send(res, 200, { success: true, allowed, personalActive, businessActive });
+      const legacyActive = Number(row.enabled) === 1 && (!row.plan || row.plan === "PRO_LEGACY") && row.expires_at == null;
+      const active = Number(row.enabled) === 1 && (legacyActive || Number(row.expires_at) > now);
+      const businessActive = active && String(row.plan || "").startsWith("BUSINESS_");
+      const personalActive = active && !businessActive;
+      return send(res, 200, { success: true, allowed: active, personalActive, businessActive });
     } catch (error) {
       console.error("Location customization access check failed", error?.message || "Unknown error");
       return send(res, 500, { success: false, allowed: false, error: "Unable to verify access" });
@@ -127,21 +114,17 @@ const server = http.createServer(async (req, res) => {
       const identity = await verifyAccessCredential(body.credential);
       if (!identity) return send(res, 401, { success: false, active: false, error: "Valid sign-in required" });
       const result = await queryD1(
-        "SELECT enabled,personal_plan_id,personal_expires_at,business_plan_id,business_expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
+        "SELECT enabled,plan,expires_at FROM pro WHERE email = ? COLLATE NOCASE LIMIT 1",
         [identity.email]
       );
       const rows = result[0]?.results || [];
       const row = rows[0] || {};
       const now = Math.floor(Date.now() / 1000);
-      const legacyActive = Number(row.enabled) === 1 && !row.personal_plan_id && !row.business_plan_id &&
-        row.personal_expires_at == null && row.business_expires_at == null;
-      const personalActive = !!row.personal_plan_id && Number(row.personal_expires_at) > now;
-      const businessActive = !!row.business_plan_id && Number(row.business_expires_at) > now;
-      const active = legacyActive || personalActive || businessActive;
-      const planId = personalActive
-        ? (row.personal_plan_id === "MAX_30D" ? "MAX_30D" : "PRO_7D")
-        : businessActive ? row.business_plan_id : (legacyActive ? "PRO_LEGACY" : null);
-      return send(res, 200, { success: true, active, planId, personalActive, businessActive });
+      const legacyActive = Number(row.enabled) === 1 && (!row.plan || row.plan === "PRO_LEGACY") && row.expires_at == null;
+      const active = Number(row.enabled) === 1 && (legacyActive || Number(row.expires_at) > now);
+      const businessActive = active && String(row.plan || "").startsWith("BUSINESS_");
+      const personalActive = active && !businessActive;
+      return send(res, 200, { success: true, active, planId: active ? (row.plan || "PRO_LEGACY") : null, personalActive, businessActive });
     } catch (error) {
       console.error("PRO badge status check failed", error?.message || "Unknown error");
       return send(res, 500, { success: false, active: false, error: "Unable to check PRO status" });
