@@ -89,7 +89,7 @@
   }
 
   function registerWorker() {
-    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+    navigator.serviceWorker.register("./service-worker.js?v=5", { scope: "./", updateViaCache: "none" })
       .then(function (registration) {
         return navigator.serviceWorker.ready.then(function () {
           checkOfflineStatus(registration);
