@@ -96,6 +96,15 @@
       position.coords.longitude
     );
 
+    // Keep nearby sorting synced with the real GPS fix without changing a
+    // manually selected map-search point.
+    if (window.Sho1re1NearbySort) {
+      window.Sho1re1NearbySort.updateGps(
+        position.coords.latitude,
+        position.coords.longitude
+      );
+    }
+
     const accuracy = position.coords.accuracy || 30;
 
     if (!userMarker) {
@@ -146,6 +155,9 @@
       position => {
         setUserLocation(position);
 
+        // Recenter always exits tap-to-explore mode and restores GPS sorting.
+        if (window.Sho1re1NearbySort) window.Sho1re1NearbySort.resetToGps();
+
         mapInstance.flyTo(
           userLocation,
           Math.max(mapInstance.getZoom(), 16),
@@ -165,6 +177,7 @@
         console.warn('Location error:', error.message);
 
         if (userLocation) {
+          if (window.Sho1re1NearbySort) window.Sho1re1NearbySort.resetToGps();
           mapInstance.flyTo(
             userLocation,
             Math.max(mapInstance.getZoom(), 16),
