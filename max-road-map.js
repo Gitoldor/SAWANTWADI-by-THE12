@@ -6,7 +6,7 @@
   const STYLE = "https://tiles.openfreemap.org/styles/liberty";
   const CSS = "https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css";
   const MAPLIBRE = "https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js";
-  const BRIDGE = "https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js";
+  const BRIDGE = "https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js";
   let layer = null, loading = null, enabled = false;
 
   function loadCss() {
