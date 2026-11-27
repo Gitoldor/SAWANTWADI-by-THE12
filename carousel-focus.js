@@ -1,6 +1,6 @@
 /* Sho1re1 Carousel Focus
- * Clicking any card moves it into the center/main position.
- * Works in both directions and leaves map/card rendering code untouched.
+ * Keeps clicked cards centered and automatically centres the nearest post
+ * whenever the active GPS/tap-to-explore origin changes.
  */
 (function () {
   'use strict';
@@ -8,22 +8,81 @@
   if (window.__sho1re1CarouselFocusInstalled) return;
   window.__sho1re1CarouselFocusInstalled = true;
 
+  var teleportTimer = null;
+
+  function getCarousel() {
+    return document.querySelector('.carousel');
+  }
+
+  function centerCard(card, behavior) {
+    var carousel = getCarousel();
+    if (!carousel || !card || !carousel.contains(card)) return;
+
+    var targetLeft = card.offsetLeft + (card.offsetWidth / 2) -
+      (carousel.clientWidth / 2);
+
+    carousel.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: behavior || 'smooth'
+    });
+  }
+
+  function focusNearestCard() {
+    var carousel = getCarousel();
+    if (!carousel || typeof activePlaces === 'undefined' ||
+        !Array.isArray(activePlaces) || !activePlaces.length ||
+        typeof cardRefs === 'undefined' || !Array.isArray(cardRefs) ||
+        !cardRefs.length) return;
+
+    // nearby-sort.js sorts activePlaces by the current GPS or tapped origin
+    // before dispatching this event, so the first card is the closest valid post.
+    var nearestPlace = activePlaces[0];
+    var index = activePlaces.indexOf(nearestPlace);
+    var card = cardRefs[index];
+    if (!card) return;
+
+    if (typeof window.setActive === 'function') {
+      window.setActive(index);
+    }
+
+    var targetLeft = Math.max(0, card.offsetLeft + card.offsetWidth / 2 -
+      carousel.clientWidth / 2);
+    var distance = Math.abs(targetLeft - carousel.scrollLeft);
+    var smoothLimit = carousel.clientWidth * 1.35;
+
+    if (teleportTimer) {
+      clearTimeout(teleportTimer);
+      teleportTimer = null;
+    }
+    carousel.classList.remove('sho1re1-nearest-teleport');
+    card.classList.remove('sho1re1-nearest-pop');
+
+    if (distance <= smoothLimit) {
+      // Nearby card: glide naturally from the user's current scroll position.
+      centerCard(card, 'smooth');
+      return;
+    }
+
+    // Distant card: avoid a long, slow traverse across every card.
+    // Jump the scroll position, then use a short subtle highlight animation.
+    carousel.style.scrollBehavior = 'auto';
+    carousel.scrollTo({ left: targetLeft, behavior: 'auto' });
+    requestAnimationFrame(function () {
+      carousel.style.removeProperty('scroll-behavior');
+      card.classList.add('sho1re1-nearest-pop');
+      carousel.classList.add('sho1re1-nearest-teleport');
+      teleportTimer = setTimeout(function () {
+        card.classList.remove('sho1re1-nearest-pop');
+        carousel.classList.remove('sho1re1-nearest-teleport');
+        teleportTimer = null;
+      }, 360);
+    });
+  }
+
   function install() {
-    var carousel = document.querySelector('.carousel');
+    var carousel = getCarousel();
     if (!carousel || carousel.__sho1re1FocusBound) return;
     carousel.__sho1re1FocusBound = true;
-
-    function centerCard(card, behavior) {
-      if (!card || !carousel.contains(card)) return;
-
-      var targetLeft = card.offsetLeft + (card.offsetWidth / 2) -
-        (carousel.clientWidth / 2);
-
-      carousel.scrollTo({
-        left: Math.max(0, targetLeft),
-        behavior: behavior || 'smooth'
-      });
-    }
 
     // Delegation also works for cards recreated after filtering/searching.
     carousel.addEventListener('click', function (event) {
@@ -37,7 +96,7 @@
       });
     });
 
-    // Keep the clicked card centered after the carousel's native snap settles.
+    // Keep the clicked card highlighted after the carousel's native snap settles.
     carousel.addEventListener('scrollend', function () {
       var cards = carousel.querySelectorAll('.card');
       if (!cards.length) return;
@@ -55,12 +114,37 @@
         }
       });
 
-      if (nearest && typeof window.setActive === 'function' &&
-          Array.isArray(window.cardRefs)) {
-        var index = window.cardRefs.indexOf(nearest);
+      if (nearest && typeof cardRefs !== 'undefined' &&
+          Array.isArray(cardRefs) && typeof window.setActive === 'function') {
+        var index = cardRefs.indexOf(nearest);
         if (index >= 0) window.setActive(index);
       }
     });
+  }
+
+  // GPS and map-tap origins both dispatch this after the nearby list is sorted
+  // and the carousel has been rebuilt.
+  window.addEventListener('sho1re1:originchange', function () {
+    requestAnimationFrame(focusNearestCard);
+  });
+
+  if (!document.getElementById('sho1re1-nearest-card-style')) {
+    var style = document.createElement('style');
+    style.id = 'sho1re1-nearest-card-style';
+    style.textContent = `
+      @keyframes sho1re1NearestCardPop {
+        0% { opacity: .72; transform: scale(.965); }
+        65% { opacity: 1; transform: scale(1.025); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      .card.sho1re1-nearest-pop {
+        animation: sho1re1NearestCardPop 320ms cubic-bezier(.2,.75,.25,1) both;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .card.sho1re1-nearest-pop { animation: none !important; }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   if (document.readyState === 'loading') {
@@ -69,8 +153,7 @@
     install();
   }
 
-  // The carousel element is already in the page, but observe in case it is
-  // replaced by another page-level render.
+  // Rebind if a page-level render replaces the carousel element.
   var observer = new MutationObserver(install);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
