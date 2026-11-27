@@ -2435,11 +2435,9 @@ function renderMapAndCarousel() {
 
     const marker = L.marker([place.lat, place.lng], { icon: customIcon, place: place });
     
-    if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.decoratePlaceMarker(marker, place);
 
     marker.on('click', (e) => {
       if (L.DomEvent) L.DomEvent.stopPropagation(e);
-      if (window.Sho1re1MarkerCustomizer) window.Sho1re1MarkerCustomizer.open('places');
       setActive(idx);
       if (place.contentKind) {
         // The marker tap is reserved for Marker Studio; media still opens from its card.
