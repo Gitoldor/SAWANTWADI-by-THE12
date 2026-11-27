@@ -95,6 +95,9 @@
     credentialWaiters.clear();
     window.dispatchEvent(new CustomEvent("sho1re1:credential", { detail: { email: data.email || "" } }));
     const previous = readUser();
+    if (previous && previous.sub !== data.sub) {
+      try { localStorage.removeItem(APP_SESSION_KEY); } catch (_) {}
+    }
     const returningProfile = previous && previous.sub === data.sub && previous.displayName;
     saveUser({
       sub: data.sub,
