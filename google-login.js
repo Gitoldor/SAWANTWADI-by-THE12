@@ -283,7 +283,8 @@
       if (!credential && user) window.Sho1re1Auth.requestCredential();
       return credential;
     },
-    getSessionToken: () => readAppSession(),\n    setSessionToken: (token, exp) => saveAppSession(token, exp),
+    getSessionToken: () => readAppSession(),
+    setSessionToken: (token, exp) => saveAppSession(token, exp),
     requestCredential(callback) {
       if (credential) {
         const data = decodeCredential(credential);
