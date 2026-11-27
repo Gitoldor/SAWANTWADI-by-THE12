@@ -132,8 +132,14 @@
       function setProfile(profile) {
         $("profileCard").classList.remove("hidden");
         const name = String(profile.name || "Sho1re1 user").trim().slice(0, 48);
-        const isMax = profile.planId === "MAX_30D";
-        const tier = isMax ? "MAX" : "PRO";
+        const tierNames = {
+          PRO_7D: "PRO",
+          MAX_30D: "MAX",
+          BUSINESS_PRO: "BUSINESS PRO",
+          BUSINESS_MAX: "BUSINESS MAX",
+          PRO_LEGACY: "PRO"
+        };
+        const tier = tierNames[profile.planId] || "PRO";
         $("tierTitle").textContent = tier;
         $("claimTier").textContent = tier + " Sawantwadi user";
         $("pageEyebrow").textContent = "Share your " + tier + " page";
