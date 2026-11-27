@@ -39,9 +39,9 @@
     if (loaded || loading) return;
     loading = true;
     try {
-      await addScript('./max-road-map-openfreemap.js?v=20261128c');
+      await addScript('./max-road-map-openfreemap.js?v=20261128d');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128c');
+      await addScript('./max-drive-osrm.js?v=20261128d');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
