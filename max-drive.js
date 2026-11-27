@@ -41,6 +41,7 @@
     driveButton.id = 'sho1re1-drive-button';
     driveButton.type = 'button';
     driveButton.textContent = 'START DRIVE';
+    driveButton.hidden = true;
     document.body.appendChild(driveButton);
     ui = document.createElement('div');
     ui.id = 'sho1re1-drive-ui';
@@ -60,6 +61,19 @@
   }
 
   function setStatus(value) { if (status) status.textContent = value; }
+
+  // MAX-only discovery: non-MAX users must not see or discover Drive at all.
+  function hasMaxAccess() {
+    const access = window.Sho1re1Pro;
+    return !!(access && access.getCached() === true && /MAX/i.test(String(access.getPlanId() || '')));
+  }
+  function syncDriveVisibility() {
+    if (!driveButton) return;
+    const visible = document.body.classList.contains('sho-map-only') && !active && hasMaxAccess();
+    driveButton.hidden = !visible;
+    driveButton.style.display = visible ? 'block' : 'none';
+    driveButton.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
   function nodeKey(p) { return p.lat.toFixed(6) + ',' + p.lng.toFixed(6); }
   function addEdge(a, b) {
     const ak = nodeKey(a), bk = nodeKey(b);
@@ -224,10 +238,10 @@
     if(active||loading)return;
     loading=true;buildUI();ui.hidden=false;setStatus('CHECKING MAX ACCESS…');
     const access=window.Sho1re1Pro;
-    if(!access||access.getCached()!==true||!/MAX/i.test(String(access.getPlanId()||''))){
+    if(!hasMaxAccess()){
       if(access)await access.check();
-      if(!access||access.getCached()!==true||!/MAX/i.test(String(access.getPlanId()||''))){
-        loading=false;ui.hidden=true;alert('Drive is a MAX-only feature.');return;
+      if(!hasMaxAccess()){
+        loading=false;ui.hidden=true;syncDriveVisibility();return;
       }
     }
     if(!navigator.geolocation){loading=false;setStatus('GPS NOT AVAILABLE');return;}
@@ -264,17 +278,20 @@
     restoreRealMarker();document.body.classList.remove('sho1re1-driving');
     if(ui)ui.hidden=true;
     document.body.classList.remove('sho-map-only');
+    syncDriveVisibility();
   }
 
   buildUI();
   // Drive control is offered only while the card carousel has been swiped away.
-  const observer=new MutationObserver(()=>{
-    if(!driveButton)return;
-    const show=document.body.classList.contains('sho-map-only')&&!active;
-    driveButton.style.display=show?'block':'none';
-  });
+  const observer=new MutationObserver(syncDriveVisibility);
   observer.observe(document.body,{attributes:true,attributeFilter:['class']});
+  syncDriveVisibility();
+  if (window.Sho1re1Pro) {
+    window.Sho1re1Pro.onChange(syncDriveVisibility);
+    window.Sho1re1Pro.check().then(syncDriveVisibility);
+  }
+  window.addEventListener('sho1re1:prochange', syncDriveVisibility);
   window.addEventListener('pagehide',stop);
   window.Sho1re1Drive={start,stop,isActive:()=>active};
-  window.addEventListener('sho1re1:prochange',()=>{if(active){const p=window.Sho1re1Pro;if(!p||p.getCached()!==true||!/MAX/i.test(String(p.getPlanId()||'')))stop();}});
+  window.addEventListener('sho1re1:prochange',()=>{if(active&&!hasMaxAccess())stop();syncDriveVisibility();});
 })();
