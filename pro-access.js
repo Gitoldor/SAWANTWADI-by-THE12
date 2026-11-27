@@ -49,23 +49,38 @@
     const user = getUser(ctx);
     if (!user) return Promise.resolve(publish(false));
 
+    let sessionToken = "";
+    try { sessionToken = ctx.auth && ctx.auth.getSessionToken ? ctx.auth.getSessionToken() : ""; } catch (_) {}
     let credential = "";
-    try {
-      credential = ctx.auth && ctx.auth.getCredential ? ctx.auth.getCredential() : "";
-    } catch (_) {}
-    if (!credential) return Promise.resolve(publish(false));
+    if (!sessionToken) {
+      try { credential = ctx.auth && ctx.auth.getCredential ? ctx.auth.getCredential() : ""; } catch (_) {}
+      if (!credential) return Promise.resolve(publish(false));
+    }
 
     const requestedEmail = String(user.email || "").trim().toLowerCase();
     const requestedIdentity = String(user.sub || requestedEmail);
 
-    pending = fetch(API, {
+    const sessionPromise = sessionToken ? Promise.resolve(sessionToken) : fetch(API.replace("/pro-status", "/auth-session"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: requestedEmail,
-        credential: credential
-      }),
+      body: JSON.stringify({ credential: credential }),
       cache: "no-store"
+    }).then(function (response) {
+      if (!response.ok) throw new Error("Could not create persistent sign-in");
+      return response.json();
+    }).then(function (result) {
+      if (!result || result.success !== true || !result.sessionToken) throw new Error("Invalid persistent sign-in response");
+      if (ctx.auth && ctx.auth.setSessionToken) ctx.auth.setSessionToken(result.sessionToken, result.expiresAt);
+      return result.sessionToken;
+    });
+
+    pending = sessionPromise.then(function (token) {
+      return fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: requestedEmail, sessionToken: token }),
+        cache: "no-store"
+      });
     }).then(function (response) {
       if (!response.ok) throw new Error("PRO membership check failed");
       return response.json();
