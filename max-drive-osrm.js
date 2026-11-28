@@ -33,6 +33,11 @@
     #sho1re1-drive-ui[hidden]{display:none}
     .sho1re1-junction-arrow{width:31px;height:31px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#087de0;color:#fff;font:900 19px system-ui;box-shadow:0 2px 12px #0009;cursor:pointer}
     .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.12)}
+    #sho1re1-turn-choices{position:absolute;left:12px;bottom:calc(22px + env(safe-area-inset-bottom));width:min(190px,calc(100vw - 178px));display:none;flex-direction:column;gap:7px;pointer-events:auto;z-index:4}
+    #sho1re1-turn-choices.show{display:flex}
+    .sho1re1-turn-choice{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:8px 11px;border:1px solid #ffffff55;border-radius:13px;background:rgba(8,19,31,.94);color:#fff;text-align:left;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0008;touch-action:manipulation}
+    .sho1re1-turn-choice:active{background:#087de0;transform:scale(.98)}
+    .sho1re1-turn-choice b{font-size:19px;line-height:1;color:#49b5ff;width:22px;text-align:center}
     @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
     body.sho1re1-driving .leaflet-control-container{display:none!important}
   `;
@@ -47,8 +52,10 @@
     if(ui)return;
     driveButton=document.createElement('button');driveButton.id='sho1re1-drive-button';driveButton.type='button';driveButton.textContent='START DRIVE';driveButton.hidden=true;document.body.appendChild(driveButton);
     ui=document.createElement('div');ui.id='sho1re1-drive-ui';ui.hidden=true;
-    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-speed-gears"><button class="sho1re1-gear" type="button" data-gear="up" aria-label="Increase speed">＋</button><button class="sho1re1-gear" type="button" data-gear="down" aria-label="Decrease speed">−</button></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
+    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-turn-choices" aria-live="polite"></div><div id="sho1re1-speed-gears"><button class="sho1re1-gear" type="button" data-gear="up" aria-label="Increase speed">＋</button><button class="sho1re1-gear" type="button" data-gear="down" aria-label="Decrease speed">−</button></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
     document.body.appendChild(ui);status=ui.querySelector('#sho1re1-drive-status');joystickBase=ui.querySelector('#sho1re1-joy-base');joystickKnob=ui.querySelector('#sho1re1-joy-knob');
+    const turnChoices=ui.querySelector('#sho1re1-turn-choices');
+    turnChoices.addEventListener('click',e=>{const b=e.target.closest('[data-turn-index]');if(!b)return;const item=turnChoices._branches&&turnChoices._branches[Number(b.dataset.turnIndex)];if(item)chooseTurn(item.bearing,item.point,item)});
     driveButton.addEventListener('click',start);
     joystickBase.addEventListener('pointerdown',joyStart);joystickBase.addEventListener('pointermove',joyMove);joystickBase.addEventListener('pointerup',joyEnd);joystickBase.addEventListener('pointercancel',joyEnd);joystickBase.addEventListener('lostpointercapture',joyEnd);
     ui.querySelector('#sho1re1-speed-gears').addEventListener('click',e=>{const b=e.target.closest('[data-gear]');if(!b)return;SPEED_MPS=Math.max(1,SPEED_MPS+(b.dataset.gear==='up'?2:-2));flashSpeed();});
@@ -121,6 +128,7 @@
   function clearTurnCard(){
     junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
     junctionMarkers=[];branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
+    const choices=ui&&ui.querySelector('#sho1re1-turn-choices');if(choices){choices.classList.remove('show');choices.innerHTML='';choices._branches=[];}
     branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});
     branchLines=[];
   }
@@ -152,8 +160,23 @@
     }return {point:routePoints[routePoints.length-1],angle:0};
   }
   let graphRefreshPending=false;
+  function renderTurnChoices(found){
+    const panel=ui&&ui.querySelector('#sho1re1-turn-choices');if(!panel)return;
+    panel._branches=found.slice();
+    panel.innerHTML='';
+    found.forEach((item,index)=>{
+      const delta=((item.bearing-currentHeading+540)%360)-180;
+      const label=Math.abs(delta)<28?'STRAIGHT':delta>0?'RIGHT TURN':'LEFT TURN';
+      const glyph=Math.abs(delta)<28?'↑':delta>0?'→':'←';
+      const button=document.createElement('button');button.type='button';button.className='sho1re1-turn-choice';button.dataset.turnIndex=String(index);
+      button.innerHTML='<b>'+glyph+'</b><span>'+label+'<small style="display:block;opacity:.65;font-size:9px;margin-top:2px">'+Math.round(item.distance)+' m · SELECT ROAD</small></span>';
+      panel.appendChild(button);
+    });
+    panel.classList.toggle('show',found.length>0);
+  }
   async function fetchBranchHighlights(found){
     if(!found.length)return;
+    renderTurnChoices(found);
     const signature=found.map(x=>x.key).sort().join('|');
     if(signature===branchFetchKey||branchFetchBusy)return;
     branchFetchBusy=true;branchFetchKey=signature;
@@ -182,7 +205,8 @@
   function refreshJunctionChoices(){
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
     const graph=window.Sho1re1RoadGraph;
-    const found=graph.getBranches(currentPoint,ROUTE_LOOKAHEAD_METERS,currentHeading);
+    const found=graph.getBranches(currentPoint,680,currentHeading);
+    renderTurnChoices(found);
     if(!graphRefreshPending){
       graphRefreshPending=true;
       graph.refresh(currentPoint).then(()=>{graphRefreshPending=false;if(active)refreshJunctionChoices()})
@@ -205,9 +229,12 @@
         marker.on('click',()=>chooseTurn(item.bearing,item.point,item));
         junctionMarkers.push({key:item.key,marker});
       });
-    }else if(!branchFetchBusy&&branchFetchKey){
+    }else {
+      renderTurnChoices([]);
+      if(!branchFetchBusy&&branchFetchKey){
       branchFetchVersion++;branchFetchKey='';
       branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
+      }
     }
   }
   function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
