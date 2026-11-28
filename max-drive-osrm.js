@@ -216,8 +216,12 @@
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
-    // Keep the map camera fixed; move and rotate only the vehicle marker.
-    if(currentPoint) setCar(currentPoint,currentHeading);
+    // Follow the vehicle continuously: pan the map beneath it so the car
+    // remains at the centre of the screen throughout simulated movement.
+    if(currentPoint){
+      mapRef.panTo(currentPoint,{animate:false});
+      setCar(currentPoint,currentHeading);
+    }
     raf=requestAnimationFrame(frame);
   }
   function hideGpsMarker(){
