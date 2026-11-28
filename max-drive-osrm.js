@@ -11,7 +11,7 @@
   const ROUTE_LOOKAHEAD_METERS = 1800;
   const ROUTER = 'https://router.project-osrm.org';
   let active=false, loading=false, gpsWatch=null, car=null, routeLine=null, raf=0;
-  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], speedFlashTimer=0, lastJunctionRefresh=0;
+  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
@@ -120,7 +120,9 @@
   }
   function clearTurnCard(){
     junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
-    junctionMarkers=[];
+    junctionMarkers=[];branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
+    branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});
+    branchLines=[];
   }
   function flashSpeed(){
     if(!car)return;
@@ -150,6 +152,33 @@
     }return {point:routePoints[routePoints.length-1],angle:0};
   }
   let graphRefreshPending=false;
+  async function fetchBranchHighlights(found){
+    if(!found.length)return;
+    const signature=found.map(x=>x.key).sort().join('|');
+    if(signature===branchFetchKey||branchFetchBusy)return;
+    branchFetchBusy=true;branchFetchKey=signature;
+    const version=++branchFetchVersion;
+    const results=await Promise.all(found.map(async item=>{
+      try{
+        const end=await snapToRoad(destination(item.point,item.bearing,420),item.bearing);
+        const heading=Math.round(item.bearing);
+        const path='/route/v1/driving/'+item.point.lng+','+item.point.lat+';'+end.lng+','+end.lat+'?overview=full&geometries=geojson&steps=false&alternatives=false&continue_straight=true&bearings='+heading+',35;'+heading+',45';
+        const data=await osrm(path),route=data.routes&&data.routes[0];
+        if(!route||!route.geometry||!route.geometry.coordinates||route.geometry.coordinates.length<2)throw Error('No road geometry');
+        return {item,coords:route.geometry.coordinates};
+      }catch(error){console.warn('MAX branch highlight unavailable:',item.key,error);return null}
+    }));
+    if(version!==branchFetchVersion||!active){branchFetchBusy=false;return}
+    branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
+    results.filter(Boolean).forEach(({item,coords})=>{
+      const line=L.polyline(coords.map(c=>[c[1],c[0]]),{color:'#078cff',weight:8,opacity:.88,lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false}).addTo(mapRef);
+      line.on('click',()=>chooseTurn(item.bearing,item.point));
+      line.bindTooltip('SELECT THIS ROAD',{sticky:true,direction:'top'});
+      branchLines.push(line);
+    });
+    branchFetchBusy=false;
+    if(branchLines.length)setStatus('CHOOSE A BLUE ROAD AT THE JUNCTION');
+  }
   function refreshJunctionChoices(){
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
     const graph=window.Sho1re1RoadGraph;
@@ -165,15 +194,21 @@
       if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker);
       return false;
     });
-    found.forEach(item=>{
-      if(junctionMarkers.some(x=>x.key===item.key))return;
-      const displayPoint=destination(item.point,item.bearing,34);
-      const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
-      const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
-      marker.bindTooltip('Choose connected road · '+Math.round(item.distance)+' m',{direction:'top'});
-      marker.on('click',()=>chooseTurn(item.bearing,item.point));
-      junctionMarkers.push({key:item.key,marker});
-    });
+    if(found.length){
+      fetchBranchHighlights(found);
+      found.forEach(item=>{
+        if(junctionMarkers.some(x=>x.key===item.key))return;
+        const displayPoint=destination(item.point,item.bearing,34);
+        const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
+        const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
+        marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
+        marker.on('click',()=>chooseTurn(item.bearing,item.point));
+        junctionMarkers.push({key:item.key,marker});
+      });
+    }else if(!branchFetchBusy&&branchFetchKey){
+      branchFetchVersion++;branchFetchKey='';
+      branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
+    }
   }
   async function chooseTurn(heading,junctionPoint){
     if(!active||routeBusy)return;
