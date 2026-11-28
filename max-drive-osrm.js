@@ -98,7 +98,7 @@
     const pane=mapRef.getPane('mapPane');if(!pane)return;
     rotationWrapper=document.createElement('div');
     rotationWrapper.className='sho1re1-map-rotation-wrapper';
-    Object.assign(rotationWrapper.style,{position:'absolute',inset:'0',width:'100%',height:'100%',transformOrigin:'50% 50%',willChange:'transform'});
+    const size=mapRef.getSize();Object.assign(rotationWrapper.style,{position:'absolute',left:'0',top:'0',width:size.x+'px',height:size.y+'px',transformOrigin:'50% 50%',willChange:'transform'});
     const children=Array.from(pane.children);
     pane.appendChild(rotationWrapper);
     children.forEach(child=>rotationWrapper.appendChild(child));
