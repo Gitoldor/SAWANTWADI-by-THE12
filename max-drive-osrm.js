@@ -1,4 +1,4 @@
-/* Sho1re1 MAX Drive — OpenFreeMap visual basemap + OSRM road-following movement.
+/* Sho1re1 MAX Drive — OpenFreeMap visual basemap + Valhalla road-following movement.
    MAX-only module. Uses the existing Leaflet map; does not alter post/place/GPS markers. */
 (() => {
   'use strict';
@@ -9,7 +9,8 @@
 
   let SPEED_MPS = 15; // live speed; gear taps adjust without a fixed upper limit
   const ROUTE_LOOKAHEAD_METERS = 1800;
-  const ROUTER = 'https://router.project-osrm.org';
+  const ROUTER = 'https://valhalla1.openstreetmap.de';
+  let lastValhallaRequestAt=0, valhallaQueue=Promise.resolve();
   let active=false, loading=false, gpsWatch=null, car=null, routeLine=null, raf=0;
   let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
@@ -104,18 +105,55 @@
     const lng2=lng+Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(lat),Math.cos(d)-Math.sin(lat)*Math.sin(lat2));
     return L.latLng(lat2*180/Math.PI,lng2*180/Math.PI);
   }
-  async function osrm(path){
-    const response=await fetch(ROUTER+path,{method:'GET',mode:'cors',cache:'no-store'});
-    if(!response.ok)throw new Error('OSRM HTTP '+response.status);
-    const data=await response.json();if(data.code!=='Ok')throw new Error(data.message||data.code||'No road route found');
+  async function valhallaPost(path,payload){
+    const run=async()=>{
+      const wait=Math.max(0,1100-(Date.now()-lastValhallaRequestAt));
+      if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
+      lastValhallaRequestAt=Date.now();
+      const response=await fetch(ROUTER+path,{
+        method:'POST',mode:'cors',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Client-Id':'sho1re1-the12.github.io'},
+        body:JSON.stringify(payload)
+      });
+      const raw=await response.text();
+      let data;try{data=JSON.parse(raw)}catch(_){throw new Error('Valhalla returned an unreadable response (HTTP '+response.status+')')}
+      if(!response.ok)throw new Error((data.error||data.message||'Valhalla HTTP '+response.status));
+      if(data.error)throw new Error(data.error);
+      return data;
+    };
+    const task=valhallaQueue.then(run,run);
+    valhallaQueue=task.catch(()=>{});
+    return task;
+  }
+  async function valhallaRoute(points,options){
+    const locations=points.map((p,index)=>{
+      const extra=options&&options[index]||{};
+      return Object.assign({lat:p.lat,lon:p.lng,type:index===0||index===points.length-1?'break':'through'},extra);
+    });
+    const data=await valhallaPost('/route',{
+      locations,costing:'auto',units:'kilometers',format:'osrm',
+      shape_format:'geojson',directions_type:'instructions',
+      alternates:points.length===2?0:0
+    });
+    if(data.code&&data.code!=='Ok')throw new Error(data.message||data.code);
+    if(!data.routes||!data.routes.length)throw new Error('Valhalla found no drivable route');
     return data;
   }
-  async function snapToRoad(p, heading){
-    const bearingParam=Number.isFinite(heading)?'&bearings='+Math.round((heading+360)%360)+',55':'';
-    const data=await osrm('/nearest/v1/driving/'+p.lng+','+p.lat+'?number=1'+bearingParam);
-    const loc=data.waypoints&&data.waypoints[0]&&data.waypoints[0].location;
-    if(!loc)throw new Error('No nearby drivable road found');
-    return L.latLng(loc[1],loc[0]);
+  async function snapToRoad(p,heading){
+    const location={lat:p.lat,lon:p.lng};
+    if(Number.isFinite(heading)){
+      location.heading=(heading+360)%360;
+      location.heading_tolerance=55;
+    }
+    const data=await valhallaPost('/locate',{locations:[location],costing:'auto',verbose:false});
+    const first=Array.isArray(data)?data[0]:null;
+    const edge=first&&first.edges&&first.edges[0];
+    if(edge&&Number.isFinite(edge.correlated_lat)&&Number.isFinite(edge.correlated_lon)){
+      return L.latLng(edge.correlated_lat,edge.correlated_lon);
+    }
+    const waypoint=data.waypoints&&data.waypoints[0]&&data.waypoints[0].location;
+    if(waypoint&&waypoint.length>=2)return L.latLng(waypoint[1],waypoint[0]);
+    throw new Error('Valhalla could not snap this point to a drivable road');
   }
   function beginMapRotation(){
     if(rotationWrapper)return;
@@ -164,7 +202,7 @@
   function setRoute(coords,steps){
     clearRoute();routePoints=coords.map(c=>L.latLng(c[1],c[0]));routeSteps=steps||[];
     for(let i=1;i<routePoints.length;i++){const d=mapRef.distance(routePoints[i-1],routePoints[i]);routeLengths.push(d);routeTotal+=d}
-    if(routePoints.length<2||routeTotal<2)throw new Error('OSRM returned an unusable road route');
+    if(routePoints.length<2||routeTotal<2)throw new Error('Valhalla returned an unusable road route');
     routeLine=L.polyline(routePoints,{color:'#27a7ff',weight:5,opacity:.78,lineCap:'round',lineJoin:'round',interactive:false}).addTo(mapRef);
   }
   function pointAt(distance){
@@ -198,7 +236,7 @@
     if(signature===branchFetchKey||branchFetchBusy)return;
     branchFetchBusy=true;branchFetchKey=signature;
     const version=++branchFetchVersion,graph=window.Sho1re1RoadGraph;
-    // Draw from the exact OSM edges already loaded; no extra OSRM preview
+    // Draw from the exact OSM edges already loaded; no extra Valhalla preview
     // requests, no nearest-road ambiguity, and no missing branch due to routing.
     const results=found.map(item=>{
       const points=graph&&graph.getBranchPath?graph.getBranchPath(item,720):[];
@@ -262,18 +300,19 @@
     try{
       const turnPoint=junctionPoint||currentPoint;
       const chosen=Math.round((heading+360)%360);
-      // Aim well down the selected arm. The junction itself is an explicit
-      // OSRM waypoint, with a bearing constraint that locks its outgoing road.
+      // Force the route through the selected junction and onto the chosen arm.
+      // Valhalla's intermediate "through" location prevents a U-turn there.
       const graph=window.Sho1re1RoadGraph;
       const preview=branch&&graph&&graph.getBranchPath?graph.getBranchPath(branch,720):[];
       const aim=preview.length>1?L.latLng(preview[preview.length-1].lat,preview[preview.length-1].lng):destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
       const endpointHeading=preview.length>1?bearing(
         L.latLng(preview[preview.length-2].lat,preview[preview.length-2].lng),aim
       ):heading;
-      const snapped=await snapToRoad(aim,endpointHeading);
-      const coords=currentPoint.lng+','+currentPoint.lat+';'+turnPoint.lng+','+turnPoint.lat+';'+snapped.lng+','+snapped.lat;
-      const hints='&bearings=;'+chosen+',18;'+Math.round((endpointHeading+360)%360)+',30';
-      const data=await osrm('/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true&alternatives=true&continue_straight=false'+hints);
+      const data=await valhallaRoute([currentPoint,turnPoint,aim],[
+        {heading:currentHeading,heading_tolerance:45},
+        {heading:chosen,heading_tolerance:18,type:'through'},
+        {heading:endpointHeading,heading_tolerance:30}
+      ]);
       // OSRM can return several valid paths. Inspect each one at the
       // selected junction and choose the route that actually exits along
       // the tapped OSM branch (rather than blindly taking routes[0]).
@@ -308,7 +347,7 @@
       setStatus('SELECTED ROAD LOCKED · KEEP DRIVING');
     }catch(err){
       setStatus('COULD NOT LOCK THAT ROAD · TRY THE BLUE LINE');
-      console.warn('MAX turn selection:',err);
+      console.warn('MAX Valhalla turn selection:',err);
     }finally{routeBusy=false}
   }
   async function requestRoute(force){
@@ -319,13 +358,15 @@
     if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<24&&routeDistance<routeTotal-45)return;
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
-      const from=currentPoint,aim=destination(from,heading,ROUTE_LOOKAHEAD_METERS),snapped=await snapToRoad(aim,heading);
-      const bearingHint=Math.round((heading+360)%360);
-      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true&bearings='+bearingHint+',45;'+bearingHint+',45');
+      const from=currentPoint,aim=destination(from,heading,ROUTE_LOOKAHEAD_METERS);
+      const data=await valhallaRoute([from,aim],[
+        {heading:currentHeading,heading_tolerance:45},
+        {heading:heading,heading_tolerance:45}
+      ]);
       const route=data.routes&&data.routes[0],coords=route&&route.geometry&&route.geometry.coordinates;
       if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
       setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);refreshJunctionChoices();setStatus('ROAD NETWORK · '+Math.round(route.distance)+' M AHEAD');
-    }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
+    }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX Valhalla route:',err)}
     finally{routeBusy=false}
   }
   function frame(now){
@@ -376,7 +417,7 @@
     navigator.geolocation.getCurrentPosition(async pos=>{
       try{
         currentPoint=L.latLng(pos.coords.latitude,pos.coords.longitude);
-        setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
+        setStatus('SNAPPING TO A REAL ROAD WITH VALHALLA…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
         if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
         lockMapInteractions();
