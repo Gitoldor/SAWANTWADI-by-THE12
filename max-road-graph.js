@@ -45,17 +45,18 @@
   pending=(async()=>{let data,error;for(const url of ENDPOINTS){try{data=await query(snapshot,url);break}catch(e){error=e}}if(!data)throw error||Error('Road graph unavailable');build(data);lastCenter=snapshot;lastFetchAt=Date.now();return true})().finally(()=>{pending=null});
   return pending;
  }
- function getBranches(center,maxDistance=1800){
+ function getBranches(center,maxDistance=1800,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
   const out=[];
   const angular=(a,b)=>Math.abs(((a-b+540)%360)-180);
   for(const [id,node] of nodeEdges){
    const d=distance(center,node.point);if(d<22||d>maxDistance)continue;
-   const approach=bearing(center,node.point),back=(approach+180)%360;
+   const approach=Number.isFinite(travelHeading)?travelHeading:bearing(center,node.point);
+   const back=(approach+180)%360;
    const arms=[];
    for(const edge of node.edges){
-    if(angular(edge.bearing,back)<28)continue;
-    if(arms.some(a=>angular(a.bearing,edge.bearing)<9))continue;
+    if(angular(edge.bearing,back)<42)continue;
+    if(arms.some(a=>angular(a.bearing,edge.bearing)<12))continue;
     arms.push(edge);
    }
    if(arms.length<2)continue;
