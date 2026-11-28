@@ -136,7 +136,7 @@
         if(distance>18&&distance<230){
           const intersection=(step.intersections||[]).find(x=>Array.isArray(x.bearings)&&Array.isArray(x.location)&&mapRef.distance(p,L.latLng(x.location[1],x.location[0]))<35);
           if(!intersection)continue;
-          const incoming=Number.isFinite(intersection.in)?intersection.in:currentHeading;
+          const incoming=Number.isInteger(intersection.in)&&intersection.bearings[intersection.in]!==undefined?intersection.bearings[intersection.in]:currentHeading;
           const options=[];
           (intersection.bearings||[]).forEach((b,i)=>{
             if(!(intersection.entry||[])[i])return;
