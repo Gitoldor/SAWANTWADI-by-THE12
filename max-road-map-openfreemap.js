@@ -54,9 +54,18 @@
     })().finally(() => { loading = null; });
     return loading;
   }
+  function setCamera(bearing, pitch) {
+    if (!layer || !layer.getMaplibreMap) return false;
+    const gl = layer.getMaplibreMap();
+    if (!gl) return false;
+    gl.setBearing(((Number(bearing) % 360) + 360) % 360);
+    gl.setPitch(Math.max(0, Math.min(60, Number(pitch) || 0)));
+    return true;
+  }
+  function resetCamera() { return setCamera(0, 0); }
   function disable(map) {
     enabled = false;
     if (map && layer && map.hasLayer(layer)) map.removeLayer(layer);
   }
-  root.Sho1re1RoadMap = { enable, disable, style: STYLE };
+  root.Sho1re1RoadMap = { enable, disable, setCamera, resetCamera, style: STYLE };
 })(window);
