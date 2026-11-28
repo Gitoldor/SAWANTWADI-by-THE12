@@ -4,7 +4,7 @@
  if(window.__sho1re1RoadGraphLoaded)return;
  window.__sho1re1RoadGraphLoaded=true;
  const RADIUS=2600,TTL=12000,MIN_MOVE=170,CELL=.003;
- const ENDPOINTS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+ const ENDPOINTS=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter','https://ovp.dresel.systems/api-as/interpreter'];
  const CACHE_DB='Sho1re1MaxRoadCache',CACHE_STORE='snapshots';
  let nodeEdges=new Map(),lastFetchAt=0,lastCenter=null,pending=null;
  let spatialIndex=new Map(),cacheDbPromise=null,cacheLoadPromise=null,graphPersistScheduled=false,townPersistScheduled=false;
@@ -71,9 +71,11 @@
    if(graph&&graph.version===1&&Array.isArray(graph.nodes)&&graph.nodes.length<180000){
     nodeEdges=new Map(graph.nodes);lastCenter=graph.center||null;lastFetchAt=Number(graph.updatedAt)||0;rebuildSpatial();
    }
-   if(town&&town.version===2&&Array.isArray(town.lines)&&town.lines.length<60000){
+   // The fixed whole-town snapshot is written as version 1. Accept that
+   // schema here; the old version-2 check silently discarded every saved
+   // Sawantwadi road network and forced a fresh Overpass request on each load.
+   if(town&&town.version===1&&Array.isArray(town.lines)&&town.lines.length>0&&town.lines.length<60000){
     townRoadLines=town.lines;townLoadedAt=Number(town.updatedAt)||0;
-    if(town.bounds&&Number.isFinite(town.bounds.south)&&Number.isFinite(town.bounds.west)&&Number.isFinite(town.bounds.north)&&Number.isFinite(town.bounds.east))townBounds={...town.bounds};
    }
    return {nodes:nodeEdges.size,townRoads:townRoadLines.length};
   }).catch(()=>({nodes:nodeEdges.size,townRoads:townRoadLines.length}));
