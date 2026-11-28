@@ -158,17 +158,19 @@
       const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[27,27],iconAnchor:[13.5,13.5]});
       const marker=L.marker(item.point,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
       marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-      marker.on('click',()=>chooseTurn(item.bearing));
+      marker.on('click',()=>chooseTurn(item.bearing,item.point));
       junctionMarkers.push({key:item.key,marker});
     });
   }
-  async function chooseTurn(heading){
+  async function chooseTurn(heading,junctionPoint){
     if(!active||routeBusy)return;
     routeBusy=true;setStatus('LOADING SELECTED ROAD…');
     try{
-      const aim=destination(currentPoint,heading,ROUTE_LOOKAHEAD_METERS);
+      const turnPoint=junctionPoint||currentPoint;
+      const aim=destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
       const snapped=await snapToRoad(aim,heading);
-      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
+      const via=junctionPoint?';'+junctionPoint.lng+','+junctionPoint.lat:'';
+      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+via+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
       const route=data.routes&&data.routes[0];if(!route||!route.geometry)throw new Error('That turn has no connected road');
       setRoute(route.geometry.coordinates,route.legs&&route.legs[0]&&route.legs[0].steps);
       refreshJunctionChoices();setStatus('ROAD CHANGED · KEEP DRIVING');
