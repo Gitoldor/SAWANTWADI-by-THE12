@@ -47,10 +47,10 @@
  }
  function getBranches(center,maxDistance=1800,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
-  const out=[];
+  const candidates=[];
   const angular=(a,b)=>Math.abs(((a-b+540)%360)-180);
   for(const [id,node] of nodeEdges){
-   const d=distance(center,node.point);if(d<22||d>maxDistance)continue;
+   const d=distance(center,node.point);if(d<10||d>maxDistance)continue;
    const approach=Number.isFinite(travelHeading)?travelHeading:bearing(center,node.point);
    const back=(approach+180)%360;
    const arms=[];
@@ -62,10 +62,12 @@
    if(arms.length<2)continue;
    for(const edge of arms){
     const key=id+':'+Math.round(edge.bearing/5)*5;
-    out.push({key,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d});
+    candidates.push({key,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d});
    }
   }
-  return out;
+  if(!candidates.length)return [];
+  const nearest=Math.min(...candidates.map(x=>x.distance));
+  return candidates.filter(x=>x.distance<=nearest+7);
  }
  window.Sho1re1RoadGraph={refresh,getBranches,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending})};
 })();
