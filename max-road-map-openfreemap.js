@@ -28,7 +28,7 @@
       tag = document.createElement("script");
       tag.src = src; tag.async = true; tag.dataset.shoRoadSrc = src;
       tag.onload = () => { tag.dataset.loaded = "1"; resolve(); };
-      tag.onerror = () => reject(new Error("Could not load map library"));
+      tag.onerror = () => { tag.remove(); reject(new Error("Could not load map library")); };
       document.head.appendChild(tag);
     });
   }
