@@ -27,21 +27,98 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    #sho1re1-drive-button{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,18px) scale(.94);z-index:1000002;border:1px solid #ffffff35;border-radius:999px;padding:13px 23px;background:rgba(15,17,20,.93);color:#fff;font:750 13px Inter,system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 12px 35px #0007;backdrop-filter:blur(18px);opacity:0;pointer-events:none;transition:.3s}
-    body.sho-map-only #sho1re1-drive-button{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
-    #sho1re1-drive-ui{position:fixed;inset:0;z-index:1000003;pointer-events:none;font-family:Inter,system-ui,sans-serif}
-    #sho1re1-drive-status{position:absolute;top:calc(72px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100vw - 36px);overflow:hidden;text-overflow:ellipsis;padding:8px 13px;border:1px solid #ffffff28;border-radius:20px;background:#101216e8;color:#fff;font-size:10px;font-weight:750;white-space:nowrap}
-    #sho1re1-joy-base{position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));width:142px;height:142px;border-radius:50%;border:1px solid #ffffff50;background:radial-gradient(circle,#ffffff1c,#101216c9 68%);box-shadow:0 12px 36px #0008;backdrop-filter:blur(10px);pointer-events:auto;touch-action:none}
-    #sho1re1-joy-base:before{content:'DRIVE';position:absolute;inset:0;display:grid;place-items:center;color:#ffffff55;font-size:10px;font-weight:800;letter-spacing:.18em}
-    #sho1re1-joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #fff;background:linear-gradient(145deg,#fff,#aeb6c3);box-shadow:0 5px 20px #0008;pointer-events:none}
-    #sho1re1-speed-gears{position:absolute;right:20px;bottom:calc(184px + env(safe-area-inset-bottom));display:flex;gap:7px;pointer-events:auto}
-    #sho1re1-uturn{position:absolute;right:20px;bottom:calc(224px + env(safe-area-inset-bottom));min-width:87px;height:32px;padding:0 12px;border:1px solid #ffffff55;border-radius:10px;background:#111923ef;color:#fff;font:800 11px Inter,system-ui,sans-serif;letter-spacing:.04em;box-shadow:0 5px 18px #0007;pointer-events:auto;touch-action:manipulation}
-    #sho1re1-uturn[data-reversed="true"]{background:#145da8;border-color:#66baff;box-shadow:0 0 0 2px #168cff35,0 5px 18px #0007}
-    #sho1re1-uturn:active{transform:scale(.95)}
-    .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
-    .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
+    /* Sho1re1's native white-glass control language: restrained, rounded,
+       black typography, soft shadows and the same Inter type system. */
+    #sho1re1-drive-button{
+      position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));
+      transform:translate(-50%,18px) scale(.96);z-index:1000002;
+      border:1px solid rgba(0,0,0,.10);border-radius:999px;padding:13px 24px;
+      background:rgba(255,255,255,.94);color:#111;
+      font:800 13px Inter,system-ui,sans-serif;letter-spacing:.045em;
+      box-shadow:0 10px 28px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.9);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      opacity:0;pointer-events:none;
+      transition:opacity .24s ease,transform .28s cubic-bezier(.16,1,.3,1),box-shadow .2s ease;
+      cursor:pointer;touch-action:manipulation;
+    }
+    body.sho-map-only #sho1re1-drive-button{
+      opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)
+    }
+    #sho1re1-drive-button:active{transform:translate(-50%,1px) scale(.96);box-shadow:0 4px 12px rgba(0,0,0,.16)}
+    #sho1re1-drive-ui{
+      position:fixed;inset:0;z-index:1000003;pointer-events:none;
+      font-family:Inter,system-ui,sans-serif;color:#111
+    }
+    #sho1re1-drive-status{
+      position:absolute;top:calc(72px + env(safe-area-inset-top));left:50%;
+      transform:translateX(-50%);max-width:calc(100vw - 36px);
+      overflow:hidden;text-overflow:ellipsis;padding:9px 15px;
+      border:1px solid rgba(0,0,0,.10);border-radius:999px;
+      background:rgba(255,255,255,.94);color:#111;
+      font-size:10px;font-weight:800;letter-spacing:.035em;white-space:nowrap;
+      box-shadow:0 7px 22px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.95);
+      backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)
+    }
+    #sho1re1-joy-base{
+      position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));
+      width:142px;height:142px;border-radius:50%;
+      border:1px solid rgba(0,0,0,.14);
+      background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.98),rgba(255,255,255,.84) 62%,rgba(235,237,240,.94));
+      box-shadow:0 12px 32px rgba(0,0,0,.20),inset 0 1px 2px rgba(255,255,255,.95);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      pointer-events:auto;touch-action:none;cursor:grab
+    }
+    #sho1re1-joy-base:active{cursor:grabbing}
+    #sho1re1-joy-base:before{
+      content:'DRIVE';position:absolute;inset:0;display:grid;place-items:center;
+      color:rgba(0,0,0,.34);font-size:10px;font-weight:800;letter-spacing:.16em;
+      pointer-events:none
+    }
+    #sho1re1-joy-knob{
+      position:absolute;left:50%;top:50%;width:56px;height:56px;
+      transform:translate(-50%,-50%);border-radius:50%;
+      border:1px solid rgba(0,0,0,.12);
+      background:linear-gradient(145deg,#fff,#e8eaed);
+      box-shadow:0 4px 13px rgba(0,0,0,.20),inset 0 1px 1px #fff;
+      pointer-events:none;will-change:left,top
+    }
+    #sho1re1-speed-gears{
+      position:absolute;right:20px;bottom:calc(184px + env(safe-area-inset-bottom));
+      display:flex;gap:8px;pointer-events:auto
+    }
+    #sho1re1-drive-ui button{
+      color:#111;background:rgba(255,255,255,.94);
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:0 5px 16px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.95);
+      font-family:Inter,system-ui,sans-serif;font-weight:800;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      cursor:pointer;touch-action:manipulation;
+      transition:background .16s ease,transform .16s ease,box-shadow .16s ease
+    }
+    #sho1re1-drive-ui button:active{
+      background:#111;color:#fff;transform:scale(.95);
+      box-shadow:0 2px 8px rgba(0,0,0,.16)
+    }
+    #sho1re1-uturn{
+      position:absolute;right:20px;bottom:calc(224px + env(safe-area-inset-bottom));
+      min-width:87px;height:34px;padding:0 13px;border-radius:999px;
+      font-size:11px;letter-spacing:.035em;pointer-events:auto
+    }
+    #sho1re1-uturn[data-reversed="true"]{
+      background:#111;color:#fff;border-color:#111;
+      box-shadow:0 0 0 2px rgba(255,255,255,.72),0 5px 16px rgba(0,0,0,.2)
+    }
+    .sho1re1-gear{
+      width:40px;height:34px;border-radius:13px;font-size:17px
+    }
     #sho1re1-drive-ui[hidden]{display:none}
-    @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
+    @media(max-width:380px){
+      #sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}
+      #sho1re1-joy-knob{width:52px;height:52px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      #sho1re1-drive-ui button,#sho1re1-drive-button{transition:none}
+    }
     body.sho1re1-driving .leaflet-control-container{display:none!important}
   `;
   document.head.appendChild(style);
