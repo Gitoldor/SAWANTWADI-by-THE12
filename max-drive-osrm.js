@@ -20,6 +20,7 @@
   let townRoadLayer=null,townRoadLoadStarted=false;
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
   let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
+  let committedJunctionNodeId=null, committedJunctionPoint=null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -217,7 +218,7 @@
       }d-=seg;
     }return {point:routePoints[routePoints.length-1],angle:0};
   }
-  function distanceAlongRouteTo(target){
+  function distanceAlongRouteTo(target,tolerance=42){
     if(routePoints.length<2||routeLengths.length!==routePoints.length-1)return Infinity;
     const cos=Math.cos(target.lat*Math.PI/180);
     const xy=p=>({x:(p.lng-target.lng)*111320*cos,y:(p.lat-target.lat)*110540});
@@ -237,7 +238,7 @@
       }
       walked=end;
     }
-    return bestCross<=42?bestAlong:Infinity;
+    return bestCross<=tolerance?bestAlong:Infinity;
   }
   let graphRefreshPending=false;
   function renderTurnChoices(found){
@@ -286,7 +287,11 @@
   function refreshJunctionChoices(){
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
     const graph=window.Sho1re1RoadGraph;
-    const found=graph.getBranches(currentPoint,680,currentHeading);
+    if(committedJunctionPoint&&distanceAlongRouteTo(committedJunctionPoint,85)===Infinity){
+      committedJunctionNodeId=null;committedJunctionPoint=null;
+    }
+    const detected=graph.getBranches(currentPoint,680,currentHeading);
+    const found=committedJunctionNodeId===null?detected:detected.filter(item=>String(item.nodeId)!==String(committedJunctionNodeId));
     junctionOptions=found.slice();
     junctionRouteDistance=Infinity;
     if(routePoints.length>1){
@@ -376,6 +381,8 @@
       if(!selected)throw new Error('Router could not reach the selected junction');
       if(selectedScore>72)throw new Error('Router did not follow the selected road ('+Math.round(selectedScore)+'° off)');
       setRoute(selected.geometry,selected.route.legs&&selected.route.legs[0]&&selected.route.legs[0].steps);
+      committedJunctionNodeId=branch&&branch.nodeId!==undefined?String(branch.nodeId):null;
+      committedJunctionPoint=branch?turnPoint:null;
       refreshJunctionChoices();
       setStatus('SELECTED ROAD LOCKED · KEEP DRIVING');
     }catch(err){
@@ -507,6 +514,7 @@
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
+    committedJunctionNodeId=null;committedJunctionPoint=null;
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     restoreMapInteractions();
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
