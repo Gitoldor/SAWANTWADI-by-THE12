@@ -24,7 +24,14 @@
     if(allowed(tags,i+1,i))graph.get(nid).edges.push({to:id,bearing:bearing(pb,pa)});
    }
   }
-  // Merge nearby graph tiles so knowledge expands with movement instead of replacing the previous tile.\n  for(const [id,node] of graph){\n   const old=nodeEdges.get(id);\n   if(old){const seen=new Set(old.edges.map(e=>e.to+':'+Math.round(e.bearing)));for(const edge of node.edges){const k=edge.to+':'+Math.round(edge.bearing);if(!seen.has(k)){old.edges.push(edge);seen.add(k)}}}\n   else nodeEdges.set(id,node);\n  }\n  // Keep memory bounded while retaining a useful explored corridor.\n  if(lastCenter){for(const [id,node] of nodeEdges){if(distance(lastCenter,node.point)>5200)nodeEdges.delete(id)}}
+  // Merge nearby graph tiles so knowledge expands with movement instead of replacing the previous tile.
+  for(const [id,node] of graph){
+   const old=nodeEdges.get(id);
+   if(old){const seen=new Set(old.edges.map(e=>e.to+':'+Math.round(e.bearing)));for(const edge of node.edges){const k=edge.to+':'+Math.round(edge.bearing);if(!seen.has(k)){old.edges.push(edge);seen.add(k)}}}
+   else nodeEdges.set(id,node);
+  }
+  // Keep memory bounded while retaining a useful explored corridor.
+  if(lastCenter){for(const [id,node] of nodeEdges){if(distance(lastCenter,node.point)>5200)nodeEdges.delete(id)}}
  }
  async function query(center,url){
   const q='[out:json][timeout:18];way(around:'+RADIUS+','+center.lat+','+center.lng+')["highway"]["area"!="yes"];out body geom;';
