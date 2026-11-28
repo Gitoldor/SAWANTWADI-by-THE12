@@ -48,23 +48,14 @@
     }
     if (loaded || loading) return;
     loading = true;
-    warmConnections();
     try {
+      // Load only the lightweight feature modules here. Large MapLibre
+      // libraries and road-cache reads begin when the user actually starts Drive.
       await addScript('./max-road-map-openfreemap.js?v=20261128instant2');
       if (!isMax()) return;
-      // Warm large CDN libraries and IndexedDB road snapshots before the
-      // user opens Drive. These downloads run in parallel with module setup.
-      const mapWarm = window.Sho1re1RoadMap && window.Sho1re1RoadMap.preload
-        ? window.Sho1re1RoadMap.preload().catch(error => console.warn('MAX map preload:', error))
-        : Promise.resolve();
       await addScript('./max-road-graph.js?v=20261128townroadsfix3');
       if (!isMax()) return;
-      const graphWarm = window.Sho1re1RoadGraph && window.Sho1re1RoadGraph.preload
-        ? window.Sho1re1RoadGraph.preload().catch(error => console.warn('MAX graph cache preload:', error))
-        : Promise.resolve();
-      await addScript('./max-drive-osrm.js?v=20261128turnlistremoved1');
-      // Do not block Drive controls on optional cache warming.
-      Promise.all([mapWarm, graphWarm]).catch(() => {});
+      await addScript('./max-drive-osrm.js?v=20261128lightdrive1');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
