@@ -43,9 +43,9 @@
       // libraries and road-cache reads begin when the user actually starts Drive.
       await addScript('./max-road-map-openfreemap.js?v=20261128instant2');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128lightdrive1');
+      await addScript('./max-road-graph.js?v=20261128smoothdrive1');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128nativeui1');
+      await addScript('./max-drive-osrm.js?v=20261128smoothdrive1');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
