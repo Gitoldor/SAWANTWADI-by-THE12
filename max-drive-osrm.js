@@ -15,7 +15,7 @@
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
-  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0, savedInteractions=null;
+  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0, mapLooking=false, recentering=false, dragEventsBound=false;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -206,20 +206,32 @@
     finally{routeBusy=false}
   }
   function lockMapInteractions(){
-    if(savedInteractions)return;
-    const names=['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard'];
-    savedInteractions={};
-    names.forEach(name=>{const h=mapRef[name];savedInteractions[name]=!!(h&&h.enabled&&h.enabled());if(h&&h.disable)h.disable();});
-  }
-  function restoreMapInteractions(){
-    if(!savedInteractions)return;
-    Object.keys(savedInteractions).forEach(name=>{const h=mapRef[name];if(savedInteractions[name]&&h&&h.enable)h.enable();});
-    savedInteractions=null;
+    // Keep normal map gestures available; only the car-follow camera is paused during a manual drag.
+    if(mapRef.dragging&&!mapRef.dragging.enabled())mapRef.dragging.enable();
+    if(dragEventsBound)return;
+    dragEventsBound=true;
+    mapRef.on('dragstart',()=>{
+      if(!active)return;
+      mapRef.stop();
+      recentering=false;
+      mapLooking=true;
+    });
+    mapRef.on('dragend',()=>{
+      if(!active||!currentPoint){mapLooking=false;return;}
+      mapLooking=false;
+      recentering=true;
+      mapRef.panTo(currentPoint,{animate:true,duration:0.42,easeLinearity:0.22});
+      mapRef.once('moveend',()=>{
+        recentering=false;
+        if(active&&currentPoint)mapRef.setView(currentPoint,mapRef.getZoom(),{animate:false});
+      });
+    });
   }
   function keepCarAtScreenCentre(){
     if(!currentPoint)return;
-    // setView is synchronous with animate:false: the car's geographic point is always the map centre.
-    mapRef.setView(currentPoint,mapRef.getZoom(),{animate:false});
+    if(!mapLooking&&!recentering){
+      mapRef.setView(currentPoint,mapRef.getZoom(),{animate:false});
+    }
     setCar(currentPoint,cameraAngle);
   }
   function frame(now){
@@ -277,7 +289,7 @@
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
-    endMapRotation();cameraAngle=0;restoreMapInteractions();if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
+    mapRef.stop();mapLooking=false;recentering=false;endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
   buildUI();
