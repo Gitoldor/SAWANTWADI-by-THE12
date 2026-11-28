@@ -12,7 +12,7 @@
   const ROUTER = 'https://valhalla1.openstreetmap.de';
   let lastValhallaRequestAt=0, valhallaQueue=Promise.resolve();
   let active=false, loading=false, car=null, routeLine=null, raf=0;
-  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
+  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
@@ -40,15 +40,10 @@
     .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
     .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
     #sho1re1-drive-ui[hidden]{display:none}
-    .sho1re1-arrow-icon{background:transparent!important;border:0!important}
-    .sho1re1-junction-arrow{width:44px;height:44px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#006fe8;color:#fff;box-shadow:0 3px 16px #001a35cc,0 0 0 4px #087de044;cursor:pointer;touch-action:manipulation}
-    .sho1re1-junction-arrow svg{width:29px;height:29px;filter:drop-shadow(0 1px 2px #00264f)}
-    .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.14)}
     #sho1re1-turn-choices{position:absolute;left:12px;bottom:calc(22px + env(safe-area-inset-bottom));width:min(190px,calc(100vw - 178px));display:none;flex-direction:column;gap:7px;pointer-events:auto;z-index:4}
     #sho1re1-turn-choices.show{display:flex}
     .sho1re1-turn-choice{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:8px 11px;border:1px solid #ffffff55;border-radius:13px;background:rgba(8,19,31,.94);color:#fff;text-align:left;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0008;touch-action:manipulation}
     .sho1re1-turn-choice:active{background:#087de0;transform:scale(.98)}
-    .sho1re1-turn-choice b{font-size:19px;line-height:1;color:#49b5ff;width:22px;text-align:center}
     @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
     body.sho1re1-driving .leaflet-control-container{display:none!important}
   `;
@@ -316,8 +311,7 @@
   function clearTurnCard(){
     selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
     junctionOptions=[];junctionRouteDistance=Infinity;waitingForJunctionChoice=false;
-    junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
-    junctionMarkers=[];branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
+    branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
     const choices=ui&&ui.querySelector('#sho1re1-turn-choices');if(choices){choices.classList.remove('show');choices.innerHTML='';choices._branches=[];}
     branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});
     branchLines=[];
@@ -380,35 +374,11 @@
     found.forEach((item,index)=>{
       const delta=((item.bearing-currentHeading+540)%360)-180;
       const label=Math.abs(delta)<28?'STRAIGHT':delta>0?'RIGHT TURN':'LEFT TURN';
-      const glyph=Math.abs(delta)<28?'↑':delta>0?'→':'←';
       const button=document.createElement('button');button.type='button';button.className='sho1re1-turn-choice';button.dataset.turnIndex=String(index);
-      button.innerHTML='<b>'+glyph+'</b><span>'+label+'<small style="display:block;opacity:.65;font-size:9px;margin-top:2px">'+Math.round(item.distance)+' m · SELECT ROAD</small></span>';
+      button.innerHTML='<span>'+label+'<small style="display:block;opacity:.65;font-size:9px;margin-top:2px">'+Math.round(item.distance)+' m · SELECT ROAD</small></span>';
       panel.appendChild(button);
     });
     panel.classList.toggle('show',found.length>0);
-  }
-  function branchArrowPlacement(item){
-    const graph=window.Sho1re1RoadGraph;
-    const path=graph&&graph.getBranchPath?graph.getBranchPath(item,150):[];
-    if(!Array.isArray(path)||path.length<2){
-      return {point:destination(item.point,item.bearing,34),heading:item.bearing};
-    }
-    let remaining=32;
-    for(let i=1;i<path.length;i++){
-      const a=L.latLng(path[i-1].lat,path[i-1].lng),b=L.latLng(path[i].lat,path[i].lng);
-      const length=mapRef.distance(a,b);
-      if(length>=remaining){
-        const t=length?remaining/length:0;
-        return {
-          point:L.latLng(a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t),
-          heading:bearing(a,b)
-        };
-      }
-      remaining-=length;
-    }
-    const a=L.latLng(path[path.length-2].lat,path[path.length-2].lng);
-    const b=L.latLng(path[path.length-1].lat,path[path.length-1].lng);
-    return {point:b,heading:bearing(a,b)};
   }
   async function fetchBranchHighlights(found){
     if(!found.length)return;
@@ -436,7 +406,7 @@
       branchLines.push(line);
     });
     branchFetchBusy=false;
-    if(branchLines.length)setStatus(waitingForJunctionChoice?'JUNCTION AHEAD · CAR PAUSED · TAP A ROAD ARROW':'TAP A BLUE ROAD OR DIRECTION ARROW TO TAKE IT');
+    if(branchLines.length)setStatus(waitingForJunctionChoice?'JUNCTION AHEAD · CAR PAUSED · TAP A BLUE ROAD':'TAP A BLUE ROAD TO TAKE IT');
     else setStatus('JUNCTION FOUND · LOADING ROAD CONNECTIONS…');
   }
   function refreshJunctionChoices(){
@@ -461,24 +431,8 @@
       graph.refresh(currentPoint).then(updated=>{graphRefreshPending=false;if(active&&updated)refreshJunctionChoices()})
         .catch(err=>{graphRefreshPending=false;console.warn('MAX road graph refresh:',err)});
     }
-    const keys=new Set(found.map(x=>x.key));
-    junctionMarkers=junctionMarkers.filter(item=>{
-      if(keys.has(item.key))return true;
-      if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker);
-      return false;
-    });
     if(found.length){
       fetchBranchHighlights(found);
-      found.forEach(item=>{
-        if(junctionMarkers.some(x=>x.key===item.key))return;
-        const arrow=branchArrowPlacement(item);
-        const arrowSvg='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 17h-8v13h-10V17H3Z" fill="#fff" stroke="#063b78" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-        const icon=L.divIcon({className:'sho1re1-arrow-icon',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+arrow.heading+'deg)">'+arrowSvg+'</div>',iconSize:[48,48],iconAnchor:[24,24]});
-        const marker=L.marker(arrow.point,{keyboard:false,zIndexOffset:15000,pane:'markerPane',icon,interactive:true}).addTo(mapRef);
-        marker.bindTooltip('TAP ARROW TO DRIVE ONTO THIS ROAD',{direction:'top'});
-        marker.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);chooseTurn(item.bearing,item.point,item)});
-        junctionMarkers.push({key:item.key,marker});
-      });
     }else {
       renderTurnChoices([]);
       if(!branchFetchBusy&&branchFetchKey){
