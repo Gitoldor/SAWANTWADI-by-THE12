@@ -56,6 +56,28 @@
     if(!graph||!currentPoint)return false;
     try{return typeof graph.hasCoverage==='function'&&graph.hasCoverage(currentPoint)}catch(_){return false}
   }
+  function simplifyTownLine(coords,toleranceMeters=1.25){
+    if(!Array.isArray(coords)||coords.length<3)return coords;
+    const cos=Math.cos(Number(coords[0][0])*Math.PI/180);
+    const xy=p=>({x:Number(p[1])*111320*cos,y:Number(p[0])*110540});
+    const points=coords.map(xy),keep=new Uint8Array(coords.length);
+    keep[0]=1;keep[coords.length-1]=1;
+    const stack=[[0,coords.length-1]],limit=toleranceMeters*toleranceMeters;
+    while(stack.length){
+      const pair=stack.pop(),first=pair[0],last=pair[1],a=points[first],b=points[last];
+      const dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;
+      let best=limit,index=-1;
+      for(let i=first+1;i<last;i++){
+        const p=points[i],t=den?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/den)):0;
+        const ex=p.x-(a.x+t*dx),ey=p.y-(a.y+t*dy),sq=ex*ex+ey*ey;
+        if(sq>best){best=sq;index=i;}
+      }
+      if(index!==-1){keep[index]=1;stack.push([first,index],[index,last]);}
+    }
+    const result=[];
+    for(let i=0;i<coords.length;i++)if(keep[i])result.push(coords[i]);
+    return result;
+  }
   function drawTownRoadLayer(lines){
     if(!Array.isArray(lines)||!lines.length)return false;
     if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
@@ -66,8 +88,11 @@
     const pane=mapRef.getPane(paneName)||mapRef.createPane(paneName);
     pane.style.zIndex='450';
     pane.style.pointerEvents='auto';
+    // Keep the original OSM geometry for accurate tap-to-road snapping,
+    // but draw a lightly simplified copy to reduce Canvas vertices.
+    const displayLines=lines.map(line=>simplifyTownLine(line,1.25)).filter(line=>line.length>1);
     const renderer=L.canvas({pane:paneName});
-    townRoadLayer=L.polyline(lines,{
+    townRoadLayer=L.polyline(displayLines,{
       pane:paneName,renderer,color:'#078cff',weight:7,opacity:.96,
       lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false,smoothFactor:1.4
     }).addTo(mapRef);
