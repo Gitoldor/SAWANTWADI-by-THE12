@@ -46,19 +46,19 @@
   return pending;
  }
  function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
- function getBranches(center,maxDistance=1800,travelHeading=null){
+ function getBranches(center,maxDistance=700,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
   const candidates=[];
   for(const [id,node] of nodeEdges){
-   const d=distance(center,node.point);if(d<12||d>maxDistance)continue;
-   const approach=Number.isFinite(travelHeading)?travelHeading:bearing(center,node.point);
+   const d=distance(center,node.point);if(d<8||d>maxDistance)continue;
    const directionToNode=bearing(center,node.point);
-   // Ignore junctions substantially behind the vehicle, but allow curved approaches.
-   if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>112)continue;
-   const back=(approach+180)%360,arms=[];
+   // Only offer junctions ahead and close enough to be visible on the live map.
+   if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>82)continue;
+   const back=(Number.isFinite(travelHeading)?travelHeading:directionToNode)+180;
+   const arms=[];
    for(const edge of node.edges){
-    if(angleDifference(edge.bearing,back)<38)continue;
-    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<10))continue;
+    if(angleDifference(edge.bearing,back%360)<34)continue;
+    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<9))continue;
     arms.push(edge);
    }
    if(arms.length<2)continue;
@@ -69,7 +69,7 @@
   }
   if(!candidates.length)return [];
   const nearest=Math.min(...candidates.map(x=>x.distance));
-  return candidates.filter(x=>x.distance<=nearest+12);
+  return candidates.filter(x=>x.distance<=nearest+18);
  }
  // Build a preview from real connected OSM graph edges. This is display-only:
  // the existing OSRM movement engine remains responsible for driving.
