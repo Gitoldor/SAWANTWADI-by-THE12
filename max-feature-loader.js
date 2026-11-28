@@ -43,7 +43,7 @@
       // libraries and road-cache reads begin when the user actually starts Drive.
       await addScript('./max-road-map-openfreemap.js?v=20261128instant2');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128smoothdrive1');
+      await addScript('./max-road-graph.js?v=20261128curvefix1');
       if (!isMax()) return;
       await addScript('./max-drive-osrm.js?v=20261128smoothdrive1');
       loaded = true;
