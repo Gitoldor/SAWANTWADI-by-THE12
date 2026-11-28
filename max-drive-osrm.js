@@ -7,11 +7,11 @@
   try { mapRef = map; } catch (_) {}
   if (!mapRef || !window.L) return;
 
-  const SPEED_MPS = 15; // ~54 km/h in the driving simulation
+  let SPEED_MPS = 15; // live speed; gear taps adjust without a fixed upper limit
   const ROUTE_LOOKAHEAD_METERS = 1800;
   const ROUTER = 'https://router.project-osrm.org';
   let active=false, loading=false, gpsWatch=null, car=null, routeLine=null, raf=0;
-  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, turnMarker=null, turnOptions=[];
+  let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
@@ -26,13 +26,12 @@
     #sho1re1-joy-base{position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));width:142px;height:142px;border-radius:50%;border:1px solid #ffffff50;background:radial-gradient(circle,#ffffff1c,#101216c9 68%);box-shadow:0 12px 36px #0008;backdrop-filter:blur(10px);pointer-events:auto;touch-action:none}
     #sho1re1-joy-base:before{content:'DRIVE';position:absolute;inset:0;display:grid;place-items:center;color:#ffffff55;font-size:10px;font-weight:800;letter-spacing:.18em}
     #sho1re1-joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #fff;background:linear-gradient(145deg,#fff,#aeb6c3);box-shadow:0 5px 20px #0008;pointer-events:none}
-    #sho1re1-turn-card{position:absolute;left:50%;top:calc(112px + env(safe-area-inset-top));transform:translateX(-50%);width:min(310px,calc(100vw - 34px));padding:12px;border:1px solid #ffffff35;border-radius:17px;background:rgba(12,15,20,.94);color:#fff;box-shadow:0 12px 35px #0008;backdrop-filter:blur(18px);pointer-events:auto}
-    #sho1re1-turn-card[hidden],#sho1re1-drive-ui[hidden]{display:none}
-    #sho1re1-turn-title{font-size:11px;font-weight:800;letter-spacing:.08em;margin-bottom:9px;color:#dbeafe}
-    #sho1re1-turn-options{display:flex;gap:7px}
-    .sho1re1-turn-choice{flex:1;min-width:0;padding:10px 5px;border:1px solid #ffffff25;border-radius:11px;background:#ffffff12;color:#fff;text-align:center;font-size:11px;font-weight:750;touch-action:manipulation}
-    .sho1re1-turn-choice:active{background:#247edb}
+    #sho1re1-speed-gears{position:absolute;right:20px;bottom:calc(184px + env(safe-area-inset-bottom));display:flex;gap:7px;pointer-events:auto}
+    .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
+    .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
     #sho1re1-drive-ui[hidden]{display:none}
+    .sho1re1-junction-arrow{width:27px;height:27px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#087de0;color:#fff;font:900 19px system-ui;box-shadow:0 2px 12px #0009;cursor:pointer}
+    .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.12)}
     @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
     body.sho1re1-driving .leaflet-control-container{display:none!important}
   `;
@@ -47,16 +46,13 @@
     if(ui)return;
     driveButton=document.createElement('button');driveButton.id='sho1re1-drive-button';driveButton.type='button';driveButton.textContent='START DRIVE';driveButton.hidden=true;document.body.appendChild(driveButton);
     ui=document.createElement('div');ui.id='sho1re1-drive-ui';ui.hidden=true;
-    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-turn-card" hidden><div id="sho1re1-turn-title">JUNCTION AHEAD · CHOOSE A TURN (OPTIONAL)</div><div id="sho1re1-turn-options"></div></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
+    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-speed-gears"><button class="sho1re1-gear" type="button" data-gear="up" aria-label="Increase speed">＋</button><button class="sho1re1-gear" type="button" data-gear="down" aria-label="Decrease speed">−</button></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
     document.body.appendChild(ui);status=ui.querySelector('#sho1re1-drive-status');joystickBase=ui.querySelector('#sho1re1-joy-base');joystickKnob=ui.querySelector('#sho1re1-joy-knob');
     driveButton.addEventListener('click',start);
     joystickBase.addEventListener('pointerdown',joyStart);joystickBase.addEventListener('pointermove',joyMove);joystickBase.addEventListener('pointerup',joyEnd);joystickBase.addEventListener('pointercancel',joyEnd);joystickBase.addEventListener('lostpointercapture',joyEnd);
-    ui.querySelector('#sho1re1-turn-options').addEventListener('click',e=>{
-      const choice=e.target.closest('[data-bearing]');if(!choice)return;
-      chooseTurn(Number(choice.dataset.bearing));
-    });
+    ui.querySelector('#sho1re1-speed-gears').addEventListener('click',e=>{const b=e.target.closest('[data-gear]');if(!b)return;SPEED_MPS=Math.max(1,SPEED_MPS+(b.dataset.gear==='up'?2:-2));flashSpeed();});
     let touchY=null;
-    ui.addEventListener('touchstart',e=>{if(e.target.closest('#sho1re1-joy-base,#sho1re1-turn-card'))return;if(e.touches.length===1&&e.touches[0].clientY<75)touchY=e.touches[0].clientY},{passive:true});
+    ui.addEventListener('touchstart',e=>{if(e.target.closest('#sho1re1-joy-base,#sho1re1-speed-gears'))return;if(e.touches.length===1&&e.touches[0].clientY<75)touchY=e.touches[0].clientY},{passive:true});
     ui.addEventListener('touchend',e=>{if(touchY===null)return;const y=e.changedTouches[0].clientY;if(y-touchY>105)stop();touchY=null},{passive:true});
     window.addEventListener('keydown',e=>{if(active&&e.key==='Escape')stop()});
   }
@@ -103,9 +99,16 @@
     }else{car.setLatLng(p);const el=car.getElement(),body=el&&el.querySelector('div');if(body)body.style.transform='rotate('+(angle||0)+'deg)'}
   }
   function clearTurnCard(){
-    if(turnMarker){mapRef.removeLayer(turnMarker);turnMarker=null}
-    turnOptions=[];routeTurnShown=null;
-    const card=ui&&ui.querySelector('#sho1re1-turn-card');if(card)card.hidden=true;
+    junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
+    junctionMarkers=[];
+  }
+  function flashSpeed(){
+    if(!car)return;
+    const label=Math.round(SPEED_MPS*3.6)+' km/h';
+    const icon=L.divIcon({className:'',html:'<div style="padding:4px 7px;border-radius:8px;background:#101820ed;color:white;font:800 12px Inter,system-ui;white-space:nowrap;box-shadow:0 3px 12px #0008">'+label+'</div>',iconSize:[72,24],iconAnchor:[36,30]});
+    if(car._speedFlash){car._speedFlash.setIcon(icon);car._speedFlash.setLatLng(currentPoint)}
+    else car._speedFlash=L.marker(currentPoint,{icon,interactive:false,zIndexOffset:9000}).addTo(mapRef);
+    clearTimeout(speedFlashTimer);speedFlashTimer=setTimeout(()=>{if(car&&car._speedFlash){mapRef.removeLayer(car._speedFlash);car._speedFlash=null}},900);
   }
   function clearRoute(){
     routePoints=[];routeLengths=[];routeDistance=0;routeTotal=0;routeSteps=[];clearTurnCard();
@@ -126,47 +129,38 @@
       }d-=seg;
     }return {point:routePoints[routePoints.length-1],angle:0};
   }
-  function getUpcomingTurn(){
-    let travelled=0;
+  function refreshJunctionChoices(){
+    if(!currentPoint||!routeSteps.length)return;
+    const found=[];
     for(const step of routeSteps){
-      const maneuver=step.maneuver||{};
-      const loc=maneuver.location;
-      if(loc&&Array.isArray(loc)&&['turn','fork','roundabout','end of road','merge'].includes(maneuver.type)){
-        const p=L.latLng(loc[1],loc[0]),distance=mapRef.distance(currentPoint,p);
-        if(distance>18&&distance<230){
-          const intersection=(step.intersections||[]).find(x=>Array.isArray(x.bearings)&&Array.isArray(x.location)&&mapRef.distance(p,L.latLng(x.location[1],x.location[0]))<35);
-          if(!intersection)continue;
-          const incoming=Number.isInteger(intersection.in)&&intersection.bearings[intersection.in]!==undefined?intersection.bearings[intersection.in]:currentHeading;
-          const options=[];
-          (intersection.bearings||[]).forEach((b,i)=>{
-            if(!(intersection.entry||[])[i])return;
-            const delta=((b-incoming+540)%360)-180;
-            if(Math.abs(delta)<28)return;
-            const side=delta<-28?'LEFT':delta>28?'RIGHT':'STRAIGHT';
-            if(!options.some(o=>o.side===side))options.push({side,bearing:b});
-          });
-          if(options.length)return {point:p,distance,options};
-        }
+      for(const ix of (step.intersections||[])){
+        if(!Array.isArray(ix.location)||!Array.isArray(ix.bearings))continue;
+        const p=L.latLng(ix.location[1],ix.location[0]);
+        const distance=mapRef.distance(currentPoint,p);
+        if(distance<18||distance>ROUTE_LOOKAHEAD_METERS)continue;
+        const incoming=Number.isInteger(ix.in)&&ix.bearings[ix.in]!==undefined?ix.bearings[ix.in]:currentHeading;
+        ix.bearings.forEach((bearing,index)=>{
+          if(!(ix.entry||[])[index])return;
+          const key=p.lat.toFixed(5)+','+p.lng.toFixed(5)+':'+Math.round(bearing);
+          if(found.some(x=>x.key===key))return;
+          found.push({key,point:p,bearing,distance});
+        });
       }
-      travelled+=Number(step.distance)||0;
     }
-    return null;
-  }
-  function showTurnChoices(){
-    const next=getUpcomingTurn(),card=ui&&ui.querySelector('#sho1re1-turn-card');
-    if(!next||!card){clearTurnCard();return}
-    const key=next.point.lat.toFixed(5)+','+next.point.lng.toFixed(5);
-    if(routeTurnShown===key)return;
-    routeTurnShown=key;turnOptions=next.options;
-    if(turnMarker){mapRef.removeLayer(turnMarker);turnMarker=null}
-    turnMarker=L.marker(next.point,{interactive:false,icon:L.divIcon({className:'',html:'<div style="width:17px;height:17px;border-radius:50%;background:#39a8ff;border:3px solid white;box-shadow:0 0 0 7px #39a8ff40"></div>',iconSize:[17,17],iconAnchor:[8,8]})}).addTo(mapRef);
-    const labels={LEFT:'↰ LEFT',RIGHT:'↱ RIGHT',STRAIGHT:'↑ STRAIGHT'};
-    const wrap=ui.querySelector('#sho1re1-turn-options');wrap.innerHTML='';
-    next.options.forEach(o=>{
-      const el=document.createElement('div');el.className='sho1re1-turn-choice';el.textContent=labels[o.side];el.dataset.bearing=String(o.bearing);wrap.appendChild(el);
+    const keys=new Set(found.map(x=>x.key));
+    junctionMarkers=junctionMarkers.filter(item=>{
+      if(keys.has(item.key))return true;
+      if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker);
+      return false;
     });
-    ui.querySelector('#sho1re1-turn-title').textContent='JUNCTION IN '+Math.round(next.distance)+' M · OPTIONAL TURN';
-    card.hidden=false;
+    found.forEach(item=>{
+      if(junctionMarkers.some(x=>x.key===item.key))return;
+      const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[27,27],iconAnchor:[13.5,13.5]});
+      const marker=L.marker(item.point,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
+      marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
+      marker.on('click',()=>chooseTurn(item.bearing));
+      junctionMarkers.push({key:item.key,marker});
+    });
   }
   async function chooseTurn(heading){
     if(!active||routeBusy)return;
@@ -177,7 +171,7 @@
       const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
       const route=data.routes&&data.routes[0];if(!route||!route.geometry)throw new Error('That turn has no connected road');
       setRoute(route.geometry.coordinates,route.legs&&route.legs[0]&&route.legs[0].steps);
-      setStatus('TURN SELECTED · KEEP DRIVING');
+      refreshJunctionChoices();setStatus('ROAD CHANGED · KEEP DRIVING');
     }catch(err){setStatus('THAT TURN IS UNAVAILABLE');console.warn('MAX turn selection:',err)}
     finally{routeBusy=false}
   }
@@ -193,7 +187,7 @@
       const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
       const route=data.routes&&data.routes[0],coords=route&&route.geometry&&route.geometry.coordinates;
       if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
-      setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);setStatus('LONG ROAD SEGMENT LOADED · '+Math.round(route.distance)+' M');
+      setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);refreshJunctionChoices();setStatus('ROAD NETWORK · '+Math.round(route.distance)+' M AHEAD');
     }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
     finally{routeBusy=false}
   }
@@ -203,7 +197,7 @@
     if(throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
       const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;setCar(at.point,at.angle);mapRef.panTo(at.point,{animate:false});
-      showTurnChoices();
+      if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
     raf=requestAnimationFrame(frame);
@@ -227,7 +221,7 @@
         currentPoint=L.latLng(pos.coords.latitude,pos.coords.longitude);
         setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
-        document.body.classList.add('sho1re1-driving');setStatus('PUSH UP TO DRIVE · TURN CARDS APPEAR AT JUNCTIONS');
+        document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
         mapRef.flyTo(currentPoint,Math.max(17,mapRef.getZoom()),{duration:.7});lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
@@ -245,7 +239,7 @@
   function stop(){
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
-    if(car){mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
+    if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
     if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.disable(mapRef);roadMapEnabled=false;
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
