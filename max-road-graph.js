@@ -62,12 +62,12 @@
   if(townPersistScheduled)return;townPersistScheduled=true;
   scheduleIdle(()=>{
    townPersistScheduled=false;
-   writeCache('town-v2',{version:2,updatedAt:townLoadedAt,bounds:townBounds,lines:townRoadLines});
+   writeCache('town-v1',{version:1,updatedAt:townLoadedAt,lines:townRoadLines});
   });
  }
  function preload(){
   if(cacheLoadPromise)return cacheLoadPromise;
-  cacheLoadPromise=Promise.all([readCache('graph-v1'),readCache('town-v2')]).then(([graph,town])=>{
+  cacheLoadPromise=Promise.all([readCache('graph-v1'),readCache('town-v1')]).then(([graph,town])=>{
    if(graph&&graph.version===1&&Array.isArray(graph.nodes)&&graph.nodes.length<180000){
     nodeEdges=new Map(graph.nodes);lastCenter=graph.center||null;lastFetchAt=Number(graph.updatedAt)||0;rebuildSpatial();
    }
@@ -109,42 +109,46 @@
  }
 
  const TOWN_BBOX={south:15.86,west:73.77,north:15.96,east:73.88};
- let townRoadLines=[],townPending=null,townLoadedAt=0,townBounds={...TOWN_BBOX};
+ let townRoadLines=[],townPending=null,townLoadedAt=0;
  const EXCLUDED_HIGHWAYS=['footway','path','cycleway','steps','pedestrian','bridleway','construction','proposed'];
  function isDriveRoad(way){
   const tags=way&&way.tags||{},highway=String(tags.highway||'');
   return !!highway&&tags.access!=='no'&&tags.motor_vehicle!=='no'&&tags.vehicle!=='no'&&!EXCLUDED_HIGHWAYS.includes(highway);
  }
- async function queryTown(url,bounds){
-  const b=bounds||townBounds;
+async function queryTown(url){
+  const b=TOWN_BBOX;
   const q='[out:json][timeout:35];way('+b.south+','+b.west+','+b.north+','+b.east+')["highway"]["area"!="yes"];out body geom;';
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),38000);
-  try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(q),signal:ctl.signal,cache:'no-store'});if(!r.ok)throw Error('Overpass road tile HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.elements))throw Error('Invalid road tile response');return data.elements}finally{clearTimeout(timer)}
- }
- function nextTownBounds(center){
-  const b=townBounds,latSpan=b.north-b.south,lngSpan=b.east-b.west;let dx=0,dy=0;
-  if(center.lng>b.east-.006)dx=1;else if(center.lng<b.west+.006)dx=-1;
-  if(center.lat>b.north-.006)dy=1;else if(center.lat<b.south+.006)dy=-1;
-  if(!dx&&!dy)return null;const step=.88;
-  return {south:b.south+dy*latSpan*step,north:b.north+dy*latSpan*step,west:b.west+dx*lngSpan*step,east:b.east+dx*lngSpan*step};
+  try{
+   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(q),signal:ctl.signal,cache:'no-store'});
+   if(!r.ok)throw Error('Overpass town map HTTP '+r.status);
+   const data=await r.json();if(!Array.isArray(data.elements))throw Error('Invalid Sawantwadi road response');
+   return data.elements;
+  }finally{clearTimeout(timer)}
  }
  function loadTown(center){
   if(townPending)return townPending;
   townPending=(async()=>{
-   await preload();const target=townRoadLines.length&&center?nextTownBounds(center):null;
-   const initial=!townRoadLines.length,stale=Date.now()-townLoadedAt>86400000;
-   if(!initial&&!target&&!stale)return townRoadLines.length;
-   const requestedBounds=target||townBounds;let elements,error;
-   for(const url of ENDPOINTS){try{elements=await queryTown(url,requestedBounds);break}catch(e){error=e}}
-   if(!elements)throw error||Error('Road network unavailable');
+   await preload();
+   if(townRoadLines.length&&Date.now()-townLoadedAt<86400000)return townRoadLines.length;
+   let elements,error;
+   for(const url of ENDPOINTS){try{elements=await queryTown(url);break}catch(e){error=e}}
+   if(!elements)throw error||Error('Sawantwadi road network unavailable');
+   // The full-town layer is display-only. Do not merge its thousands of
+   // distant nodes into the live junction graph.
    const lines=[];
-   for(const way of elements){if(way.type!=='way'||!isDriveRoad(way)||!Array.isArray(way.geometry)||way.geometry.length<2)continue;const coords=way.geometry.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)).map(p=>[p.lat,p.lon]);if(coords.length>1)lines.push(coords)}
-   if(!lines.length)throw Error('No drivable roads returned for next map area');
-   townBounds=requestedBounds;townRoadLines=lines;townLoadedAt=Date.now();scheduleTownCache();return townRoadLines.length;
-  })().finally(()=>{townPending=null});return townPending;
+   for(const way of elements){
+    if(way.type!=='way'||!isDriveRoad(way)||!Array.isArray(way.geometry)||way.geometry.length<2)continue;
+    const coords=way.geometry.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)).map(p=>[p.lat,p.lon]);
+    if(coords.length>1)lines.push(coords);
+   }
+   if(!lines.length)throw Error('No drivable Sawantwadi roads were returned');
+   townRoadLines=lines;townLoadedAt=Date.now();scheduleTownCache();
+   return townRoadLines.length;
+  })().finally(()=>{townPending=null});
+  return townPending;
  }
  function getTownRoadLines(){return townRoadLines;}
- function getTownBounds(){return {...townBounds};}
  async function query(center,url){
   const q='[out:json][timeout:18];way(around:'+RADIUS+','+center.lat+','+center.lng+')["highway"]["area"!="yes"];out body geom;';
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),19000);
@@ -231,5 +235,5 @@
   return points.length>1?points:[];
  }
  function hasCoverage(center){return !!(center&&lastCenter&&nodeEdges.size&&distance(lastCenter,center)<RADIUS*.92)}
- window.Sho1re1RoadGraph={preload,refresh,loadTown,getTownRoadLines,getTownBounds,getBranches,getBranchPath,hasCoverage,stats:()=>({nodes:nodeEdges.size,buckets:spatialIndex.size,updatedAt:lastFetchAt,center:lastCenter,cacheReady:!!cacheLoadPromise,loading:!!pending||!!townPending,townRoads:townRoadLines.length})};
+ window.Sho1re1RoadGraph={preload,refresh,loadTown,getTownRoadLines,getBranches,getBranchPath,hasCoverage,stats:()=>({nodes:nodeEdges.size,buckets:spatialIndex.size,updatedAt:lastFetchAt,center:lastCenter,cacheReady:!!cacheLoadPromise,loading:!!pending||!!townPending,townRoads:townRoadLines.length})};
 })();
