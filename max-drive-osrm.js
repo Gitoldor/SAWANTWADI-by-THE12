@@ -129,6 +129,8 @@
   function frame(now){
     if(!active)return;if(!lastFrame)lastFrame=now;const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
     const throttle=Math.max(0,Math.min(1,-joystick.y));
+    // Re-route while the user is steering, not only when the current road ends.
+    if(throttle>.16&&joystick.active&&routePoints.length>1&&!routeBusy)requestRoute(false);
     if(throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
       const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;setCar(at.point,at.angle);mapRef.panTo(at.point,{animate:false});
