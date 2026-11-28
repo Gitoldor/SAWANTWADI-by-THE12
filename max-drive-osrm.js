@@ -21,6 +21,8 @@
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
   let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
   let committedJunctionNodeId=null, committedJunctionPoint=null;
+  let townRoadGeometry=[];
+  let driveRevision=0;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -62,32 +64,94 @@
   function drawTownRoadLayer(lines){
     if(!Array.isArray(lines)||!lines.length)return false;
     if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
+    townRoadGeometry=lines;
     townRoadLayer=L.polyline(lines,{
       renderer:L.canvas(),color:'#078cff',weight:7,opacity:.9,
       lineCap:'round',lineJoin:'round',interactive:true,smoothFactor:1.4
     }).addTo(mapRef);
     townRoadLayer.on('click',e=>{
       if(!active||!e.latlng)return;
+      if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);
       jumpCarToRoad(e.latlng);
     });
     townRoadLayer.bringToBack();
     return true;
   }
-  function jumpCarToRoad(point){
+  function nearestTownRoadSegment(point){
+    if(!point||!townRoadGeometry.length)return null;
+    const cos=Math.cos(point.lat*Math.PI/180),toXY=p=>({
+      x:(Number(p[1])-point.lng)*111320*cos,
+      y:(Number(p[0])-point.lat)*110540
+    });
+    let best=null,bestSq=Infinity;
+    for(const line of townRoadGeometry){
+      if(!Array.isArray(line)||line.length<2)continue;
+      for(let i=1;i<line.length;i++){
+        const a=line[i-1],b=line[i];
+        if(!a||!b)continue;
+        const A=toXY(a),B=toXY(b),dx=B.x-A.x,dy=B.y-A.y;
+        const denom=dx*dx+dy*dy;
+        if(denom<.01)continue;
+        const t=Math.max(0,Math.min(1,(-(A.x*dx+A.y*dy))/denom));
+        const x=A.x+t*dx,y=A.y+t*dy,sq=x*x+y*y;
+        if(sq>=bestSq)continue;
+        const near=L.latLng(
+          Number(a[0])+(Number(b[0])-Number(a[0]))*t,
+          Number(a[1])+(Number(b[1])-Number(a[1]))*t
+        );
+        bestSq=sq;
+        best={point:near,distance:Math.sqrt(sq),bearing:bearing(
+          L.latLng(Number(a[0]),Number(a[1])),
+          L.latLng(Number(b[0]),Number(b[1]))
+        )};
+      }
+    }
+    if(!best)return null;
+    const reverse=(best.bearing+180)%360;
+    best.heading=angleDifference(best.bearing,currentHeading)<=angleDifference(reverse,currentHeading)
+      ?best.bearing:reverse;
+    return best;
+  }
+  async function jumpCarToRoad(point){
     if(!active||!point)return;
+    const revision=++driveRevision;
     const target=L.latLng(point.lat,point.lng);
+    const road=nearestTownRoadSegment(target);
+    const snapOrigin=road&&road.distance<65?road.point:target;
+    const heading=road&&road.distance<65?road.heading:currentHeading;
     clearRoute();
-    currentPoint=target;
-    // Face toward the nearest road continuation from the clicked road point.
-    const graph=window.Sho1re1RoadGraph;
-    const nearby=graph&&graph.getBranches?graph.getBranches(target,90,null):[];
-    if(nearby.length)currentHeading=nearby[0].bearing;
+    routeBusy=false;
+    lastHeading=null;lastRouteAt=0;lastSteerRouteAt=0;
+    committedJunctionNodeId=null;committedJunctionPoint=null;
     selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
     waitingForJunctionChoice=false;
+    currentPoint=snapOrigin;
+    currentHeading=heading;
+    setCar(currentPoint,currentHeading);
+    mapRef.panTo(currentPoint,{animate:false});
+    setStatus('ALIGNING CAR TO SELECTED ROAD…');
+    try{
+      // This is a map-tap road snap, never a device-GPS lookup. The heading
+      // constraint keeps Valhalla from snapping onto a nearby parallel road.
+      const snapped=await snapToRoad(snapOrigin,heading,28);
+      if(!active||revision!==driveRevision)return;
+      if(mapRef.distance(snapOrigin,snapped)>45)throw new Error('Nearest drivable match is not the selected road');
+      currentPoint=snapped;
+    }catch(err){
+      if(!active||revision!==driveRevision)return;
+      console.warn('MAX tapped-road snap:',err);
+      // Keep the car on the exact OSM line instead of allowing a wrong-road snap.
+    }
+    if(!active||revision!==driveRevision)return;
     setCar(currentPoint,currentHeading);
     mapRef.panTo(currentPoint,{animate:false});
     setStatus('CAR MOVED TO SELECTED ROAD · PUSH DRIVE TO MOVE');
-    refreshJunctionChoices();
+    const graph=window.Sho1re1RoadGraph;
+    if(graph&&graph.refresh){
+      graph.refresh(currentPoint).then(()=>{
+        if(active&&revision===driveRevision)refreshJunctionChoices();
+      }).catch(err=>console.warn('MAX tapped-road junction refresh:',err));
+    }else refreshJunctionChoices();
   }
   function buildUI(){
     if(ui)return;
@@ -179,11 +243,11 @@
     if(!data.routes||!data.routes.length)throw new Error('Valhalla found no drivable route');
     return data;
   }
-  async function snapToRoad(p,heading){
+  async function snapToRoad(p,heading,headingTolerance=55){
     const location={lat:p.lat,lon:p.lng};
     if(Number.isFinite(heading)){
       location.heading=(heading+360)%360;
-      location.heading_tolerance=55;
+      location.heading_tolerance=headingTolerance;
     }
     const data=await valhallaPost('/locate',{locations:[location],costing:'auto',verbose:false});
     const first=Array.isArray(data)?data[0]:null;
@@ -396,6 +460,7 @@
   function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
   async function chooseTurn(heading,junctionPoint,branch){
     if(!active||routeBusy||!currentPoint)return;
+    const revision=driveRevision;
     routeBusy=true;setStatus('LOCKING SELECTED ROAD…');
     try{
       const turnPoint=junctionPoint||currentPoint;
@@ -413,7 +478,8 @@
         {heading:chosen,heading_tolerance:18,type:'through'},
         {heading:endpointHeading,heading_tolerance:30}
       ]);
-      // OSRM can return several valid paths. Inspect each one at the
+      if(!active||revision!==driveRevision)return;
+      // Inspect each valid path at the
       // selected junction and choose the route that actually exits along
       // the tapped OSM branch (rather than blindly taking routes[0]).
       const candidates=data.routes||[];
@@ -451,7 +517,7 @@
       selectedBranchCommit=false;
       setStatus('COULD NOT LOCK THAT ROAD · TRY THE BLUE LINE');
       console.warn('MAX Valhalla turn selection:',err);
-    }finally{routeBusy=false}
+    }finally{if(revision===driveRevision)routeBusy=false}
   }
   async function requestRoute(force){
     if(!active||routeBusy||!joystick.active||waitingForJunctionChoice)return;
@@ -461,18 +527,20 @@
     const throttle=Math.max(0,Math.min(1,-joystick.y));if(throttle<.16)return;
     const heading=(currentHeading+joystick.x*82+360)%360;
     if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<24&&routeDistance<routeTotal-45)return;
+    const revision=driveRevision;
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
       const from=currentPoint,aim=destination(from,heading,ROUTE_LOOKAHEAD_METERS);
       const data=await valhallaRoute([from,aim],[
-        {heading:currentHeading,heading_tolerance:45},
+        {heading:currentHeading,heading_tolerance:30},
         {heading:heading,heading_tolerance:45}
       ]);
+      if(!active||revision!==driveRevision)return;
       const route=data.routes&&data.routes[0],coords=route&&route.geometry&&route.geometry.coordinates;
       if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
       setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);refreshJunctionChoices();setStatus('ROAD NETWORK · '+Math.round(route.distance)+' M AHEAD');
     }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX Valhalla route:',err)}
-    finally{routeBusy=false}
+    finally{if(revision===driveRevision)routeBusy=false}
   }
   function frame(now){
     if(!active)return;
@@ -579,6 +647,7 @@
     if(err)console.warn('MAX Drive start:',err);
   }
   function stop(){
+    driveRevision++;routeBusy=false;
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     committedJunctionNodeId=null;committedJunctionPoint=null;
