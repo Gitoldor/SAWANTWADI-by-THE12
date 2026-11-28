@@ -62,7 +62,7 @@
       const graphWarm = window.Sho1re1RoadGraph && window.Sho1re1RoadGraph.preload
         ? window.Sho1re1RoadGraph.preload().catch(error => console.warn('MAX graph cache preload:', error))
         : Promise.resolve();
-      await addScript('./max-drive-osrm.js?v=20261128noarrows1');
+      await addScript('./max-drive-osrm.js?v=20261128turnlistremoved1');
       // Do not block Drive controls on optional cache warming.
       Promise.all([mapWarm, graphWarm]).catch(() => {});
       loaded = true;
