@@ -45,12 +45,26 @@
   pending=(async()=>{let data,error;for(const url of ENDPOINTS){try{data=await query(snapshot,url);break}catch(e){error=e}}if(!data)throw error||Error('Road graph unavailable');build(data);lastCenter=snapshot;lastFetchAt=Date.now();return true})().finally(()=>{pending=null});
   return pending;
  }
- function getBranches(center,maxDistance=1400){
+ function getBranches(center,maxDistance=1400,heading=null){
   if(!center||!nodeEdges.size)return [];
   const out=[];
-  for(const [id,node] of nodeEdges){if(node.edges.length<3)continue;const d=distance(center,node.point);if(d<28||d>maxDistance)continue;
-   const seen=new Set();for(const edge of node.edges){const key=id+':'+Math.round(edge.bearing);if(seen.has(key))continue;seen.add(key);out.push({key,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d})}
-  }return out;
+  const angular=(a,b)=>Math.abs(((a-b+540)%360)-180);
+  for(const [id,node] of nodeEdges){
+   const d=distance(center,node.point);if(d<28||d>maxDistance)continue;
+   const arms=[];
+   for(const edge of node.edges){
+    // A normal two-way road has one forward and one reverse edge; it is not a junction.
+    if(heading!==null&&angular(edge.bearing,heading)>148)continue;
+    if(arms.some(a=>angular(a.bearing,edge.bearing)<22))continue;
+    arms.push(edge);
+   }
+   if(arms.length<2)continue;
+   for(const edge of arms){
+    const key=id+':'+Math.round(edge.bearing/8)*8;
+    out.push({key,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d});
+   }
+  }
+  return out;
  }
  window.Sho1re1RoadGraph={refresh,getBranches,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending})};
 })();
