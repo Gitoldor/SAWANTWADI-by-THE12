@@ -35,8 +35,10 @@
     .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
     .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
     #sho1re1-drive-ui[hidden]{display:none}
-    .sho1re1-junction-arrow{width:31px;height:31px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#087de0;color:#fff;font:900 19px system-ui;box-shadow:0 2px 12px #0009;cursor:pointer}
-    .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.12)}
+    .sho1re1-arrow-icon{background:transparent!important;border:0!important}
+    .sho1re1-junction-arrow{width:44px;height:44px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#006fe8;color:#fff;box-shadow:0 3px 16px #001a35cc,0 0 0 4px #087de044;cursor:pointer;touch-action:manipulation}
+    .sho1re1-junction-arrow svg{width:29px;height:29px;filter:drop-shadow(0 1px 2px #00264f)}
+    .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.14)}
     #sho1re1-turn-choices{position:absolute;left:12px;bottom:calc(22px + env(safe-area-inset-bottom));width:min(190px,calc(100vw - 178px));display:none;flex-direction:column;gap:7px;pointer-events:auto;z-index:4}
     #sho1re1-turn-choices.show{display:flex}
     .sho1re1-turn-choice{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:8px 11px;border:1px solid #ffffff55;border-radius:13px;background:rgba(8,19,31,.94);color:#fff;text-align:left;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0008;touch-action:manipulation}
@@ -222,6 +224,7 @@
     clearRoute();routePoints=coords.map(c=>L.latLng(c[1],c[0]));routeSteps=steps||[];
     for(let i=1;i<routePoints.length;i++){const d=mapRef.distance(routePoints[i-1],routePoints[i]);routeLengths.push(d);routeTotal+=d}
     if(routePoints.length<2||routeTotal<2)throw new Error('Valhalla returned an unusable road route');
+    currentHeading=bearing(routePoints[0],routePoints[1]);
     routeLine=L.polyline(routePoints,{color:'#27a7ff',weight:5,opacity:.78,lineCap:'round',lineJoin:'round',interactive:false}).addTo(mapRef);
   }
   function pointAt(distance){
@@ -355,8 +358,9 @@
       found.forEach(item=>{
         if(junctionMarkers.some(x=>x.key===item.key))return;
         const arrow=branchArrowPlacement(item);
-        const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+arrow.heading+'deg)">↑</div>',iconSize:[36,36],iconAnchor:[18,18]});
-        const marker=L.marker(arrow.point,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
+        const arrowSvg='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 17h-8v13h-10V17H3Z" fill="#fff" stroke="#063b78" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+        const icon=L.divIcon({className:'sho1re1-arrow-icon',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+arrow.heading+'deg)">'+arrowSvg+'</div>',iconSize:[48,48],iconAnchor:[24,24]});
+        const marker=L.marker(arrow.point,{keyboard:false,zIndexOffset:15000,pane:'markerPane',icon,interactive:true}).addTo(mapRef);
         marker.bindTooltip('TAP ARROW TO DRIVE ONTO THIS ROAD',{direction:'top'});
         marker.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);chooseTurn(item.bearing,item.point,item)});
         junctionMarkers.push({key:item.key,marker});
