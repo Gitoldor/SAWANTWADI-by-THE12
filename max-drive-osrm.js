@@ -23,6 +23,7 @@
   let committedJunctionNodeId=null, committedJunctionPoint=null;
   let townRoadGeometry=[];
   let driveRevision=0, driveFacingBack=false, uTurnButton=null;
+  let lastVisualPoint=null,lastVisualHeading=NaN;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -128,6 +129,7 @@
     waitingForJunctionChoice=false;
     currentPoint=snapOrigin;
     currentHeading=heading;
+    lastVisualPoint=null;lastVisualHeading=NaN;
     setCar(currentPoint,currentHeading);
     mapRef.panTo(currentPoint,{animate:false});
     setStatus('ALIGNING CAR TO SELECTED ROAD…');
@@ -189,6 +191,7 @@
       uTurnButton.textContent=driveFacingBack?'↻ U-TURN':'↶ U-TURN';
     }
     setCar(currentPoint,currentHeading);
+    lastVisualPoint=L.latLng(currentPoint.lat,currentPoint.lng);lastVisualHeading=currentHeading;
     if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.setCamera(currentHeading,42);
     setStatus(driveFacingBack?'FACING BACK · DRIVE IN THIS DIRECTION':'FACING FORWARD · DRIVE IN THIS DIRECTION');
     refreshJunctionChoices();
@@ -504,11 +507,15 @@
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(!selectedBranch&&!waitingForJunctionChoice&&throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
     if(!selectedBranch&&!waitingForJunctionChoice&&throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
-    // Follow the vehicle continuously: pan the map beneath it so the car
-    // remains at the centre of the screen throughout simulated movement.
-    if(currentPoint){
+    // Avoid repeatedly asking Leaflet to redraw an unchanged map while
+    // the joystick is idle. During movement, keep the same per-frame follow.
+    if(currentPoint&&(!lastVisualPoint||
+      mapRef.distance(lastVisualPoint,currentPoint)>.15||
+      angleDifference(lastVisualHeading,currentHeading)>.25)){
       mapRef.panTo(currentPoint,{animate:false});
       setCar(currentPoint,currentHeading);
+      lastVisualPoint=L.latLng(currentPoint.lat,currentPoint.lng);
+      lastVisualHeading=currentHeading;
     }
     raf=requestAnimationFrame(frame);
   }
@@ -549,6 +556,7 @@
       // Start at the current map centre; the user chooses any blue road.
       currentPoint=mapRef.getCenter();
       currentHeading=0;driveFacingBack=false;
+      lastVisualPoint=L.latLng(currentPoint.lat,currentPoint.lng);lastVisualHeading=currentHeading;
       if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
       active=true;loading=false;ui.hidden=false;
       setCar(currentPoint,currentHeading);
@@ -599,7 +607,7 @@
     driveRevision++;routeBusy=false;driveFacingBack=false;
     townRoadLoadStarted=false;
     if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
-    active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
+    active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;lastVisualPoint=null;lastVisualHeading=NaN;joyEnd();
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     committedJunctionNodeId=null;committedJunctionPoint=null;
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
