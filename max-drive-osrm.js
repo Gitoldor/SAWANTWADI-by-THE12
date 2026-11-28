@@ -54,8 +54,18 @@
   function setStatus(v){if(status)status.textContent=v;}
   function junctionGraphReady(){
     const graph=window.Sho1re1RoadGraph;
-    if(!graph||!graph.stats)return false;
-    try{return Number(graph.stats().nodes)>0}catch(_){return false}
+    if(!graph||!currentPoint)return false;
+    try{return typeof graph.hasCoverage==='function'&&graph.hasCoverage(currentPoint)}catch(_){return false}
+  }
+  function drawTownRoadLayer(lines){
+    if(!Array.isArray(lines)||!lines.length)return false;
+    if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
+    townRoadLayer=L.polyline(lines,{
+      renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,
+      lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4
+    }).addTo(mapRef);
+    townRoadLayer.bringToBack();
+    return true;
   }
   function buildUI(){
     if(ui)return;
@@ -459,60 +469,79 @@
   }
   function restoreGpsMarker(){document.querySelectorAll('[data-drive-hidden="1"]').forEach(el=>{el.style.opacity='';delete el.dataset.driveHidden})}
   async function start(){
-    if(active||loading)return;loading=true;buildUI();ui.hidden=false;setStatus('VERIFYING MAX ACCESS…');
-    if(!hasMaxAccess()){const a=window.Sho1re1Pro;if(a)await a.refresh();if(!hasMaxAccess()){loading=false;ui.hidden=true;syncVisibility();return}}
+    if(active||loading)return;
+    loading=true;buildUI();ui.hidden=false;setStatus('VERIFYING MAX ACCESS…');
+    const graph=window.Sho1re1RoadGraph;
+    const graphWarm=graph&&graph.preload?graph.preload().catch(()=>null):Promise.resolve(null);
+    const roadMap=window.Sho1re1RoadMap;
+    const mapWarm=roadMap&&roadMap.preload?roadMap.preload().then(()=>({ok:true})).catch(error=>({error})):Promise.resolve({ok:true});
+    if(!hasMaxAccess()){
+      const a=window.Sho1re1Pro;if(a)await a.refresh();
+      if(!hasMaxAccess()){loading=false;ui.hidden=true;syncVisibility();return}
+    }
     if(!navigator.geolocation){loading=false;setStatus('GPS NOT AVAILABLE');return}
-    setStatus('LOADING OPENFREEMAP ROADS…');
+    setStatus('PREPARING GPS & ROAD CACHE…');
+    const gpsPromise=new Promise(resolve=>{
+      navigator.geolocation.getCurrentPosition(
+        pos=>resolve({pos}),
+        error=>resolve({error}),
+        {enableHighAccuracy:true,timeout:20000,maximumAge:3000}
+      );
+    });
+    const [gpsResult,mapResult]=await Promise.all([gpsPromise,mapWarm]);
+    if(gpsResult.error){failStart('LOCATION PERMISSION NEEDED',gpsResult.error);return}
+    if(mapResult.error){failStart('MAP LAYER FAILED',mapResult.error);return}
+    await graphWarm;
     try{
-      if(window.Sho1re1RoadMap){await window.Sho1re1RoadMap.enable(mapRef);roadMapEnabled=true}
+      if(roadMap){await roadMap.enable(mapRef);roadMapEnabled=true}
       else throw new Error('OpenFreeMap layer plugin is missing');
-    }catch(err){loading=false;setStatus('MAP LAYER FAILED');console.error('MAX OpenFreeMap:',err);return}
-    setStatus('GETTING PRECISE GPS…');
-    navigator.geolocation.getCurrentPosition(async pos=>{
-      try{
-        currentPoint=L.latLng(pos.coords.latitude,pos.coords.longitude);
-        setStatus('SNAPPING TO A REAL ROAD WITH VALHALLA…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
-        active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
-        if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
-        lockMapInteractions();
-        document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
-        if(window.Sho1re1RoadGraph){
-          const graph=window.Sho1re1RoadGraph;
-          // Load the nearby junction graph immediately; the full-town blue
-          // overlay can continue loading independently in the background.
-          graph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()})
-            .catch(err=>console.warn('MAX initial junction graph:',err));
-          if(!townRoadLoadStarted){
-            townRoadLoadStarted=true;setStatus('LOADING ALL SAWANTWADI ROADS…');
-            graph.loadTown(currentPoint).then(()=>{
-              if(!active)return;
-              const lines=graph.getTownRoadLines();
-              if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
-              townRoadLayer=L.polyline(lines,{
-                renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,
-                lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4
-              }).addTo(mapRef);
-              townRoadLayer.bringToBack();
-              setStatus('SAWANTWADI ROAD NETWORK · '+lines.length+' ROADS IN BLUE');
-              refreshJunctionChoices();
-            }).catch(err=>{
-              townRoadLoadStarted=false;
-              console.warn('MAX Sawantwadi road overlay:',err);
-              if(active)setStatus('TOWN ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
-            });
-          }else if(graph.getTownRoadLines().length){
+    }catch(err){failStart('MAP LAYER FAILED',err);return}
+    try{
+      const rawPoint=L.latLng(gpsResult.pos.coords.latitude,gpsResult.pos.coords.longitude);
+      // Start the nearby OSM request while Valhalla snaps GPS to the road.
+      const graphRequest=graph?graph.refresh(rawPoint).catch(err=>{
+        console.warn('MAX initial junction graph:',err);return false;
+      }):Promise.resolve(false);
+      setStatus('SNAPPING TO A REAL ROAD…');
+      currentPoint=await snapToRoad(rawPoint);currentHeading=0;
+      active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
+      if(roadMap){roadMap.setCamera(0,42);lastCameraBearing=0;}
+      cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
+      lockMapInteractions();
+      document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
+
+      if(graph){
+        // Draw the last saved town roads immediately; update them quietly
+        // if the background refresh returns newer OSM data.
+        const cachedTown=graph.getTownRoadLines();
+        if(cachedTown&&cachedTown.length)drawTownRoadLayer(cachedTown);
+        refreshJunctionChoices();
+        graphRequest.then(()=>{if(active)refreshJunctionChoices()});
+
+        if(!townRoadLoadStarted){
+          townRoadLoadStarted=true;
+          graph.loadTown(currentPoint).then(()=>{
+            if(!active)return;
             const lines=graph.getTownRoadLines();
-            townRoadLayer=L.polyline(lines,{renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4}).addTo(mapRef);
-            townRoadLayer.bringToBack();
+            if(lines&&lines.length)drawTownRoadLayer(lines);
+            if(status&&status.textContent==='STEER · TAP A ROAD ARROW AT ANY JUNCTION'){
+              setStatus('SAWANTWADI ROAD NETWORK · '+lines.length+' ROADS IN BLUE');
+            }
             refreshJunctionChoices();
-          }else{
-            graph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()}).catch(err=>console.warn('MAX road graph initial load:',err));
-          }
+          }).catch(err=>{
+            townRoadLoadStarted=false;
+            console.warn('MAX Sawantwadi road overlay:',err);
+            if(active&&(!status||status.textContent.startsWith('STEER')))setStatus('TOWN ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
+          });
         }
-        lastFrame=0;raf=requestAnimationFrame(frame);
-        gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
-      }catch(err){failStart('ROAD SNAP FAILED',err)}
-    },err=>{failStart('LOCATION PERMISSION NEEDED',err)},{enableHighAccuracy:true,timeout:20000,maximumAge:3000});
+      }
+      lastFrame=0;raf=requestAnimationFrame(frame);
+      gpsWatch=navigator.geolocation.watchPosition(
+        p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },
+        ()=>{},
+        {enableHighAccuracy:true,maximumAge:1500,timeout:10000}
+      );
+    }catch(err){failStart('ROAD SNAP FAILED',err)}
   }
   function failStart(label, err){
     loading=false;
