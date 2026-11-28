@@ -41,9 +41,9 @@
     try {
       await addScript('./max-road-map-openfreemap.js?v=20261128turnlock5');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128smallfork2');
+      await addScript('./max-road-graph.js?v=20261128townroads1');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128valhalla1');
+      await addScript('./max-drive-osrm.js?v=20261128townroads1');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
