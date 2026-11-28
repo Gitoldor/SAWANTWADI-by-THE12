@@ -636,26 +636,29 @@
       document.body.classList.add('sho1re1-driving');
       setStatus('TAP ANY BLUE ROAD TO MOVE THE CAR THERE');
       if(graph){
+        // Restore the complete fixed Sawantwadi blue-road overlay independently
+        // of the nearby junction graph. A graph/Overpass failure must not block it.
         const cachedTown=graph.getTownRoadLines();
         if(cachedTown&&cachedTown.length)drawTownRoadLayer(cachedTown);
-        graph.refresh(currentPoint).then(()=>{
-          if(!active)return;
-          refreshJunctionChoices();
-          if(townRoadLoadStarted)return;
+        if(!townRoadLoadStarted){
           townRoadLoadStarted=true;
           graph.loadTown(currentPoint).then(()=>{
             if(!active)return;
             const lines=graph.getTownRoadLines();
             if(lines&&lines.length)drawTownRoadLayer(lines);
-            setStatus('TAP ANY BLUE ROAD TO MOVE THE CAR THERE');
+            setStatus('ALL SAWANTWADI ROADS LOADED · TAP ANY BLUE ROAD');
           }).catch(err=>{
             townRoadLoadStarted=false;
             console.warn('MAX Sawantwadi road overlay:',err);
             if(active)setStatus('ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
           });
+        }
+        graph.refresh(currentPoint).then(()=>{
+          if(!active)return;
+          refreshJunctionChoices();
         }).catch(err=>{
           console.warn('MAX initial junction graph:',err);
-          if(active)setStatus('TAP ANY BLUE ROAD · JUNCTION DATA UNAVAILABLE');
+          if(active)setStatus('BLUE ROAD MAP · JUNCTION DATA UNAVAILABLE');
         });
       }
       lastFrame=0;raf=requestAnimationFrame(frame);
