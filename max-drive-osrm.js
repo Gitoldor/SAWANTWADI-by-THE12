@@ -153,31 +153,19 @@
   }
   let graphRefreshPending=false;
   async function fetchBranchHighlights(found){
-    if(!found.length)return;
     const signature=found.map(x=>x.key).sort().join('|');
     if(signature===branchFetchKey||branchFetchBusy)return;
     branchFetchBusy=true;branchFetchKey=signature;
     const version=++branchFetchVersion;
-    const results=await Promise.all(found.map(async item=>{
-      try{
-        const end=await snapToRoad(destination(item.point,item.bearing,420),item.bearing);
-        const heading=Math.round(item.bearing);
-        const path='/route/v1/driving/'+item.point.lng+','+item.point.lat+';'+end.lng+','+end.lat+'?overview=full&geometries=geojson&steps=false&alternatives=false&continue_straight=true&bearings='+heading+',35;'+heading+',45';
-        const data=await osrm(path),route=data.routes&&data.routes[0];
-        if(!route||!route.geometry||!route.geometry.coordinates||route.geometry.coordinates.length<2)throw Error('No road geometry');
-        return {item,coords:route.geometry.coordinates};
-      }catch(error){console.warn('MAX branch highlight unavailable:',item.key,error);return null}
-    }));
     if(version!==branchFetchVersion||!active){branchFetchBusy=false;return}
     branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
-    results.filter(Boolean).forEach(({item,coords})=>{
-      const line=L.polyline(coords.map(c=>[c[1],c[0]]),{color:'#078cff',weight:8,opacity:.88,lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false}).addTo(mapRef);
-      line.on('click',()=>chooseTurn(item.bearing,item.point));
-      line.bindTooltip('SELECT THIS ROAD',{sticky:true,direction:'top'});
-      branchLines.push(line);
+    found.forEach(item=>{
+      const coords=item.path||[];if(coords.length<2)return;
+      const line=L.polyline(coords.map(p=>[p.lat,p.lng]),{color:'#078cff',weight:8,opacity:.9,lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false}).addTo(mapRef);
+      line.on('click',()=>chooseTurn(item));
+      line.bindTooltip('SELECT THIS ROAD',{sticky:true,direction:'top'});branchLines.push(line);
     });
-    branchFetchBusy=false;
-    if(branchLines.length)setStatus('CHOOSE A BLUE ROAD AT THE JUNCTION');
+    branchFetchBusy=false;if(branchLines.length)setStatus('CHOOSE A BLUE ROAD AT THE JUNCTION');
   }
   function refreshJunctionChoices(){
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
@@ -202,7 +190,7 @@
         const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
         const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
         marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-        marker.on('click',()=>chooseTurn(item.bearing,item.point));
+        marker.on('click',()=>chooseTurn(item));
         junctionMarkers.push({key:item.key,marker});
       });
     }else if(!branchFetchBusy&&branchFetchKey){
@@ -210,21 +198,18 @@
       branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
     }
   }
-  async function chooseTurn(heading,junctionPoint){
-    if(!active||routeBusy)return;
-    routeBusy=true;setStatus('LOADING SELECTED ROAD…');
+  async function chooseTurn(branch){
+    if(!active||routeBusy||!branch)return;
+    routeBusy=true;setStatus('LOCKING YOUR SELECTED ROAD…');
     try{
-      const turnPoint=junctionPoint||currentPoint;
-      const aim=destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
-      const snapped=await snapToRoad(aim,heading);
-      const via=junctionPoint?';'+junctionPoint.lng+','+junctionPoint.lat:'';
-      const chosen=Math.round((heading+360)%360);
-      const bearings='&bearings=;'+chosen+',30;'+chosen+',45';
-      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+via+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true'+bearings);
-      const route=data.routes&&data.routes[0];if(!route||!route.geometry)throw new Error('That turn has no connected road');
-      setRoute(route.geometry.coordinates,route.legs&&route.legs[0]&&route.legs[0].steps);
-      refreshJunctionChoices();setStatus('ROAD CHANGED · KEEP DRIVING');
-    }catch(err){setStatus('THAT TURN IS UNAVAILABLE');console.warn('MAX turn selection:',err)}
+      const graph=window.Sho1re1RoadGraph,branchPath=graph&&graph.getBranchPath(branch);
+      if(!branchPath||branchPath.length<2)throw new Error('Selected road geometry is unavailable');
+      const approach=graph.shortestPath(currentPoint,branch.point);
+      if(!approach||approach.length<1)throw new Error('Could not connect your position to that junction');
+      const coords=approach.map(p=>[p.lng,p.lat]);
+      branchPath.forEach(p=>{const last=coords[coords.length-1];if(!last||Math.abs(last[0]-p.lng)>1e-9||Math.abs(last[1]-p.lat)>1e-9)coords.push([p.lng,p.lat])});
+      setRoute(coords,[]);refreshJunctionChoices();setStatus('YOUR ROAD SELECTED · NO AUTO-ROUTING');
+    }catch(err){setStatus('ROAD CONNECTION NOT LOADED · WAIT AND RETRY');console.warn('MAX graph turn selection:',err)}
     finally{routeBusy=false}
   }
   async function requestRoute(force){
@@ -235,12 +220,11 @@
     if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<24&&routeDistance<routeTotal-45)return;
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
-      const from=currentPoint,aim=destination(from,heading,ROUTE_LOOKAHEAD_METERS),snapped=await snapToRoad(aim,heading);
-      const bearingHint=Math.round((heading+360)%360);
-      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true&bearings='+bearingHint+',45;'+bearingHint+',45');
-      const route=data.routes&&data.routes[0],coords=route&&route.geometry&&route.geometry.coordinates;
-      if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
-      setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);refreshJunctionChoices();setStatus('ROAD NETWORK · '+Math.round(route.distance)+' M AHEAD');
+      const graph=window.Sho1re1RoadGraph;if(!graph)throw new Error('Road graph is not ready');
+      await graph.refresh(currentPoint);
+      const branches=graph.getBranches(currentPoint,ROUTE_LOOKAHEAD_METERS,currentHeading);
+      if(branches.length){refreshJunctionChoices();setStatus('CHOOSE A BLUE ROAD · '+branches.length+' OPTIONS');return}
+      throw new Error('No junction branches loaded ahead · wait for road data');
     }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
     finally{routeBusy=false}
   }
@@ -253,9 +237,12 @@
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
       const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
-      if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
-    }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
-    if(throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
+      if(routeDistance>=routeTotal-8){clearRoute();setStatus('ROAD END · SELECT A BLUE BRANCH');refreshJunctionChoices()}
+    }else if(throttle>.16&&routePoints.length===0&&!routeBusy){
+      if(now-lastJunctionRefresh>500){refreshJunctionChoices();lastJunctionRefresh=now}
+      if(!branchLines.length)setStatus('ROAD DATA LOADING · WAIT FOR BLUE BRANCHES');
+    }
+    // Steering never asks an external router to select a road; junction choices are explicit.
     // Follow the vehicle continuously: pan the map beneath it so the car
     // remains at the centre of the screen throughout simulated movement.
     if(currentPoint){
