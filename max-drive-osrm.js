@@ -52,6 +52,11 @@
     return !!(a&&a.getCached()===true&&/MAX/i.test(String(a.getPlanId()||'')));
   }
   function setStatus(v){if(status)status.textContent=v;}
+  function junctionGraphReady(){
+    const graph=window.Sho1re1RoadGraph;
+    if(!graph||!graph.stats)return false;
+    try{return Number(graph.stats().nodes)>0}catch(_){return false}
+  }
   function buildUI(){
     if(ui)return;
     driveButton=document.createElement('button');driveButton.id='sho1re1-drive-button';driveButton.type='button';driveButton.textContent='START DRIVE';driveButton.hidden=true;document.body.appendChild(driveButton);
@@ -281,7 +286,7 @@
       branchLines.push(line);
     });
     branchFetchBusy=false;
-    if(branchLines.length)setStatus('TAP A BLUE ROAD TO SELECT YOUR TURN');
+    if(branchLines.length)setStatus(waitingForJunctionChoice?'JUNCTION AHEAD · CAR PAUSED · CHOOSE A BLUE ROAD':'TAP A BLUE ROAD TO SELECT YOUR TURN');
     else setStatus('JUNCTION FOUND · LOADING ROAD CONNECTIONS…');
   }
   function refreshJunctionChoices(){
@@ -303,7 +308,7 @@
     renderTurnChoices(found);
     if(!graphRefreshPending){
       graphRefreshPending=true;
-      graph.refresh(currentPoint).then(()=>{graphRefreshPending=false;if(active)refreshJunctionChoices()})
+      graph.refresh(currentPoint).then(updated=>{graphRefreshPending=false;if(active&&updated)refreshJunctionChoices()})
         .catch(err=>{graphRefreshPending=false;console.warn('MAX road graph refresh:',err)});
     }
     const keys=new Set(found.map(x=>x.key));
@@ -393,6 +398,10 @@
   }
   async function requestRoute(force){
     if(!active||routeBusy||!joystick.active||waitingForJunctionChoice)return;
+    if(!junctionGraphReady()){
+      if(!status||status.textContent!=='LOADING ROAD JUNCTION DATA…')setStatus('LOADING ROAD JUNCTION DATA…');
+      return;
+    }
     const now=Date.now();if(!force&&now-lastRouteAt<1100)return;
     const throttle=Math.max(0,Math.min(1,-joystick.y));if(throttle<.16)return;
     const heading=(currentHeading+joystick.x*82+360)%360;
@@ -469,6 +478,10 @@
         document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
         if(window.Sho1re1RoadGraph){
           const graph=window.Sho1re1RoadGraph;
+          // Load the nearby junction graph immediately; the full-town blue
+          // overlay can continue loading independently in the background.
+          graph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()})
+            .catch(err=>console.warn('MAX initial junction graph:',err));
           if(!townRoadLoadStarted){
             townRoadLoadStarted=true;setStatus('LOADING ALL SAWANTWADI ROADS…');
             graph.loadTown(currentPoint).then(()=>{
