@@ -16,6 +16,7 @@
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
+  let mapInteractionState=null, lastSteerRouteAt=0;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -182,7 +183,9 @@
       const aim=destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
       const snapped=await snapToRoad(aim,heading);
       const via=junctionPoint?';'+junctionPoint.lng+','+junctionPoint.lat:'';
-      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+via+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
+      const chosen=Math.round((heading+360)%360);
+      const bearings='&bearings=;'+chosen+',30;'+chosen+',45';
+      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+via+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true'+bearings);
       const route=data.routes&&data.routes[0];if(!route||!route.geometry)throw new Error('That turn has no connected road');
       setRoute(route.geometry.coordinates,route.legs&&route.legs[0]&&route.legs[0].steps);
       refreshJunctionChoices();setStatus('ROAD CHANGED · KEEP DRIVING');
@@ -198,7 +201,8 @@
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
       const from=currentPoint,aim=destination(from,heading,ROUTE_LOOKAHEAD_METERS),snapped=await snapToRoad(aim,heading);
-      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false');
+      const bearingHint=Math.round((heading+360)%360);
+      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true&bearings='+bearingHint+',45;'+bearingHint+',45');
       const route=data.routes&&data.routes[0],coords=route&&route.geometry&&route.geometry.coordinates;
       if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
       setRoute(coords,route.legs&&route.legs[0]&&route.legs[0].steps);refreshJunctionChoices();setStatus('ROAD NETWORK · '+Math.round(route.distance)+' M AHEAD');
@@ -216,6 +220,7 @@
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
+    if(throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
     // Follow the vehicle continuously: pan the map beneath it so the car
     // remains at the centre of the screen throughout simulated movement.
     if(currentPoint){
@@ -223,6 +228,16 @@
       setCar(currentPoint,currentHeading);
     }
     raf=requestAnimationFrame(frame);
+  }
+  function lockMapInteractions(){
+    if(mapInteractionState)return;
+    mapInteractionState={dragging:!!(mapRef.dragging&&mapRef.dragging.enabled&&mapRef.dragging.enabled())};
+    if(mapRef.dragging&&mapRef.dragging.disable)mapRef.dragging.disable();
+  }
+  function restoreMapInteractions(){
+    if(!mapInteractionState)return;
+    if(mapInteractionState.dragging&&mapRef.dragging&&mapRef.dragging.enable)mapRef.dragging.enable();
+    mapInteractionState=null;
   }
   function hideGpsMarker(){
     document.querySelectorAll('.sho1re1-live-user-marker,.sho1re1-user-accuracy').forEach(el=>{el.dataset.driveHidden='1';el.style.opacity='0'});
@@ -244,7 +259,9 @@
         setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
         if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
+        lockMapInteractions();
         document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
+        if(window.Sho1re1RoadGraph){window.Sho1re1RoadGraph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()}).catch(err=>console.warn('MAX road graph initial load:',err));}
         lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
@@ -264,6 +281,7 @@
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
+    restoreMapInteractions();
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
   buildUI();
