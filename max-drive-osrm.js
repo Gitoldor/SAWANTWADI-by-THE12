@@ -256,22 +256,36 @@
       const coords=currentPoint.lng+','+currentPoint.lat+';'+turnPoint.lng+','+turnPoint.lat+';'+snapped.lng+','+snapped.lat;
       const hints='&bearings=;'+chosen+',18;'+Math.round((endpointHeading+360)%360)+',30';
       const data=await osrm('/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true&alternatives=true&continue_straight=false'+hints);
-      const route=data.routes&&data.routes[0],geometry=route&&route.geometry&&route.geometry.coordinates;
-      if(!geometry||geometry.length<3)throw new Error('That turn has no connected road');
-      // Do not accept an OSRM route that quietly leaves the junction by a
-      // different arm from the one the user tapped.
-      let junctionIndex=0,best=Infinity;
-      for(let i=0;i<geometry.length;i++){
-        const p=L.latLng(geometry[i][1],geometry[i][0]),d=mapRef.distance(p,turnPoint);
-        if(d<best){best=d;junctionIndex=i}
+      // OSRM can return several valid paths. Inspect each one at the
+      // selected junction and choose the route that actually exits along
+      // the tapped OSM branch (rather than blindly taking routes[0]).
+      const candidates=data.routes||[];
+      let selected=null,selectedScore=Infinity;
+      for(const candidate of candidates){
+        const geometry=candidate.geometry&&candidate.geometry.coordinates;
+        if(!geometry||geometry.length<3)continue;
+        let junctionIndex=0,best=Infinity;
+        for(let i=0;i<geometry.length;i++){
+          const p=L.latLng(geometry[i][1],geometry[i][0]),dist=mapRef.distance(p,turnPoint);
+          if(dist<best){best=dist;junctionIndex=i}
+        }
+        if(best>45||junctionIndex>=geometry.length-1)continue;
+        // Measure the outgoing direction over a useful distance. The first
+        // geometry segment can be tiny/noisy on curved roads and at snapped nodes.
+        let sampleIndex=junctionIndex+1;
+        while(sampleIndex<geometry.length-1&&
+          mapRef.distance(
+            L.latLng(geometry[junctionIndex][1],geometry[junctionIndex][0]),
+            L.latLng(geometry[sampleIndex][1],geometry[sampleIndex][0])
+          )<22)sampleIndex++;
+        const sample=L.latLng(geometry[sampleIndex][1],geometry[sampleIndex][0]);
+        const actual=bearing(turnPoint,sample);
+        const deviation=angleDifference(actual,heading);
+        if(deviation<selectedScore){selectedScore=deviation;selected={route:candidate,geometry};}
       }
-      if(best>35||junctionIndex>=geometry.length-1)throw new Error('Selected junction was not reached');
-      const actual=bearing(
-        L.latLng(geometry[junctionIndex][1],geometry[junctionIndex][0]),
-        L.latLng(geometry[junctionIndex+1][1],geometry[junctionIndex+1][0])
-      );
-      if(angleDifference(actual,heading)>62)throw new Error('Router returned a different road');
-      setRoute(geometry,route.legs&&route.legs[0]&&route.legs[0].steps);
+      if(!selected)throw new Error('Router could not reach the selected junction');
+      if(selectedScore>72)throw new Error('Router did not follow the selected road ('+Math.round(selectedScore)+'° off)');
+      setRoute(selected.geometry,selected.route.legs&&selected.route.legs[0]&&selected.route.legs[0].steps);
       refreshJunctionChoices();
       setStatus('SELECTED ROAD LOCKED · KEEP DRIVING');
     }catch(err){
