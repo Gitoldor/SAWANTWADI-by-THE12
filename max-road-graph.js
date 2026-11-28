@@ -4,7 +4,7 @@
  if(window.__sho1re1RoadGraphLoaded)return;
  window.__sho1re1RoadGraphLoaded=true;
  const RADIUS=2600,TTL=12000,MIN_MOVE=170,CELL=.003;
- const ENDPOINTS=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter','https://ovp.dresel.systems/api-as/interpreter'];
+ const ENDPOINTS=['https://ovp.dresel.systems/api-as/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter'];
  const CACHE_DB='Sho1re1MaxRoadCache',CACHE_STORE='snapshots';
  let nodeEdges=new Map(),lastFetchAt=0,lastCenter=null,pending=null;
  let spatialIndex=new Map(),cacheDbPromise=null,cacheLoadPromise=null,graphPersistScheduled=false,townPersistScheduled=false;
