@@ -190,13 +190,31 @@ async function queryTown(url){
    if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>112)continue;
    const approach=Number.isFinite(travelHeading)?travelHeading:directionToNode;
    const back=(approach+180)%360;
+   // A normal road vertex (including a sharp curve) has only two connected
+   // graph edges. It is never a junction, regardless of the bend angle.
+   // Require at least three legal connected edges before testing branches.
+   if(!Array.isArray(node.edges)||node.edges.length<3)continue;
+   // Identify exactly one incoming edge: the edge most aligned with the
+   // direction from which the vehicle approaches this node. Do not classify
+   // a curved continuation as a second outgoing arm just because its angle
+   // differs from a straight line.
+   let incomingIndex=-1,incomingDeviation=Infinity;
+   for(let i=0;i<node.edges.length;i++){
+    const deviation=angleDifference(node.edges[i].bearing,back);
+    if(deviation<incomingDeviation){incomingDeviation=deviation;incomingIndex=i;}
+   }
+   // If no connected edge plausibly represents the approach road, this node
+   // is not a reliable junction candidate for the current travel direction.
+   if(incomingIndex<0||incomingDeviation>68)continue;
    const arms=[];
-   for(const edge of node.edges){
-    if(angleDifference(edge.bearing,back)<38)continue;
-    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<12))continue;
+   for(let i=0;i<node.edges.length;i++){
+    if(i===incomingIndex)continue;
+    const edge=node.edges[i];
+    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<16))continue;
     arms.push(edge);
    }
-   // Two distinct forward/legal arms are enough: e.g. continue OR turn.
+   // At least two distinct legal exits must remain after removing the
+   // incoming road: continue + side road, or two genuine turn options.
    if(arms.length<2)continue;
    for(const edge of arms){
     const key=id+':'+edge.to+':'+Math.round(edge.bearing);
