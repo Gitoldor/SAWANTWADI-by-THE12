@@ -15,7 +15,7 @@
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
-  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
+  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0, savedInteractions=null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -205,15 +205,37 @@
     }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
     finally{routeBusy=false}
   }
+  function lockMapInteractions(){
+    if(savedInteractions)return;
+    const names=['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard'];
+    savedInteractions={};
+    names.forEach(name=>{const h=mapRef[name];savedInteractions[name]=!!(h&&h.enabled&&h.enabled());if(h&&h.disable)h.disable();});
+  }
+  function restoreMapInteractions(){
+    if(!savedInteractions)return;
+    Object.keys(savedInteractions).forEach(name=>{const h=mapRef[name];if(savedInteractions[name]&&h&&h.enable)h.enable();});
+    savedInteractions=null;
+  }
+  function keepCarAtScreenCentre(){
+    if(!currentPoint)return;
+    // setView is synchronous with animate:false: the car's geographic point is always the map centre.
+    mapRef.setView(currentPoint,mapRef.getZoom(),{animate:false});
+    setCar(currentPoint,cameraAngle);
+  }
   function frame(now){
-    if(!active)return;if(!lastFrame)lastFrame=now;const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
+    if(!active)return;
+    if(!lastFrame)lastFrame=now;
+    const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
     const throttle=Math.max(0,Math.min(1,-joystick.y));
     if(throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
-      const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;rotateMapTo(currentHeading);setCar(at.point,cameraAngle);mapRef.panTo(at.point,{animate:false});
+      const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;
+      rotateMapTo(currentHeading);
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
+    // Re-centre every animation frame, even while stopped, loading, or turning.
+    keepCarAtScreenCentre();
     raf=requestAnimationFrame(frame);
   }
   function hideGpsMarker(){
@@ -236,7 +258,7 @@
         setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
         if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});beginMapRotation();
-        document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
+        lockMapInteractions();document.body.classList.add('sho1re1-driving');keepCarAtScreenCentre();setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
         lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
@@ -255,7 +277,7 @@
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
-    endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
+    endMapRotation();cameraAngle=0;restoreMapInteractions();if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
   buildUI();
