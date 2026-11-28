@@ -68,16 +68,23 @@
     if(!Array.isArray(lines)||!lines.length)return false;
     if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
     townRoadGeometry=lines;
+    // Keep the town roads above the MapLibre GL basemap instead of sharing
+    // Leaflet's default overlay pane, where the GL canvas can cover them.
+    const paneName='sho1re1TownRoadsPane';
+    const pane=mapRef.getPane(paneName)||mapRef.createPane(paneName);
+    pane.style.zIndex='450';
+    pane.style.pointerEvents='auto';
+    const renderer=L.canvas({pane:paneName});
     townRoadLayer=L.polyline(lines,{
-      renderer:L.canvas(),color:'#078cff',weight:7,opacity:.9,
-      lineCap:'round',lineJoin:'round',interactive:true,smoothFactor:1.4
+      pane:paneName,renderer,color:'#078cff',weight:7,opacity:.96,
+      lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false,smoothFactor:1.4
     }).addTo(mapRef);
     townRoadLayer.on('click',e=>{
       if(!active||!e.latlng)return;
       if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);
       jumpCarToRoad(e.latlng);
     });
-    townRoadLayer.bringToBack();
+    townRoadLayer.bringToFront();
     return true;
   }
   function nearestTownRoadSegment(point){
@@ -675,6 +682,7 @@
   }
   function stop(){
     driveRevision++;routeBusy=false;driveFacingBack=false;
+    townRoadLoadStarted=false;
     if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
