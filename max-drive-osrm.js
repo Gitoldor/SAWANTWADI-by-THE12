@@ -17,7 +17,7 @@
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
-  let townRoadLayer=null,townRoadLoadStarted=false,townTileCheckAt=0;
+  let townRoadLayer=null,townRoadLoadStarted=false;
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
   let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
   let committedJunctionNodeId=null, committedJunctionPoint=null;
@@ -588,14 +588,6 @@
       mapRef.panTo(currentPoint,{animate:false});
       setCar(currentPoint,currentHeading);
     }
-    if(currentPoint&&now-townTileCheckAt>1200&&window.Sho1re1RoadGraph&&window.Sho1re1RoadGraph.loadTown){
-      townTileCheckAt=now;const graph=window.Sho1re1RoadGraph;
-      const before=graph.getTownBounds?JSON.stringify(graph.getTownBounds()):'';
-      graph.loadTown(currentPoint).then(()=>{
-        if(!active)return;const after=graph.getTownBounds?JSON.stringify(graph.getTownBounds()):'';
-        if(after&&after!==before){const lines=graph.getTownRoadLines();if(lines&&lines.length)drawTownRoadLayer(lines);setStatus('ROAD MAP UPDATED · NEXT AREA LOADED')}
-      }).catch(err=>console.warn('MAX progressive road tile:',err));
-    }
     raf=requestAnimationFrame(frame);
   }
   function lockMapInteractions(){
@@ -682,7 +674,7 @@
     driveRevision++;routeBusy=false;driveFacingBack=false;
     if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
-    if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;townRoadGeometry=[];townTileCheckAt=0;restoreGpsMarker();
+    if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     committedJunctionNodeId=null;committedJunctionPoint=null;
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     restoreMapInteractions();
