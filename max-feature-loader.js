@@ -41,7 +41,7 @@
     try {
       await addScript('./max-road-map-openfreemap.js?v=20261128turnlock5');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128turnlock5');
+      await addScript('./max-road-graph.js?v=20261128smallfork2');
       if (!isMax()) return;
       await addScript('./max-drive-osrm.js?v=20261128joybranch1');
       loaded = true;
