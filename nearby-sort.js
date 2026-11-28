@@ -252,6 +252,8 @@
   try {
     if (typeof map !== 'undefined' && map && typeof map.on === 'function') {
       map.on('click', function (event) {
+        if (window.Sho1re1Drive && window.Sho1re1Drive.isActive &&
+            window.Sho1re1Drive.isActive()) return;
         if (!event || !event.latlng || !event.originalEvent) return;
         setManualOrigin(event.latlng.lat, event.latlng.lng);
       });
