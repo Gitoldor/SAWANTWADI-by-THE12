@@ -270,6 +270,29 @@
     });
     panel.classList.toggle('show',found.length>0);
   }
+  function branchArrowPlacement(item){
+    const graph=window.Sho1re1RoadGraph;
+    const path=graph&&graph.getBranchPath?graph.getBranchPath(item,150):[];
+    if(!Array.isArray(path)||path.length<2){
+      return {point:destination(item.point,item.bearing,34),heading:item.bearing};
+    }
+    let remaining=32;
+    for(let i=1;i<path.length;i++){
+      const a=L.latLng(path[i-1].lat,path[i-1].lng),b=L.latLng(path[i].lat,path[i].lng);
+      const length=mapRef.distance(a,b);
+      if(length>=remaining){
+        const t=length?remaining/length:0;
+        return {
+          point:L.latLng(a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t),
+          heading:bearing(a,b)
+        };
+      }
+      remaining-=length;
+    }
+    const a=L.latLng(path[path.length-2].lat,path[path.length-2].lng);
+    const b=L.latLng(path[path.length-1].lat,path[path.length-1].lng);
+    return {point:b,heading:bearing(a,b)};
+  }
   async function fetchBranchHighlights(found){
     if(!found.length)return;
     renderTurnChoices(found);
@@ -291,12 +314,12 @@
         interactive:true,bubblingMouseEvents:false,renderer:L.canvas()
       }).addTo(mapRef);
       line._shoBranch=item;
-      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();waitingForJunctionChoice=false;selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(other=>other.setStyle({color:other===line?'#ef3434':'#078cff',weight:other===line?16:13,opacity:other===line?1:.58}));selectedBranchLine=line;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
+      line.on('click',e=>{if(e.originalEvent){e.originalEvent.preventDefault();e.originalEvent.stopPropagation()}chooseTurn(item.bearing,item.point,item)});
       line.bindTooltip('TAP TO SELECT THIS ROAD',{sticky:true,direction:'top'});
       branchLines.push(line);
     });
     branchFetchBusy=false;
-    if(branchLines.length)setStatus(waitingForJunctionChoice?'JUNCTION AHEAD · CAR PAUSED · CHOOSE A BLUE ROAD':'TAP A BLUE ROAD TO SELECT YOUR TURN');
+    if(branchLines.length)setStatus(waitingForJunctionChoice?'JUNCTION AHEAD · CAR PAUSED · TAP A ROAD ARROW':'TAP A BLUE ROAD OR DIRECTION ARROW TO TAKE IT');
     else setStatus('JUNCTION FOUND · LOADING ROAD CONNECTIONS…');
   }
   function refreshJunctionChoices(){
@@ -331,11 +354,11 @@
       fetchBranchHighlights(found);
       found.forEach(item=>{
         if(junctionMarkers.some(x=>x.key===item.key))return;
-        const displayPoint=destination(item.point,item.bearing,34);
-        const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
-        const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
-        marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-        marker.on('click',()=>{waitingForJunctionChoice=false;selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(line=>line.setStyle({color:line._shoBranch===item?'#ef3434':'#078cff',weight:line._shoBranch===item?16:13,opacity:line._shoBranch===item?1:.58}));selectedBranchLine=branchLines.find(line=>line._shoBranch===item)||null;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
+        const arrow=branchArrowPlacement(item);
+        const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+arrow.heading+'deg)">↑</div>',iconSize:[36,36],iconAnchor:[18,18]});
+        const marker=L.marker(arrow.point,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
+        marker.bindTooltip('TAP ARROW TO DRIVE ONTO THIS ROAD',{direction:'top'});
+        marker.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);chooseTurn(item.bearing,item.point,item)});
         junctionMarkers.push({key:item.key,marker});
       });
     }else {
