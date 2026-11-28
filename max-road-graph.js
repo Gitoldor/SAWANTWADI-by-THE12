@@ -33,6 +33,47 @@
   // Keep memory bounded while retaining a useful explored corridor.
   if(lastCenter){for(const [id,node] of nodeEdges){if(distance(lastCenter,node.point)>5200)nodeEdges.delete(id)}}
  }
+
+ const TOWN_BBOX={south:15.86,west:73.77,north:15.96,east:73.88};
+ let townRoadLines=[],townPending=null,townLoadedAt=0;
+ const EXCLUDED_HIGHWAYS=['footway','path','cycleway','steps','pedestrian','bridleway','construction','proposed'];
+ function isDriveRoad(way){
+  const tags=way&&way.tags||{},highway=String(tags.highway||'');
+  return !!highway&&tags.access!=='no'&&tags.motor_vehicle!=='no'&&tags.vehicle!=='no'&&!EXCLUDED_HIGHWAYS.includes(highway);
+ }
+ async function queryTown(url){
+  const b=TOWN_BBOX;
+  const q='[out:json][timeout:35];way('+b.south+','+b.west+','+b.north+','+b.east+')["highway"]["area"!="yes"];out body geom;';
+  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),38000);
+  try{
+   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(q),signal:ctl.signal,cache:'no-store'});
+   if(!r.ok)throw Error('Overpass town map HTTP '+r.status);
+   const data=await r.json();if(!Array.isArray(data.elements))throw Error('Invalid Sawantwadi road response');
+   return data.elements;
+  }finally{clearTimeout(timer)}
+ }
+ function loadTown(center){
+  if(townRoadLines.length&&Date.now()-townLoadedAt<86400000)return Promise.resolve(townRoadLines.length);
+  if(townPending)return townPending;
+  townPending=(async()=>{
+   let elements,error;
+   for(const url of ENDPOINTS){try{elements=await queryTown(url);break}catch(e){error=e}}
+   if(!elements)throw error||Error('Sawantwadi road network unavailable');
+   build(elements);
+   const lines=[];
+   for(const way of elements){
+    if(way.type!=='way'||!isDriveRoad(way)||!Array.isArray(way.geometry)||way.geometry.length<2)continue;
+    const coords=way.geometry.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)).map(p=>[p.lat,p.lon]);
+    if(coords.length>1)lines.push(coords);
+   }
+   if(!lines.length)throw Error('No drivable Sawantwadi roads were returned');
+   townRoadLines=lines;townLoadedAt=Date.now();
+   if(center){lastCenter={lat:center.lat,lng:center.lng};lastFetchAt=Date.now()}
+   return townRoadLines.length;
+  })().finally(()=>{townPending=null});
+  return townPending;
+ }
+ function getTownRoadLines(){return townRoadLines;}
  async function query(center,url){
   const q='[out:json][timeout:18];way(around:'+RADIUS+','+center.lat+','+center.lng+')["highway"]["area"!="yes"];out body geom;';
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),19000);
@@ -104,5 +145,5 @@
   }
   return points.length>1?points:[];
  }
- window.Sho1re1RoadGraph={refresh,getBranches,getBranchPath,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending})};
+ window.Sho1re1RoadGraph={refresh,loadTown,getTownRoadLines,getBranches,getBranchPath,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending||!!townPending,townRoads:townRoadLines.length})};
 })();
