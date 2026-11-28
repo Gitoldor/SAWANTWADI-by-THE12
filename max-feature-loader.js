@@ -45,7 +45,7 @@
       if (!isMax()) return;
       await addScript('./max-road-graph.js?v=20261128lightdrive1');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128lightdrive1');
+      await addScript('./max-drive-osrm.js?v=20261128nativeui1');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
