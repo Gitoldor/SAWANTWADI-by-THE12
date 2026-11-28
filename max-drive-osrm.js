@@ -14,10 +14,10 @@
   let active=false, loading=false, car=null, routeLine=null, raf=0;
   let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
-  let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
+  let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0, routeSegmentIndex=0, routeSegmentStart=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
-  let townRoadLayer=null,townRoadLoadStarted=false;
+  let townRoadLayer=null,townRoadLoadStarted=false,branchRenderer=null;
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
   let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
   let committedJunctionNodeId=null, committedJunctionPoint=null;
@@ -167,7 +167,7 @@
     pane.style.pointerEvents='auto';
     // Keep the original OSM geometry for accurate tap-to-road snapping,
     // but draw a lightly simplified copy to reduce Canvas vertices.
-    const displayLines=lines.map(line=>simplifyTownLine(line,1.25)).filter(line=>line.length>1);
+    const displayLines=lines.map(line=>simplifyTownLine(line,3.0)).filter(line=>line.length>1);
     const renderer=L.canvas({pane:paneName});
     townRoadLayer=L.polyline(displayLines,{
       pane:paneName,renderer,color:'#078cff',weight:7,opacity:.96,
@@ -407,24 +407,29 @@
     clearTimeout(speedFlashTimer);speedFlashTimer=setTimeout(()=>{if(car&&car._speedFlash){mapRef.removeLayer(car._speedFlash);car._speedFlash=null}},900);
   }
   function clearRoute(){
-    routePoints=[];routeLengths=[];routeDistance=0;routeTotal=0;routeSteps=[];clearTurnCard();
+    routePoints=[];routeLengths=[];routeDistance=0;routeTotal=0;routeSegmentIndex=0;routeSegmentStart=0;routeSteps=[];clearTurnCard();
     if(routeLine){mapRef.removeLayer(routeLine);routeLine=null}
   }
   function setRoute(coords,steps){
     clearRoute();routePoints=coords.map(c=>L.latLng(c[1],c[0]));routeSteps=steps||[];
-    for(let i=1;i<routePoints.length;i++){const d=mapRef.distance(routePoints[i-1],routePoints[i]);routeLengths.push(d);routeTotal+=d}
+    for(let i=1;i<routePoints.length;i++){const segment=mapRef.distance(routePoints[i-1],routePoints[i]);routeLengths.push(segment);routeTotal+=segment}routeSegmentIndex=0;routeSegmentStart=0
     if(routePoints.length<2||routeTotal<2)throw new Error('Valhalla returned an unusable road route');
     currentHeading=bearing(routePoints[0],routePoints[1]);
     routeLine=L.polyline(routePoints,{color:'#27a7ff',weight:5,opacity:.78,lineCap:'round',lineJoin:'round',interactive:false}).addTo(mapRef);
   }
   function pointAt(distance){
-    let d=Math.max(0,Math.min(routeTotal,distance));
-    for(let i=0;i<routeLengths.length;i++){
-      const seg=routeLengths[i];if(d<=seg||i===routeLengths.length-1){
-        const t=seg?d/seg:0,a=routePoints[i],b=routePoints[i+1];
-        return {point:L.latLng(a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t),angle:bearing(a,b)};
-      }d-=seg;
-    }return {point:routePoints[routePoints.length-1],angle:0};
+    const d=Math.max(0,Math.min(routeTotal,distance));
+    // routeDistance only moves forward; reuse the current segment instead
+    // of scanning all earlier route geometry on every frame.
+    while(routeSegmentIndex<routeLengths.length-1&&
+      d>routeSegmentStart+routeLengths[routeSegmentIndex]){
+      routeSegmentStart+=routeLengths[routeSegmentIndex];
+      routeSegmentIndex++;
+    }
+    const i=routeSegmentIndex,seg=routeLengths[i]||0;
+    const t=seg?Math.max(0,Math.min(1,(d-routeSegmentStart)/seg)):0;
+    const a=routePoints[i],b=routePoints[Math.min(i+1,routePoints.length-1)];
+    return {point:L.latLng(a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t),angle:bearing(a,b)};
   }
   function distanceAlongRouteTo(target,tolerance=42){
     if(routePoints.length<2||routeLengths.length!==routePoints.length-1)return Infinity;
@@ -466,7 +471,7 @@
     results.filter(Boolean).forEach(({item,coords})=>{
       const line=L.polyline(coords.map(p=>[p.lat,p.lng]),{
         color:'#078cff',weight:13,opacity:.96,lineCap:'round',lineJoin:'round',
-        interactive:true,bubblingMouseEvents:false,renderer:L.canvas()
+        interactive:true,bubblingMouseEvents:false,renderer:(branchRenderer||(branchRenderer=L.canvas()))
       }).addTo(mapRef);
       line._shoBranch=item;
       line.on('click',e=>{if(e.originalEvent){e.originalEvent.preventDefault();e.originalEvent.stopPropagation()}chooseTurn(item.bearing,item.point,item)});
@@ -594,6 +599,9 @@
   }
   function frame(now){
     if(!active)return;
+    // Cap expensive map/route work to 30 updates per second on mobile.
+    // This is still smooth motion, while avoiding 60+ full map redraw cycles.
+    if(lastFrame&&now-lastFrame<1000/30){raf=requestAnimationFrame(frame);return}
     if(!lastFrame)lastFrame=now;
     const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
     const throttle=Math.max(0,Math.min(1,-joystick.y));
@@ -612,7 +620,8 @@
     // Avoid repeatedly asking Leaflet to redraw an unchanged map while
     // the joystick is idle. During movement, keep the same per-frame follow.
     if(currentPoint&&(!lastVisualPoint||
-      mapRef.distance(lastVisualPoint,currentPoint)>.15||
+      Math.pow(currentPoint.lat-lastVisualPoint.lat,2)+
+      Math.pow(currentPoint.lng-lastVisualPoint.lng,2)>2.5e-11||
       angleDifference(lastVisualHeading,currentHeading)>.25)){
       mapRef.panTo(currentPoint,{animate:false});
       setCar(currentPoint,currentHeading);
