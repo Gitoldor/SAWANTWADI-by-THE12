@@ -216,7 +216,8 @@
   }
   function keepCarAtScreenCentre(){
     if(!currentPoint)return;
-    mapRef.setView(currentPoint,mapRef.getZoom(),{animate:false});
+    // Pan the Leaflet camera to the moving vehicle; this moves the road scene beneath it.
+    mapRef.panTo(currentPoint,{animate:false});
     setCar(currentPoint,cameraAngle);
   }
   function frame(now){
