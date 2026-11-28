@@ -34,7 +34,7 @@
     .sho1re1-turn-choice:active{background:#247edb}
     #sho1re1-drive-ui[hidden]{display:none}
     @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
-    body.sho1re1-driving .leaflet-control-container{opacity:.35}
+    body.sho1re1-driving .leaflet-control-container{display:none!important}
   `;
   document.head.appendChild(style);
 
