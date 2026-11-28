@@ -19,6 +19,7 @@
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
   let townRoadLayer=null,townRoadLoadStarted=false;
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
+  let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -91,7 +92,7 @@
     let best=null,bestDiff=Infinity;
     choices.forEach(item=>{const diff=angleDifference(item.bearing,desired);if(diff<bestDiff){best=item;bestDiff=diff}});
     if(!best||bestDiff>78){setStatus('NO ROAD MATCHES THAT JOYSTICK DIRECTION');return;}
-    selectedBranch=best;selectedBranchCommit=false;
+    waitingForJunctionChoice=false;selectedBranch=best;selectedBranchCommit=false;
     branchLines.forEach(line=>{const chosen=line._shoBranch===best;line.setStyle({color:chosen?'#ef3434':'#078cff',weight:chosen?16:13,opacity:chosen?1:.58});if(chosen)selectedBranchLine=line;});
     setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD');
   }
@@ -182,6 +183,7 @@
   }
   function clearTurnCard(){
     selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
+    junctionOptions=[];junctionRouteDistance=Infinity;waitingForJunctionChoice=false;
     junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
     junctionMarkers=[];branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
     const choices=ui&&ui.querySelector('#sho1re1-turn-choices');if(choices){choices.classList.remove('show');choices.innerHTML='';choices._branches=[];}
@@ -214,6 +216,28 @@
         return {point:L.latLng(a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t),angle:bearing(a,b)};
       }d-=seg;
     }return {point:routePoints[routePoints.length-1],angle:0};
+  }
+  function distanceAlongRouteTo(target){
+    if(routePoints.length<2||routeLengths.length!==routePoints.length-1)return Infinity;
+    const cos=Math.cos(target.lat*Math.PI/180);
+    const xy=p=>({x:(p.lng-target.lng)*111320*cos,y:(p.lat-target.lat)*110540});
+    let walked=0,bestCross=Infinity,bestAlong=Infinity;
+    for(let i=0;i<routeLengths.length;i++){
+      const len=routeLengths[i],end=walked+len;
+      if(end>=routeDistance&&len>0){
+        const a=xy(routePoints[i]),b=xy(routePoints[i+1]),dx=b.x-a.x,dy=b.y-a.y;
+        const minT=Math.max(0,(routeDistance-walked)/len);
+        if(minT<=1){
+          const rawT=(-(a.x*dx+a.y*dy)/(dx*dx+dy*dy));
+          const t=Math.max(minT,Math.min(1,rawT));
+          const cross=Math.hypot(a.x+dx*t,a.y+dy*t);
+          const along=Math.max(0,walked+len*t-routeDistance);
+          if(cross<bestCross){bestCross=cross;bestAlong=along;}
+        }
+      }
+      walked=end;
+    }
+    return bestCross<=42?bestAlong:Infinity;
   }
   let graphRefreshPending=false;
   function renderTurnChoices(found){
@@ -251,7 +275,7 @@
         interactive:true,bubblingMouseEvents:false,renderer:L.canvas()
       }).addTo(mapRef);
       line._shoBranch=item;
-      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(other=>other.setStyle({color:other===line?'#ef3434':'#078cff',weight:other===line?16:13,opacity:other===line?1:.58}));selectedBranchLine=line;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
+      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();waitingForJunctionChoice=false;selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(other=>other.setStyle({color:other===line?'#ef3434':'#078cff',weight:other===line?16:13,opacity:other===line?1:.58}));selectedBranchLine=line;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
       line.bindTooltip('TAP TO SELECT THIS ROAD',{sticky:true,direction:'top'});
       branchLines.push(line);
     });
@@ -263,6 +287,14 @@
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
     const graph=window.Sho1re1RoadGraph;
     const found=graph.getBranches(currentPoint,680,currentHeading);
+    junctionOptions=found.slice();
+    junctionRouteDistance=Infinity;
+    if(routePoints.length>1){
+      found.forEach(item=>{
+        const along=distanceAlongRouteTo(item.point);
+        if(along<junctionRouteDistance)junctionRouteDistance=along;
+      });
+    }
     renderTurnChoices(found);
     if(!graphRefreshPending){
       graphRefreshPending=true;
@@ -283,7 +315,7 @@
         const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
         const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
         marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-        marker.on('click',()=>{selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(line=>line.setStyle({color:line._shoBranch===item?'#ef3434':'#078cff',weight:line._shoBranch===item?16:13,opacity:line._shoBranch===item?1:.58}));selectedBranchLine=branchLines.find(line=>line._shoBranch===item)||null;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
+        marker.on('click',()=>{waitingForJunctionChoice=false;selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(line=>line.setStyle({color:line._shoBranch===item?'#ef3434':'#078cff',weight:line._shoBranch===item?16:13,opacity:line._shoBranch===item?1:.58}));selectedBranchLine=branchLines.find(line=>line._shoBranch===item)||null;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
         junctionMarkers.push({key:item.key,marker});
       });
     }else {
@@ -347,12 +379,13 @@
       refreshJunctionChoices();
       setStatus('SELECTED ROAD LOCKED · KEEP DRIVING');
     }catch(err){
+      selectedBranchCommit=false;
       setStatus('COULD NOT LOCK THAT ROAD · TRY THE BLUE LINE');
       console.warn('MAX Valhalla turn selection:',err);
     }finally{routeBusy=false}
   }
   async function requestRoute(force){
-    if(!active||routeBusy||!joystick.active)return;
+    if(!active||routeBusy||!joystick.active||waitingForJunctionChoice)return;
     const now=Date.now();if(!force&&now-lastRouteAt<1100)return;
     const throttle=Math.max(0,Math.min(1,-joystick.y));if(throttle<.16)return;
     const heading=(currentHeading+joystick.x*82+360)%360;
@@ -375,14 +408,18 @@
     if(!lastFrame)lastFrame=now;
     const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
     const throttle=Math.max(0,Math.min(1,-joystick.y));
+    if(!selectedBranch&&junctionOptions.length&&junctionRouteDistance<=42&&!waitingForJunctionChoice){
+      waitingForJunctionChoice=true;
+      setStatus('JUNCTION AHEAD · CAR PAUSED · CHOOSE A BLUE ROAD');
+    }
     if(selectedBranch&&throttle>.35&&!selectedBranchCommit&&!routeBusy){selectedBranchCommit=true;const chosen=selectedBranch;chooseTurn(chosen.bearing,chosen.point,chosen);}
-    if(!selectedBranch&&throttle>.16&&routePoints.length>1&&!routeBusy){
+    if(!selectedBranch&&!waitingForJunctionChoice&&throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
       const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
-    }else if(!selectedBranch&&throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
-    if(!selectedBranch&&throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
+    }else if(!selectedBranch&&!waitingForJunctionChoice&&throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
+    if(!selectedBranch&&!waitingForJunctionChoice&&throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
     // Follow the vehicle continuously: pan the map beneath it so the car
     // remains at the centre of the screen throughout simulated movement.
     if(currentPoint){
