@@ -46,21 +46,25 @@
   return pending;
  }
  function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
- function getBranches(center,maxDistance=700,travelHeading=null){
+ function getBranches(center,maxDistance=850,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
   const candidates=[];
   for(const [id,node] of nodeEdges){
-   const d=distance(center,node.point);if(d<8||d>maxDistance)continue;
+   const d=distance(center,node.point);if(d<3||d>maxDistance)continue;
    const directionToNode=bearing(center,node.point);
-   // Only offer junctions ahead and close enough to be visible on the live map.
-   if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>82)continue;
-   const back=(Number.isFinite(travelHeading)?travelHeading:directionToNode)+180;
+   // Include small side-road forks as well as large intersections.
+   // A junction can sit slightly beside the travelled road, so use a wider
+   // approach cone rather than requiring the node to be directly ahead.
+   if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>112)continue;
+   const approach=Number.isFinite(travelHeading)?travelHeading:directionToNode;
+   const back=(approach+180)%360;
    const arms=[];
    for(const edge of node.edges){
-    if(angleDifference(edge.bearing,back%360)<34)continue;
-    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<9))continue;
+    if(angleDifference(edge.bearing,back)<38)continue;
+    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<12))continue;
     arms.push(edge);
    }
+   // Two distinct forward/legal arms are enough: e.g. continue OR turn.
    if(arms.length<2)continue;
    for(const edge of arms){
     const key=id+':'+edge.to+':'+Math.round(edge.bearing);
@@ -69,7 +73,9 @@
   }
   if(!candidates.length)return [];
   const nearest=Math.min(...candidates.map(x=>x.distance));
-  return candidates.filter(x=>x.distance<=nearest+18);
+  // Nearby OSM nodes can represent the same physical fork; keep a wider
+  // small cluster so every outgoing choice at that fork is offered.
+  return candidates.filter(x=>x.distance<=nearest+42);
  }
  // Build a preview from real connected OSM graph edges. This is display-only:
  // the existing OSRM movement engine remains responsible for driving.
