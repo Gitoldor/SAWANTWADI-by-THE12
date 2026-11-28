@@ -43,7 +43,7 @@
       if (!isMax()) return;
       await addScript('./max-road-graph.js?v=20261128townroads1');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128townroads1');
+      await addScript('./max-drive-osrm.js?v=20261128manualchoice1');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
