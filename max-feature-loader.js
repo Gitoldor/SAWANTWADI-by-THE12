@@ -31,16 +31,6 @@
     });
   }
 
-  function warmConnections() {
-    ['https://unpkg.com','https://tiles.openfreemap.org','https://valhalla1.openstreetmap.de',
-     'https://overpass-api.de','https://overpass.kumi.systems'].forEach(url => {
-      if (document.querySelector('link[rel="preconnect"][href="' + url + '"]')) return;
-      const link = document.createElement('link');
-      link.rel = 'preconnect'; link.href = url; link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    });
-  }
-
   async function sync() {
     if (!isMax()) {
       if (window.Sho1re1Drive && window.Sho1re1Drive.stop) window.Sho1re1Drive.stop();
@@ -53,7 +43,7 @@
       // libraries and road-cache reads begin when the user actually starts Drive.
       await addScript('./max-road-map-openfreemap.js?v=20261128instant2');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128townroadsfix3');
+      await addScript('./max-road-graph.js?v=20261128lightdrive1');
       if (!isMax()) return;
       await addScript('./max-drive-osrm.js?v=20261128lightdrive1');
       loaded = true;
