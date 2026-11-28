@@ -7,7 +7,7 @@
   const CSS = "https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css";
   const MAPLIBRE = "https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js";
   const BRIDGE = "https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js";
-  let layer = null, loading = null, enabled = false;
+  let layer = null, loading = null, enabled = false, preloadPromise = null;
 
   function loadCss() {
     if (document.querySelector('link[data-sho-road-css]')) return;
@@ -32,22 +32,30 @@
       document.head.appendChild(tag);
     });
   }
+  function preload() {
+    if (root.maplibregl && root.MaplibreGLLeaflet && root.MaplibreGLLeaflet.maplibreGL) return Promise.resolve(true);
+    if (preloadPromise) return preloadPromise;
+    loadCss();
+    preloadPromise = (async () => {
+      // Start both library downloads before MAX Drive is opened.
+      await script(MAPLIBRE, () => !!root.maplibregl);
+      await script(BRIDGE, () => !!(root.MaplibreGLLeaflet && (root.MaplibreGLLeaflet.maplibreGL || root.MaplibreGLLeaflet.default)));
+      if (!root.L.maplibreGL && root.MaplibreGLLeaflet) {
+        root.L.maplibreGL = root.MaplibreGLLeaflet.maplibreGL || root.MaplibreGLLeaflet.default;
+      }
+      if (typeof root.L.maplibreGL !== "function") throw new Error("Leaflet/MapLibre bridge factory missing");
+      return true;
+    })().catch(error => { preloadPromise = null; throw error; });
+    return preloadPromise;
+  }
   async function enable(map) {
     enabled = true;
     if (!map || !root.L) throw new Error("Leaflet map is not ready");
     if (layer) { if (!map.hasLayer(layer)) layer.addTo(map); return layer; }
     if (loading) return loading;
     loading = (async () => {
-      loadCss();
-      await script(MAPLIBRE, () => !!root.maplibregl);
-      await script(BRIDGE, () => !!(root.MaplibreGLLeaflet && root.MaplibreGLLeaflet.maplibreGL));
+      await preload();
       if (!enabled) return null;
-      // The CDN UMD build exports a namespace; it does NOT attach maplibreGL to L.
-      // Attach the factory to the exact global Leaflet instance used by this app.
-      if (!root.L.maplibreGL && root.MaplibreGLLeaflet) {
-        root.L.maplibreGL = root.MaplibreGLLeaflet.maplibreGL || root.MaplibreGLLeaflet.default;
-      }
-      if (typeof root.L.maplibreGL !== "function") throw new Error("Leaflet/MapLibre bridge factory missing");
       layer = root.L.maplibreGL({ style: STYLE, interactive: false, attribution: "© OpenStreetMap contributors · OpenFreeMap" });
       layer.addTo(map);
       return layer;
@@ -67,5 +75,5 @@
     enabled = false;
     if (map && layer && map.hasLayer(layer)) map.removeLayer(layer);
   }
-  root.Sho1re1RoadMap = { enable, disable, setCamera, resetCamera, style: STYLE };
+  root.Sho1re1RoadMap = { preload, enable, disable, setCamera, resetCamera, style: STYLE };
 })(window);
