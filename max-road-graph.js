@@ -3,14 +3,85 @@
  'use strict';
  if(window.__sho1re1RoadGraphLoaded)return;
  window.__sho1re1RoadGraphLoaded=true;
- const RADIUS=2600,TTL=12000,MIN_MOVE=170;
+ const RADIUS=2600,TTL=12000,MIN_MOVE=170,CELL=.003;
  const ENDPOINTS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+ const CACHE_DB='Sho1re1MaxRoadCache',CACHE_STORE='snapshots';
  let nodeEdges=new Map(),lastFetchAt=0,lastCenter=null,pending=null;
+ let spatialIndex=new Map(),cacheDbPromise=null,cacheLoadPromise=null,graphPersistScheduled=false,townPersistScheduled=false;
  const rad=n=>n*Math.PI/180;
+ function openCacheDb(){
+  if(!window.indexedDB)return Promise.resolve(null);
+  if(cacheDbPromise)return cacheDbPromise;
+  cacheDbPromise=new Promise(resolve=>{
+   let request;
+   try{request=window.indexedDB.open(CACHE_DB,1)}catch(_){resolve(null);return}
+   request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(CACHE_STORE))db.createObjectStore(CACHE_STORE)};
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>resolve(null);
+  }).catch(()=>null);
+  return cacheDbPromise;
+ }
+ function readCache(key){
+  return openCacheDb().then(db=>new Promise(resolve=>{
+   if(!db){resolve(null);return}
+   try{
+    const request=db.transaction(CACHE_STORE,'readonly').objectStore(CACHE_STORE).get(key);
+    request.onsuccess=()=>resolve(request.result||null);request.onerror=()=>resolve(null);
+   }catch(_){resolve(null)}
+  }));
+ }
+ function writeCache(key,value){
+  return openCacheDb().then(db=>new Promise(resolve=>{
+   if(!db){resolve(false);return}
+   try{
+    const tx=db.transaction(CACHE_STORE,'readwrite');tx.objectStore(CACHE_STORE).put(value,key);
+    tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false);
+   }catch(_){resolve(false)}
+  }));
+ }
+ function scheduleIdle(task){
+  if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(task,{timeout:1800});
+  else setTimeout(task,250);
+ }
+ function rebuildSpatial(){
+  spatialIndex=new Map();
+  for(const [id,node] of nodeEdges){
+   const key=Math.floor(node.point.lat/CELL)+':'+Math.floor(node.point.lng/CELL);
+   let bucket=spatialIndex.get(key);if(!bucket){bucket=[];spatialIndex.set(key,bucket)}bucket.push(id);
+  }
+ }
+ function scheduleGraphCache(){
+  if(graphPersistScheduled)return;graphPersistScheduled=true;
+  scheduleIdle(()=>{
+   graphPersistScheduled=false;
+   const snapshot={version:1,updatedAt:lastFetchAt,center:lastCenter,nodes:Array.from(nodeEdges.entries())};
+   writeCache('graph-v1',snapshot);
+  });
+ }
+ function scheduleTownCache(){
+  if(townPersistScheduled)return;townPersistScheduled=true;
+  scheduleIdle(()=>{
+   townPersistScheduled=false;
+   writeCache('town-v1',{version:1,updatedAt:townLoadedAt,lines:townRoadLines});
+  });
+ }
+ function preload(){
+  if(cacheLoadPromise)return cacheLoadPromise;
+  cacheLoadPromise=Promise.all([readCache('graph-v1'),readCache('town-v1')]).then(([graph,town])=>{
+   if(graph&&graph.version===1&&Array.isArray(graph.nodes)&&graph.nodes.length<180000){
+    nodeEdges=new Map(graph.nodes);lastCenter=graph.center||null;lastFetchAt=Number(graph.updatedAt)||0;rebuildSpatial();
+   }
+   if(town&&town.version===1&&Array.isArray(town.lines)&&town.lines.length<60000){
+    townRoadLines=town.lines;townLoadedAt=Number(town.updatedAt)||0;
+   }
+   return {nodes:nodeEdges.size,townRoads:townRoadLines.length};
+  }).catch(()=>({nodes:nodeEdges.size,townRoads:townRoadLines.length}));
+  return cacheLoadPromise;
+ }
  function distance(a,b){const R=6371000,p1=rad(a.lat),p2=rad(b.lat),dp=rad(b.lat-a.lat),dl=rad(b.lng-a.lng),h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))}
  function bearing(a,b){const p1=rad(a.lat),p2=rad(b.lat),dl=rad(b.lng-a.lng);return (Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))*180/Math.PI+360)%360}
  function allowed(tags,from,to){const v=String(tags.oneway||'').toLowerCase();if(v==='yes'||v==='1'||v==='true')return to>from;if(v==='-1')return to<from;return true}
- function build(elements){
+ function build(elements,pruneCenter){
   const graph=new Map();
   for(const way of elements||[]){
    if(way.type!=='way'||!way.nodes||!way.geometry||way.nodes.length!==way.geometry.length)continue;
@@ -31,7 +102,9 @@
    else nodeEdges.set(id,node);
   }
   // Keep memory bounded while retaining a useful explored corridor.
-  if(lastCenter){for(const [id,node] of nodeEdges){if(distance(lastCenter,node.point)>5200)nodeEdges.delete(id)}}
+  const pruneAt=pruneCenter||lastCenter;
+  if(pruneAt){for(const [id,node] of nodeEdges){if(distance(pruneAt,node.point)>5200)nodeEdges.delete(id)}}
+  rebuildSpatial();
  }
 
  const TOWN_BBOX={south:15.86,west:73.77,north:15.96,east:73.88};
@@ -53,13 +126,15 @@
   }finally{clearTimeout(timer)}
  }
  function loadTown(center){
-  if(townRoadLines.length&&Date.now()-townLoadedAt<86400000)return Promise.resolve(townRoadLines.length);
   if(townPending)return townPending;
   townPending=(async()=>{
+   await preload();
+   if(townRoadLines.length&&Date.now()-townLoadedAt<86400000)return townRoadLines.length;
    let elements,error;
    for(const url of ENDPOINTS){try{elements=await queryTown(url);break}catch(e){error=e}}
    if(!elements)throw error||Error('Sawantwadi road network unavailable');
-   build(elements);
+   // The full-town layer is display-only. Do not merge its thousands of
+   // distant nodes into the live junction graph.
    const lines=[];
    for(const way of elements){
     if(way.type!=='way'||!isDriveRoad(way)||!Array.isArray(way.geometry)||way.geometry.length<2)continue;
@@ -67,8 +142,7 @@
     if(coords.length>1)lines.push(coords);
    }
    if(!lines.length)throw Error('No drivable Sawantwadi roads were returned');
-   townRoadLines=lines;townLoadedAt=Date.now();
-   if(center){lastCenter={lat:center.lat,lng:center.lng};lastFetchAt=Date.now()}
+   townRoadLines=lines;townLoadedAt=Date.now();scheduleTownCache();
    return townRoadLines.length;
   })().finally(()=>{townPending=null});
   return townPending;
@@ -81,16 +155,30 @@
  }
  function refresh(center){
   if(!center)return Promise.resolve(false);if(pending)return pending;
-  if(lastCenter&&Date.now()-lastFetchAt<TTL&&distance(lastCenter,center)<MIN_MOVE)return Promise.resolve(false);
   const snapshot={lat:center.lat,lng:center.lng};
-  pending=(async()=>{let data,error;for(const url of ENDPOINTS){try{data=await query(snapshot,url);break}catch(e){error=e}}if(!data)throw error||Error('Road graph unavailable');build(data);lastCenter=snapshot;lastFetchAt=Date.now();return true})().finally(()=>{pending=null});
+  pending=(async()=>{
+   await preload();
+   if(lastCenter&&Date.now()-lastFetchAt<TTL&&distance(lastCenter,snapshot)<MIN_MOVE)return false;
+   let data,error;
+   for(const url of ENDPOINTS){try{data=await query(snapshot,url);break}catch(e){error=e}}
+   if(!data)throw error||Error('Road graph unavailable');
+   build(data,snapshot);lastCenter=snapshot;lastFetchAt=Date.now();scheduleGraphCache();return true;
+  })().finally(()=>{pending=null});
   return pending;
  }
  function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
  function getBranches(center,maxDistance=850,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
   const candidates=[];
-  for(const [id,node] of nodeEdges){
+  const latSpan=maxDistance/110540,lngSpan=maxDistance/(111320*Math.max(.2,Math.cos(rad(center.lat))));
+  const minRow=Math.floor((center.lat-latSpan)/CELL),maxRow=Math.floor((center.lat+latSpan)/CELL);
+  const minCol=Math.floor((center.lng-lngSpan)/CELL),maxCol=Math.floor((center.lng+lngSpan)/CELL);
+  const nearby=[];
+  for(let row=minRow;row<=maxRow;row++)for(let col=minCol;col<=maxCol;col++){
+   const bucket=spatialIndex.get(row+':'+col);if(bucket)nearby.push(...bucket);
+  }
+  for(const id of nearby){
+   const node=nodeEdges.get(id);if(!node)continue;
    const d=distance(center,node.point);if(d<3||d>maxDistance)continue;
    const directionToNode=bearing(center,node.point);
    // Include small side-road forks as well as large intersections.
@@ -145,5 +233,6 @@
   }
   return points.length>1?points:[];
  }
- window.Sho1re1RoadGraph={refresh,loadTown,getTownRoadLines,getBranches,getBranchPath,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending||!!townPending,townRoads:townRoadLines.length})};
+ function hasCoverage(center){return !!(center&&lastCenter&&nodeEdges.size&&distance(lastCenter,center)<RADIUS*.92)}
+ window.Sho1re1RoadGraph={preload,refresh,loadTown,getTownRoadLines,getBranches,getBranchPath,hasCoverage,stats:()=>({nodes:nodeEdges.size,buckets:spatialIndex.size,updatedAt:lastFetchAt,center:lastCenter,cacheReady:!!cacheLoadPromise,loading:!!pending||!!townPending,townRoads:townRoadLines.length})};
 })();
