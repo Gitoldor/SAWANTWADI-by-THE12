@@ -13,7 +13,7 @@
   let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null;
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
-  let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, routeBusy=false;
+  let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false;
   let roadMapEnabled=false;
 
   const style=document.createElement('style');
@@ -75,8 +75,9 @@
     const data=await response.json();if(data.code!=='Ok')throw new Error(data.message||data.code||'No road route found');
     return data;
   }
-  async function snapToRoad(p){
-    const data=await osrm('/nearest/v1/driving/'+p.lng+','+p.lat+'?number=1');
+  async function snapToRoad(p, heading){
+    const bearingParam=Number.isFinite(heading)?'&bearings='+Math.round((heading+360)%360)+',55':'';
+    const data=await osrm('/nearest/v1/driving/'+p.lng+','+p.lat+'?number=1'+bearingParam);
     const loc=data.waypoints&&data.waypoints[0]&&data.waypoints[0].location;
     if(!loc)throw new Error('No nearby drivable road found');
     return L.latLng(loc[1],loc[0]);
@@ -105,30 +106,34 @@
   async function requestRoute(force){
     if(!active||routeBusy||!joystick.active)return;
     const now=Date.now();if(!force&&now-lastRouteAt<1100)return;
-    const magnitude=Math.hypot(joystick.x,joystick.y);if(magnitude<.18)return;
-    const heading=(Math.atan2(joystick.x,-joystick.y)*180/Math.PI+360)%360;
-    if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<32&&routeDistance<routeTotal-18)return;
+    // The stick is a driving control: push up to move, steer left/right to choose
+    // the branch at the next junction. It is NOT an absolute compass-direction pad.
+    const throttle=Math.max(0,Math.min(1,-joystick.y));
+    if(throttle<.16)return;
+    const heading=(currentHeading+joystick.x*82+360)%360;
+    if(!force&&lastHeading!==null&&Math.abs(((heading-lastHeading+540)%360)-180)<17&&routeDistance<routeTotal-9)return;
     routeBusy=true;lastRouteAt=now;lastHeading=heading;
     try{
-      // currentPoint is already snapped to the road at start and remains on OSRM geometry.
-      // Avoid a second OSRM request per joystick update (public demo limit is ~1 req/sec).
       const from=currentPoint;
-      const target=destination(from,heading,260);
-      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+target.lng+','+target.lat+'?overview=full&geometries=geojson&steps=false');
+      // Aim at a nearby road in the direction selected by the user. A short target
+      // makes steering responsive and lets the driver choose another street at junctions.
+      const aim=destination(from,heading,105);
+      const snapped=await snapToRoad(aim,heading);
+      const data=await osrm('/route/v1/driving/'+from.lng+','+from.lat+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=false');
       const coords=data.routes&&data.routes[0]&&data.routes[0].geometry&&data.routes[0].geometry.coordinates;
-      if(!coords||coords.length<2)throw new Error('No connected road route in that direction');
-      setRoute(coords);currentPoint=from;setStatus('ROAD ROUTE READY · DRIVE');
-    }catch(err){setStatus('ROUTE ERROR · '+String(err.message||err).slice(0,48));console.warn('MAX OSRM route:',err)}
+      if(!coords||coords.length<2)throw new Error('No connected road in the steered direction');
+      setRoute(coords);currentPoint=from;setStatus('STEER TO CHOOSE YOUR ROAD');
+    }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
     finally{routeBusy=false}
   }
   function frame(now){
     if(!active)return;if(!lastFrame)lastFrame=now;const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
-    const mag=Math.hypot(joystick.x,joystick.y);
-    if(mag>.18&&routePoints.length>1&&!routeBusy){
-      routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*mag*dt);
-      const at=pointAt(routeDistance);currentPoint=at.point;setCar(at.point,at.angle);mapRef.panTo(at.point,{animate:false});
+    const throttle=Math.max(0,Math.min(1,-joystick.y));
+    if(throttle>.16&&routePoints.length>1&&!routeBusy){
+      routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
+      const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;setCar(at.point,at.angle);mapRef.panTo(at.point,{animate:false});
       if(routeDistance>=routeTotal-2){clearRoute();requestRoute(true)}
-    }else if(mag>.18&&routePoints.length===0&&!routeBusy){requestRoute(true)}
+    }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
     raf=requestAnimationFrame(frame);
   }
   function hideGpsMarker(){
@@ -148,9 +153,9 @@
     navigator.geolocation.getCurrentPosition(async pos=>{
       try{
         currentPoint=L.latLng(pos.coords.latitude,pos.coords.longitude);
-        setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);
+        setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
-        document.body.classList.add('sho1re1-driving');setStatus('HOLD JOYSTICK TO DRIVE');
+        document.body.classList.add('sho1re1-driving');setStatus('PUSH UP · STEER LEFT / RIGHT');
         mapRef.flyTo(currentPoint,Math.max(17,mapRef.getZoom()),{duration:.7});lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
