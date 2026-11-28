@@ -15,7 +15,7 @@
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
-  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null;
+  let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -30,7 +30,7 @@
     .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
     .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
     #sho1re1-drive-ui[hidden]{display:none}
-    .sho1re1-junction-arrow{width:27px;height:27px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#087de0;color:#fff;font:900 19px system-ui;box-shadow:0 2px 12px #0009;cursor:pointer}
+    .sho1re1-junction-arrow{width:31px;height:31px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#087de0;color:#fff;font:900 19px system-ui;box-shadow:0 2px 12px #0009;cursor:pointer}
     .sho1re1-junction-arrow:active{background:#16a36a;transform:scale(1.12)}
     @media(max-width:380px){#sho1re1-joy-base{width:128px;height:128px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom))}#sho1re1-joy-knob{width:52px;height:52px}}
     body.sho1re1-driving .leaflet-control-container{display:none!important}
@@ -98,13 +98,13 @@
     const pane=mapRef.getPane('mapPane');if(!pane)return;
     rotationWrapper=document.createElement('div');
     rotationWrapper.className='sho1re1-map-rotation-wrapper';
-    const size=mapRef.getSize();Object.assign(rotationWrapper.style,{position:'absolute',left:'0',top:'0',width:size.x+'px',height:size.y+'px',transformOrigin:'50% 50%',willChange:'transform'});
+    const size=mapRef.getSize();Object.assign(rotationWrapper.style,{position:'absolute',left:'0',top:'0',width:size.x+'px',height:size.y+'px',transformOrigin:'50% 50%',willChange:'transform',transition:'transform 260ms cubic-bezier(.22,.75,.25,1)'});
     const children=Array.from(pane.children);
     pane.appendChild(rotationWrapper);
     children.forEach(child=>rotationWrapper.appendChild(child));
   }
   function rotateMapTo(heading){
-    if(rotationWrapper)rotationWrapper.style.transform='rotate('+(-heading)+'deg)';
+    if(rotationWrapper){const delta=((heading-cameraAngle+540)%360)-180;cameraAngle+=delta;rotationWrapper.style.transform='rotate('+(-cameraAngle)+'deg)';}
   }
   function endMapRotation(){
     if(!rotationWrapper)return;
@@ -114,7 +114,7 @@
   }
   function setCar(p,angle){
     if(!car){
-      car=L.marker(p,{icon:L.divIcon({className:'sho1re1-drive-car',html:'<div style="width:34px;height:52px;transform:rotate(0deg);filter:drop-shadow(0 5px 7px #0009)"><svg viewBox="0 0 34 52" width="34" height="52"><path d="M8 3Q17 -1 26 3L31 14V43Q31 49 25 49H9Q3 49 3 43V14Z" fill="#f8fafc" stroke="#17191d" stroke-width="2"/><path d="M8 13Q17 8 26 13L28 26H6Z" fill="#536579"/><path d="M7 34H27V43H7Z" fill="#b8c5d3"/><rect x="0" y="15" width="4" height="10" rx="2" fill="#17191d"/><rect x="30" y="15" width="4" height="10" rx="2" fill="#17191d"/></svg></div>',iconSize:[42,58],iconAnchor:[21,29]}),zIndexOffset:5000,interactive:false}).addTo(mapRef);
+      car=L.marker(p,{icon:L.divIcon({className:'sho1re1-drive-car',html:'<div style="width:34px;height:52px;transform:rotate(0deg);transition:transform 260ms cubic-bezier(.22,.75,.25,1);filter:drop-shadow(0 5px 7px #0009)"><svg viewBox="0 0 34 52" width="34" height="52"><path d="M8 3Q17 -1 26 3L31 14V43Q31 49 25 49H9Q3 49 3 43V14Z" fill="#f8fafc" stroke="#17191d" stroke-width="2"/><path d="M8 13Q17 8 26 13L28 26H6Z" fill="#536579"/><path d="M7 34H27V43H7Z" fill="#b8c5d3"/><rect x="0" y="15" width="4" height="10" rx="2" fill="#17191d"/><rect x="30" y="15" width="4" height="10" rx="2" fill="#17191d"/></svg></div>',iconSize:[42,58],iconAnchor:[21,29]}),zIndexOffset:5000,interactive:false}).addTo(mapRef);
     }else{car.setLatLng(p);const el=car.getElement(),body=el&&el.querySelector('div');if(body)body.style.transform='rotate('+(angle||0)+'deg)'}
   }
   function clearTurnCard(){
@@ -166,8 +166,8 @@
     });
     found.forEach(item=>{
       if(junctionMarkers.some(x=>x.key===item.key))return;
-      const displayPoint=destination(item.point,item.bearing,13);
-      const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[27,27],iconAnchor:[13.5,13.5]});
+      const displayPoint=destination(item.point,item.bearing,34);
+      const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
       const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
       marker.bindTooltip('Choose connected road · '+Math.round(item.distance)+' m',{direction:'top'});
       marker.on('click',()=>chooseTurn(item.bearing,item.point));
@@ -210,7 +210,7 @@
     const throttle=Math.max(0,Math.min(1,-joystick.y));
     if(throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
-      const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;setCar(at.point,currentHeading);mapRef.panTo(at.point,{animate:false});rotateMapTo(currentHeading);
+      const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;rotateMapTo(currentHeading);setCar(at.point,cameraAngle);mapRef.panTo(at.point,{animate:false});
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
@@ -235,9 +235,9 @@
         currentPoint=L.latLng(pos.coords.latitude,pos.coords.longitude);
         setStatus('SNAPPING TO A REAL ROAD…');currentPoint=await snapToRoad(currentPoint);currentHeading=0;
         active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
-        if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}beginMapRotation();
+        if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});beginMapRotation();
         document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
-        mapRef.flyTo(currentPoint,Math.max(17,mapRef.getZoom()),{duration:.7});lastFrame=0;raf=requestAnimationFrame(frame);
+        lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
     },err=>{failStart('LOCATION PERMISSION NEEDED',err)},{enableHighAccuracy:true,timeout:20000,maximumAge:3000});
@@ -255,7 +255,7 @@
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
-    endMapRotation();if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
+    endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
   }
   buildUI();
