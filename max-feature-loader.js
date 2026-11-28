@@ -39,11 +39,11 @@
     if (loaded || loading) return;
     loading = true;
     try {
-      await addScript('./max-road-map-openfreemap.js?v=20261128turnpanel4');
+      await addScript('./max-road-map-openfreemap.js?v=20261128turnlock5');
       if (!isMax()) return;
-      await addScript('./max-road-graph.js?v=20261128turnpanel4');
+      await addScript('./max-road-graph.js?v=20261128turnlock5');
       if (!isMax()) return;
-      await addScript('./max-drive-osrm.js?v=20261128turnpanel4');
+      await addScript('./max-drive-osrm.js?v=20261128turnlock5');
       loaded = true;
     } catch (error) {
       console.warn('MAX Drive could not be initialized:', error);
