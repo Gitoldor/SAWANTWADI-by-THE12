@@ -17,6 +17,7 @@
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
+  let townRoadLayer=null,townRoadLoadStarted=false;
   let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
 
   const style=document.createElement('style');
@@ -422,7 +423,35 @@
         if(window.Sho1re1RoadMap){window.Sho1re1RoadMap.setCamera(0,42);lastCameraBearing=0;}cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
         lockMapInteractions();
         document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
-        if(window.Sho1re1RoadGraph){window.Sho1re1RoadGraph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()}).catch(err=>console.warn('MAX road graph initial load:',err));}
+        if(window.Sho1re1RoadGraph){
+          const graph=window.Sho1re1RoadGraph;
+          if(!townRoadLoadStarted){
+            townRoadLoadStarted=true;setStatus('LOADING ALL SAWANTWADI ROADS…');
+            graph.loadTown(currentPoint).then(()=>{
+              if(!active)return;
+              const lines=graph.getTownRoadLines();
+              if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
+              townRoadLayer=L.polyline(lines,{
+                renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,
+                lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4
+              }).addTo(mapRef);
+              townRoadLayer.bringToBack();
+              setStatus('SAWANTWADI ROAD NETWORK · '+lines.length+' ROADS IN BLUE');
+              refreshJunctionChoices();
+            }).catch(err=>{
+              townRoadLoadStarted=false;
+              console.warn('MAX Sawantwadi road overlay:',err);
+              if(active)setStatus('TOWN ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
+            });
+          }else if(graph.getTownRoadLines().length){
+            const lines=graph.getTownRoadLines();
+            townRoadLayer=L.polyline(lines,{renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4}).addTo(mapRef);
+            townRoadLayer.bringToBack();
+            refreshJunctionChoices();
+          }else{
+            graph.refresh(currentPoint).then(()=>{if(active)refreshJunctionChoices()}).catch(err=>console.warn('MAX road graph initial load:',err));
+          }
+        }
         lastFrame=0;raf=requestAnimationFrame(frame);
         gpsWatch=navigator.geolocation.watchPosition(p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
       }catch(err){failStart('ROAD SNAP FAILED',err)}
@@ -440,7 +469,7 @@
   function stop(){
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
-    if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();restoreGpsMarker();
+    if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
     restoreMapInteractions();
     document.body.classList.remove('sho1re1-driving');if(ui)ui.hidden=true;syncVisibility();
