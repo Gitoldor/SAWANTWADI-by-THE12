@@ -87,5 +87,12 @@
   return candidates.filter(x=>x.distance<=nearest+9);
  }
  function getBranchPath(branch){return branch&&branch.path?branch.path:null}
- window.Sho1re1RoadGraph={refresh,getBranches,getBranchPath,shortestPath,nearestNode,stats:()=>({nodes:nodes.size,updatedAt:lastFetchAt,loading:!!pending})};
+ function getRoadAhead(center,heading){
+  const near=nearestNode(center,100);if(!near)return null;
+  const node=nodes.get(near.id),angular=(a,b)=>Math.abs(((a-b+540)%360)-180);
+  const edges=node.edges.slice().sort((a,b)=>angular(a.bearing,heading)-angular(b.bearing,heading));
+  if(!edges.length||angular(edges[0].bearing,heading)>78)return null;
+  return traceBranch(near.id,edges[0]);
+ }
+ window.Sho1re1RoadGraph={refresh,getBranches,getBranchPath,getRoadAhead,shortestPath,nearestNode,stats:()=>({nodes:nodes.size,updatedAt:lastFetchAt,loading:!!pending})};
 })();
