@@ -224,7 +224,10 @@
       await graph.refresh(currentPoint);
       const branches=graph.getBranches(currentPoint,ROUTE_LOOKAHEAD_METERS,currentHeading);
       if(branches.length){refreshJunctionChoices();setStatus('CHOOSE A BLUE ROAD · '+branches.length+' OPTIONS');return}
-      throw new Error('No junction branches loaded ahead · wait for road data');
+      const road=graph.getRoadAhead(currentPoint,heading);
+      if(!road||road.length<2)throw new Error('No connected road loaded in that direction');
+      const coords=road.map(p=>[p.lng,p.lat]);
+      setRoute(coords,[]);setStatus('FOLLOWING THE ROAD · CHOOSE AT THE NEXT JUNCTION');
     }catch(err){setStatus('NO ROAD THAT WAY · STEER AGAIN');console.warn('MAX OSRM route:',err)}
     finally{routeBusy=false}
   }
@@ -240,7 +243,7 @@
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('ROAD END · SELECT A BLUE BRANCH');refreshJunctionChoices()}
     }else if(throttle>.16&&routePoints.length===0&&!routeBusy){
       if(now-lastJunctionRefresh>500){refreshJunctionChoices();lastJunctionRefresh=now}
-      if(!branchLines.length)setStatus('ROAD DATA LOADING · WAIT FOR BLUE BRANCHES');
+      if(!branchLines.length&&now-lastRouteAt>1200)requestRoute(true);
     }
     // Steering never asks an external router to select a road; junction choices are explicit.
     // Follow the vehicle continuously: pan the map beneath it so the car
