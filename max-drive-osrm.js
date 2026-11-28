@@ -408,10 +408,8 @@
   }
   async function requestRoute(force){
     if(!active||routeBusy||!joystick.active||waitingForJunctionChoice)return;
-    if(!junctionGraphReady()){
-      if(!status||status.textContent!=='LOADING ROAD JUNCTION DATA…')setStatus('LOADING ROAD JUNCTION DATA…');
-      return;
-    }
+    // Valhalla route generation is independent of OSM junction discovery.
+    // Missing junction coverage must never prevent a normal road route.
     const now=Date.now();if(!force&&now-lastRouteAt<1100)return;
     const throttle=Math.max(0,Math.min(1,-joystick.y));if(throttle<.16)return;
     const heading=(currentHeading+joystick.x*82+360)%360;
@@ -499,7 +497,9 @@
       const rawPoint=L.latLng(gpsResult.pos.coords.latitude,gpsResult.pos.coords.longitude);
       // Start the nearby OSM request while Valhalla snaps GPS to the road.
       const graphRequest=graph?graph.refresh(rawPoint).catch(err=>{
-        console.warn('MAX initial junction graph:',err);return false;
+        console.warn('MAX initial junction graph:',err);
+        if(active)setStatus('ROUTE READY · JUNCTION OPTIONS STILL LOADING');
+        return false;
       }):Promise.resolve(false);
       setStatus('SNAPPING TO A REAL ROAD…');
       currentPoint=await snapToRoad(rawPoint);currentHeading=0;
