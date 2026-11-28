@@ -222,9 +222,12 @@
       const graph=window.Sho1re1RoadGraph;
       const preview=branch&&graph&&graph.getBranchPath?graph.getBranchPath(branch,720):[];
       const aim=preview.length>1?L.latLng(preview[preview.length-1].lat,preview[preview.length-1].lng):destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
-      const snapped=await snapToRoad(aim,heading);
+      const endpointHeading=preview.length>1?bearing(
+        L.latLng(preview[preview.length-2].lat,preview[preview.length-2].lng),aim
+      ):heading;
+      const snapped=await snapToRoad(aim,endpointHeading);
       const coords=currentPoint.lng+','+currentPoint.lat+';'+turnPoint.lng+','+turnPoint.lat+';'+snapped.lng+','+snapped.lat;
-      const hints='&bearings=;'+chosen+',18;'+chosen+',30';
+      const hints='&bearings=;'+chosen+',18;'+Math.round((endpointHeading+360)%360)+',30';
       const data=await osrm('/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true&alternatives=true&continue_straight=false'+hints);
       const route=data.routes&&data.routes[0],geometry=route&&route.geometry&&route.geometry.coordinates;
       if(!geometry||geometry.length<3)throw new Error('That turn has no connected road');
