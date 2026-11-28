@@ -157,27 +157,27 @@
     const signature=found.map(x=>x.key).sort().join('|');
     if(signature===branchFetchKey||branchFetchBusy)return;
     branchFetchBusy=true;branchFetchKey=signature;
-    const version=++branchFetchVersion;
-    const results=await Promise.all(found.map(async item=>{
-      try{
-        const end=await snapToRoad(destination(item.point,item.bearing,420),item.bearing);
-        const heading=Math.round(item.bearing);
-        const path='/route/v1/driving/'+item.point.lng+','+item.point.lat+';'+end.lng+','+end.lat+'?overview=full&geometries=geojson&steps=false&alternatives=false&continue_straight=true&bearings='+heading+',35;'+heading+',45';
-        const data=await osrm(path),route=data.routes&&data.routes[0];
-        if(!route||!route.geometry||!route.geometry.coordinates||route.geometry.coordinates.length<2)throw Error('No road geometry');
-        return {item,coords:route.geometry.coordinates};
-      }catch(error){console.warn('MAX branch highlight unavailable:',item.key,error);return null}
-    }));
+    const version=++branchFetchVersion,graph=window.Sho1re1RoadGraph;
+    // Draw from the exact OSM edges already loaded; no extra OSRM preview
+    // requests, no nearest-road ambiguity, and no missing branch due to routing.
+    const results=found.map(item=>{
+      const points=graph&&graph.getBranchPath?graph.getBranchPath(item,720):[];
+      return points.length>1?{item,coords:points}:null;
+    });
     if(version!==branchFetchVersion||!active){branchFetchBusy=false;return}
     branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
     results.filter(Boolean).forEach(({item,coords})=>{
-      const line=L.polyline(coords.map(c=>[c[1],c[0]]),{color:'#078cff',weight:8,opacity:.88,lineCap:'round',lineJoin:'round',interactive:true,bubblingMouseEvents:false}).addTo(mapRef);
-      line.on('click',()=>chooseTurn(item.bearing,item.point));
-      line.bindTooltip('SELECT THIS ROAD',{sticky:true,direction:'top'});
+      const line=L.polyline(coords.map(p=>[p.lat,p.lng]),{
+        color:'#078cff',weight:13,opacity:.96,lineCap:'round',lineJoin:'round',
+        interactive:true,bubblingMouseEvents:false,renderer:L.canvas()
+      }).addTo(mapRef);
+      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();chooseTurn(item.bearing,item.point,item)});
+      line.bindTooltip('TAP TO SELECT THIS ROAD',{sticky:true,direction:'top'});
       branchLines.push(line);
     });
     branchFetchBusy=false;
-    if(branchLines.length)setStatus('CHOOSE A BLUE ROAD AT THE JUNCTION');
+    if(branchLines.length)setStatus('TAP A BLUE ROAD TO SELECT YOUR TURN');
+    else setStatus('JUNCTION FOUND · LOADING ROAD CONNECTIONS…');
   }
   function refreshJunctionChoices(){
     if(!currentPoint||!window.Sho1re1RoadGraph)return;
@@ -202,7 +202,7 @@
         const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
         const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
         marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-        marker.on('click',()=>chooseTurn(item.bearing,item.point));
+        marker.on('click',()=>chooseTurn(item.bearing,item.point,item));
         junctionMarkers.push({key:item.key,marker});
       });
     }else if(!branchFetchBusy&&branchFetchKey){
@@ -211,7 +211,7 @@
     }
   }
   function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
-  async function chooseTurn(heading,junctionPoint){
+  async function chooseTurn(heading,junctionPoint,branch){
     if(!active||routeBusy||!currentPoint)return;
     routeBusy=true;setStatus('LOCKING SELECTED ROAD…');
     try{
@@ -219,7 +219,9 @@
       const chosen=Math.round((heading+360)%360);
       // Aim well down the selected arm. The junction itself is an explicit
       // OSRM waypoint, with a bearing constraint that locks its outgoing road.
-      const aim=destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
+      const graph=window.Sho1re1RoadGraph;
+      const preview=branch&&graph&&graph.getBranchPath?graph.getBranchPath(branch,720):[];
+      const aim=preview.length>1?L.latLng(preview[preview.length-1].lat,preview[preview.length-1].lng):destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
       const snapped=await snapToRoad(aim,heading);
       const coords=currentPoint.lng+','+currentPoint.lat+';'+turnPoint.lng+','+turnPoint.lat+';'+snapped.lng+','+snapped.lat;
       const hints='&bearings=;'+chosen+',18;'+chosen+',30';
