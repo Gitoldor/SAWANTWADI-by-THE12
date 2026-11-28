@@ -488,10 +488,9 @@
         {enableHighAccuracy:true,timeout:20000,maximumAge:3000}
       );
     });
-    const [gpsResult,mapResult]=await Promise.all([gpsPromise,mapWarm]);
+    const [gpsResult,mapResult]=await Promise.all([gpsPromise,mapWarm,graphWarm]);
     if(gpsResult.error){failStart('LOCATION PERMISSION NEEDED',gpsResult.error);return}
     if(mapResult.error){failStart('MAP LAYER FAILED',mapResult.error);return}
-    await graphWarm;
     try{
       if(roadMap){await roadMap.enable(mapRef);roadMapEnabled=true}
       else throw new Error('OpenFreeMap layer plugin is missing');
@@ -516,9 +515,12 @@
         const cachedTown=graph.getTownRoadLines();
         if(cachedTown&&cachedTown.length)drawTownRoadLayer(cachedTown);
         refreshJunctionChoices();
-        graphRequest.then(()=>{if(active)refreshJunctionChoices()});
-
-        if(!townRoadLoadStarted){
+        // Give the small, live junction graph first use of the Overpass
+        // connection. The much larger town overlay follows without delaying it.
+        graphRequest.then(()=>{
+          if(!active)return;
+          refreshJunctionChoices();
+          if(townRoadLoadStarted)return;
           townRoadLoadStarted=true;
           graph.loadTown(currentPoint).then(()=>{
             if(!active)return;
@@ -527,13 +529,12 @@
             if(status&&status.textContent==='STEER · TAP A ROAD ARROW AT ANY JUNCTION'){
               setStatus('SAWANTWADI ROAD NETWORK · '+lines.length+' ROADS IN BLUE');
             }
-            refreshJunctionChoices();
           }).catch(err=>{
             townRoadLoadStarted=false;
             console.warn('MAX Sawantwadi road overlay:',err);
             if(active&&(!status||status.textContent.startsWith('STEER')))setStatus('TOWN ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
           });
-        }
+        });
       }
       lastFrame=0;raf=requestAnimationFrame(frame);
       gpsWatch=navigator.geolocation.watchPosition(
