@@ -129,23 +129,15 @@
       }d-=seg;
     }return {point:routePoints[routePoints.length-1],angle:0};
   }
+  let graphRefreshPending=false;
   function refreshJunctionChoices(){
-    if(!currentPoint||!routeSteps.length)return;
-    const found=[];
-    for(const step of routeSteps){
-      for(const ix of (step.intersections||[])){
-        if(!Array.isArray(ix.location)||!Array.isArray(ix.bearings))continue;
-        const p=L.latLng(ix.location[1],ix.location[0]);
-        const distance=mapRef.distance(currentPoint,p);
-        if(distance<18||distance>ROUTE_LOOKAHEAD_METERS)continue;
-        const incoming=Number.isInteger(ix.in)&&ix.bearings[ix.in]!==undefined?ix.bearings[ix.in]:currentHeading;
-        ix.bearings.forEach((bearing,index)=>{
-          if(!(ix.entry||[])[index])return;
-          const key=p.lat.toFixed(5)+','+p.lng.toFixed(5)+':'+Math.round(bearing);
-          if(found.some(x=>x.key===key))return;
-          found.push({key,point:p,bearing,distance});
-        });
-      }
+    if(!currentPoint||!window.Sho1re1RoadGraph)return;
+    const graph=window.Sho1re1RoadGraph;
+    const found=graph.getBranches(currentPoint,ROUTE_LOOKAHEAD_METERS);
+    if(!graphRefreshPending){
+      graphRefreshPending=true;
+      graph.refresh(currentPoint).then(()=>{graphRefreshPending=false;if(active)refreshJunctionChoices()})
+        .catch(err=>{graphRefreshPending=false;console.warn('MAX road graph refresh:',err)});
     }
     const keys=new Set(found.map(x=>x.key));
     junctionMarkers=junctionMarkers.filter(item=>{
@@ -155,9 +147,10 @@
     });
     found.forEach(item=>{
       if(junctionMarkers.some(x=>x.key===item.key))return;
+      const displayPoint=destination(item.point,item.bearing,13);
       const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[27,27],iconAnchor:[13.5,13.5]});
-      const marker=L.marker(item.point,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
-      marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
+      const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
+      marker.bindTooltip('Choose connected road · '+Math.round(item.distance)+' m',{direction:'top'});
       marker.on('click',()=>chooseTurn(item.bearing,item.point));
       junctionMarkers.push({key:item.key,marker});
     });
