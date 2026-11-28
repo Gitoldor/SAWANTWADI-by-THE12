@@ -210,22 +210,42 @@
       branchLines.forEach(line=>{if(mapRef.hasLayer(line))mapRef.removeLayer(line)});branchLines=[];
     }
   }
+  function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
   async function chooseTurn(heading,junctionPoint){
-    if(!active||routeBusy)return;
-    routeBusy=true;setStatus('LOADING SELECTED ROAD…');
+    if(!active||routeBusy||!currentPoint)return;
+    routeBusy=true;setStatus('LOCKING SELECTED ROAD…');
     try{
       const turnPoint=junctionPoint||currentPoint;
+      const chosen=Math.round((heading+360)%360);
+      // Aim well down the selected arm. The junction itself is an explicit
+      // OSRM waypoint, with a bearing constraint that locks its outgoing road.
       const aim=destination(turnPoint,heading,ROUTE_LOOKAHEAD_METERS);
       const snapped=await snapToRoad(aim,heading);
-      const via=junctionPoint?';'+junctionPoint.lng+','+junctionPoint.lat:'';
-      const chosen=Math.round((heading+360)%360);
-      const bearings='&bearings=;'+chosen+',30;'+chosen+',45';
-      const data=await osrm('/route/v1/driving/'+currentPoint.lng+','+currentPoint.lat+via+';'+snapped.lng+','+snapped.lat+'?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=true'+bearings);
-      const route=data.routes&&data.routes[0];if(!route||!route.geometry)throw new Error('That turn has no connected road');
-      setRoute(route.geometry.coordinates,route.legs&&route.legs[0]&&route.legs[0].steps);
-      refreshJunctionChoices();setStatus('ROAD CHANGED · KEEP DRIVING');
-    }catch(err){setStatus('THAT TURN IS UNAVAILABLE');console.warn('MAX turn selection:',err)}
-    finally{routeBusy=false}
+      const coords=currentPoint.lng+','+currentPoint.lat+';'+turnPoint.lng+','+turnPoint.lat+';'+snapped.lng+','+snapped.lat;
+      const hints='&bearings=;'+chosen+',18;'+chosen+',30';
+      const data=await osrm('/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true&alternatives=true&continue_straight=false'+hints);
+      const route=data.routes&&data.routes[0],geometry=route&&route.geometry&&route.geometry.coordinates;
+      if(!geometry||geometry.length<3)throw new Error('That turn has no connected road');
+      // Do not accept an OSRM route that quietly leaves the junction by a
+      // different arm from the one the user tapped.
+      let junctionIndex=0,best=Infinity;
+      for(let i=0;i<geometry.length;i++){
+        const p=L.latLng(geometry[i][1],geometry[i][0]),d=mapRef.distance(p,turnPoint);
+        if(d<best){best=d;junctionIndex=i}
+      }
+      if(best>35||junctionIndex>=geometry.length-1)throw new Error('Selected junction was not reached');
+      const actual=bearing(
+        L.latLng(geometry[junctionIndex][1],geometry[junctionIndex][0]),
+        L.latLng(geometry[junctionIndex+1][1],geometry[junctionIndex+1][0])
+      );
+      if(angleDifference(actual,heading)>62)throw new Error('Router returned a different road');
+      setRoute(geometry,route.legs&&route.legs[0]&&route.legs[0].steps);
+      refreshJunctionChoices();
+      setStatus('SELECTED ROAD LOCKED · KEEP DRIVING');
+    }catch(err){
+      setStatus('COULD NOT LOCK THAT ROAD · TRY THE BLUE LINE');
+      console.warn('MAX turn selection:',err);
+    }finally{routeBusy=false}
   }
   async function requestRoute(force){
     if(!active||routeBusy||!joystick.active)return;
