@@ -45,29 +45,58 @@
   pending=(async()=>{let data,error;for(const url of ENDPOINTS){try{data=await query(snapshot,url);break}catch(e){error=e}}if(!data)throw error||Error('Road graph unavailable');build(data);lastCenter=snapshot;lastFetchAt=Date.now();return true})().finally(()=>{pending=null});
   return pending;
  }
+ function angleDifference(a,b){return Math.abs(((a-b+540)%360)-180)}
  function getBranches(center,maxDistance=1800,travelHeading=null){
   if(!center||!nodeEdges.size)return [];
   const candidates=[];
-  const angular=(a,b)=>Math.abs(((a-b+540)%360)-180);
   for(const [id,node] of nodeEdges){
-   const d=distance(center,node.point);if(d<10||d>maxDistance)continue;
+   const d=distance(center,node.point);if(d<12||d>maxDistance)continue;
    const approach=Number.isFinite(travelHeading)?travelHeading:bearing(center,node.point);
-   const back=(approach+180)%360;
-   const arms=[];
+   const directionToNode=bearing(center,node.point);
+   // Ignore junctions substantially behind the vehicle, but allow curved approaches.
+   if(Number.isFinite(travelHeading)&&angleDifference(directionToNode,travelHeading)>112)continue;
+   const back=(approach+180)%360,arms=[];
    for(const edge of node.edges){
-    if(angular(edge.bearing,back)<42)continue;
-    if(arms.some(a=>angular(a.bearing,edge.bearing)<12))continue;
+    if(angleDifference(edge.bearing,back)<38)continue;
+    if(arms.some(a=>angleDifference(a.bearing,edge.bearing)<10))continue;
     arms.push(edge);
    }
    if(arms.length<2)continue;
    for(const edge of arms){
-    const key=id+':'+Math.round(edge.bearing/5)*5;
-    candidates.push({key,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d});
+    const key=id+':'+edge.to+':'+Math.round(edge.bearing);
+    candidates.push({key,nodeId:id,to:edge.to,point:window.L.latLng(node.point.lat,node.point.lng),bearing:edge.bearing,distance:d});
    }
   }
   if(!candidates.length)return [];
   const nearest=Math.min(...candidates.map(x=>x.distance));
-  return candidates.filter(x=>x.distance<=nearest+7);
+  return candidates.filter(x=>x.distance<=nearest+12);
  }
- window.Sho1re1RoadGraph={refresh,getBranches,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending})};
+ // Build a preview from real connected OSM graph edges. This is display-only:
+ // the existing OSRM movement engine remains responsible for driving.
+ function getBranchPath(branch,maxMeters=650){
+  if(!branch||!nodeEdges.size)return [];
+  let id=String(branch.nodeId),next=String(branch.to),node=nodeEdges.get(id);
+  if(!node||!nodeEdges.has(next))return [];
+  const points=[{lat:node.point.lat,lng:node.point.lng}],seen=new Set([id]);
+  let travelled=0,previous=id,current=next;
+  let incoming=Number(branch.bearing)||0;
+  while(current&&!seen.has(current)){
+   const here=nodeEdges.get(current);if(!here)break;
+   const step=nodeEdges.get(previous);
+   const edge=step&&step.edges.find(e=>String(e.to)===current);
+   const segment=edge?distance(step.point,here.point):distance(points[points.length-1],here.point);
+   travelled+=segment;if(travelled>maxMeters)break;
+   points.push({lat:here.point.lat,lng:here.point.lng});
+   seen.add(current);
+   const options=(here.edges||[]).filter(e=>String(e.to)!==previous&&nodeEdges.has(String(e.to)));
+   if(!options.length)break;
+   options.sort((a,b)=>angleDifference(a.bearing,incoming)-angleDifference(b.bearing,incoming));
+   const chosen=options[0];
+   // Stop rather than inventing a continuation if the graph forks sharply.
+   if(angleDifference(chosen.bearing,incoming)>78)break;
+   previous=current;current=String(chosen.to);incoming=chosen.bearing;
+  }
+  return points.length>1?points:[];
+ }
+ window.Sho1re1RoadGraph={refresh,getBranches,getBranchPath,stats:()=>({nodes:nodeEdges.size,updatedAt:lastFetchAt,loading:!!pending})};
 })();
