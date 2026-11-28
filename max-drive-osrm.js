@@ -11,7 +11,7 @@
   const ROUTE_LOOKAHEAD_METERS = 1800;
   const ROUTER = 'https://valhalla1.openstreetmap.de';
   let lastValhallaRequestAt=0, valhallaQueue=Promise.resolve();
-  let active=false, loading=false, gpsWatch=null, car=null, routeLine=null, raf=0;
+  let active=false, loading=false, car=null, routeLine=null, raf=0;
   let ui=null, driveButton=null, joystickBase=null, joystickKnob=null, status=null, junctionMarkers=[], branchLines=[], branchFetchKey='', branchFetchBusy=false, branchFetchVersion=0, speedFlashTimer=0, lastJunctionRefresh=0;
   let joystick={x:0,y:0,active:false};
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
@@ -63,11 +63,31 @@
     if(!Array.isArray(lines)||!lines.length)return false;
     if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);
     townRoadLayer=L.polyline(lines,{
-      renderer:L.canvas(),color:'#078cff',weight:3.5,opacity:.82,
-      lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:1.4
+      renderer:L.canvas(),color:'#078cff',weight:7,opacity:.9,
+      lineCap:'round',lineJoin:'round',interactive:true,smoothFactor:1.4
     }).addTo(mapRef);
+    townRoadLayer.on('click',e=>{
+      if(!active||!e.latlng)return;
+      jumpCarToRoad(e.latlng);
+    });
     townRoadLayer.bringToBack();
     return true;
+  }
+  function jumpCarToRoad(point){
+    if(!active||!point)return;
+    const target=L.latLng(point.lat,point.lng);
+    clearRoute();
+    currentPoint=target;
+    // Face toward the nearest road continuation from the clicked road point.
+    const graph=window.Sho1re1RoadGraph;
+    const nearby=graph&&graph.getBranches?graph.getBranches(target,90,null):[];
+    if(nearby.length)currentHeading=nearby[0].bearing;
+    selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
+    waitingForJunctionChoice=false;
+    setCar(currentPoint,currentHeading);
+    mapRef.panTo(currentPoint,{animate:false});
+    setStatus('CAR MOVED TO SELECTED ROAD · PUSH DRIVE TO MOVE');
+    refreshJunctionChoices();
   }
   function buildUI(){
     if(ui)return;
@@ -504,47 +524,29 @@
       const a=window.Sho1re1Pro;if(a)await a.refresh();
       if(!hasMaxAccess()){loading=false;ui.hidden=true;syncVisibility();return}
     }
-    if(!navigator.geolocation){loading=false;setStatus('GPS NOT AVAILABLE');return}
-    setStatus('PREPARING GPS & ROAD CACHE…');
-    const gpsPromise=new Promise(resolve=>{
-      navigator.geolocation.getCurrentPosition(
-        pos=>resolve({pos}),
-        error=>resolve({error}),
-        {enableHighAccuracy:true,timeout:20000,maximumAge:3000}
-      );
-    });
-    const [gpsResult,mapResult]=await Promise.all([gpsPromise,mapWarm,graphWarm]);
-    if(gpsResult.error){failStart('LOCATION PERMISSION NEEDED',gpsResult.error);return}
+    setStatus('LOADING ROAD MAP…');
+    const [mapResult]=await Promise.all([mapWarm,graphWarm]);
     if(mapResult.error){failStart('MAP LAYER FAILED',mapResult.error);return}
     try{
       if(roadMap){await roadMap.enable(mapRef);roadMapEnabled=true}
       else throw new Error('OpenFreeMap layer plugin is missing');
     }catch(err){failStart('MAP LAYER FAILED',err);return}
     try{
-      const rawPoint=L.latLng(gpsResult.pos.coords.latitude,gpsResult.pos.coords.longitude);
-      // Start the nearby OSM request while Valhalla snaps GPS to the road.
-      const graphRequest=graph?graph.refresh(rawPoint).catch(err=>{
-        console.warn('MAX initial junction graph:',err);
-        if(active)setStatus('ROUTE READY · JUNCTION OPTIONS STILL LOADING');
-        return false;
-      }):Promise.resolve(false);
-      setStatus('SNAPPING TO A REAL ROAD…');
-      currentPoint=await snapToRoad(rawPoint);currentHeading=0;
-      active=true;loading=false;ui.hidden=false;hideGpsMarker();setCar(currentPoint,0);
+      // Drive mode is map-based now: never request or imitate device GPS.
+      // Start at the current map centre; the user chooses any blue road.
+      currentPoint=mapRef.getCenter();
+      currentHeading=0;
+      active=true;loading=false;ui.hidden=false;
+      setCar(currentPoint,currentHeading);
       if(roadMap){roadMap.setCamera(0,42);lastCameraBearing=0;}
       cameraAngle=0;mapRef.setView(currentPoint,Math.max(17,mapRef.getZoom()),{animate:false});
       lockMapInteractions();
-      document.body.classList.add('sho1re1-driving');setStatus('STEER · TAP A ROAD ARROW AT ANY JUNCTION');
-
+      document.body.classList.add('sho1re1-driving');
+      setStatus('TAP ANY BLUE ROAD TO MOVE THE CAR THERE');
       if(graph){
-        // Draw the last saved town roads immediately; update them quietly
-        // if the background refresh returns newer OSM data.
         const cachedTown=graph.getTownRoadLines();
         if(cachedTown&&cachedTown.length)drawTownRoadLayer(cachedTown);
-        refreshJunctionChoices();
-        // Give the small, live junction graph first use of the Overpass
-        // connection. The much larger town overlay follows without delaying it.
-        graphRequest.then(()=>{
+        graph.refresh(currentPoint).then(()=>{
           if(!active)return;
           refreshJunctionChoices();
           if(townRoadLoadStarted)return;
@@ -553,23 +555,19 @@
             if(!active)return;
             const lines=graph.getTownRoadLines();
             if(lines&&lines.length)drawTownRoadLayer(lines);
-            if(status&&status.textContent==='STEER · TAP A ROAD ARROW AT ANY JUNCTION'){
-              setStatus('SAWANTWADI ROAD NETWORK · '+lines.length+' ROADS IN BLUE');
-            }
+            setStatus('TAP ANY BLUE ROAD TO MOVE THE CAR THERE');
           }).catch(err=>{
             townRoadLoadStarted=false;
             console.warn('MAX Sawantwadi road overlay:',err);
-            if(active&&(!status||status.textContent.startsWith('STEER')))setStatus('TOWN ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
+            if(active)setStatus('ROAD MAP FAILED · '+(err.message||'TRY AGAIN'));
           });
+        }).catch(err=>{
+          console.warn('MAX initial junction graph:',err);
+          if(active)setStatus('TAP ANY BLUE ROAD · JUNCTION DATA UNAVAILABLE');
         });
       }
       lastFrame=0;raf=requestAnimationFrame(frame);
-      gpsWatch=navigator.geolocation.watchPosition(
-        p=>{ /* GPS is monitored; the simulated car remains road-constrained. */ },
-        ()=>{},
-        {enableHighAccuracy:true,maximumAge:1500,timeout:10000}
-      );
-    }catch(err){failStart('ROAD SNAP FAILED',err)}
+    }catch(err){failStart('DRIVE MODE FAILED',err)}
   }
   function failStart(label, err){
     loading=false;
@@ -582,7 +580,6 @@
   }
   function stop(){
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
-    if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     committedJunctionNodeId=null;committedJunctionPoint=null;
     mapRef.stop();endMapRotation();cameraAngle=0;if(roadMapEnabled&&window.Sho1re1RoadMap){window.Sho1re1RoadMap.resetCamera();window.Sho1re1RoadMap.disable(mapRef)}roadMapEnabled=false;lastCameraBearing=null;
