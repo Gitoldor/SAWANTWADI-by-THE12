@@ -16,7 +16,7 @@
   let routePoints=[], routeLengths=[], routeDistance=0, routeTotal=0;
   let lastFrame=0, lastRouteAt=0, lastHeading=null, currentPoint=null, currentHeading=0, routeBusy=false, routeSteps=[], routeTurnShown=null;
   let roadMapEnabled=false, lastCameraBearing=null, rotationWrapper=null, cameraAngle=0;
-  let mapInteractionState=null, lastSteerRouteAt=0;
+  let mapInteractionState=null, lastSteerRouteAt=0, selectedBranch=null, selectedBranchLine=null, selectedBranchCommit=false;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -57,7 +57,7 @@
     const turnChoices=ui.querySelector('#sho1re1-turn-choices');
     turnChoices.addEventListener('click',e=>{const b=e.target.closest('[data-turn-index]');if(!b)return;const item=turnChoices._branches&&turnChoices._branches[Number(b.dataset.turnIndex)];if(item)chooseTurn(item.bearing,item.point,item)});
     driveButton.addEventListener('click',start);
-    joystickBase.addEventListener('pointerdown',joyStart);joystickBase.addEventListener('pointermove',joyMove);joystickBase.addEventListener('pointerup',joyEnd);joystickBase.addEventListener('pointercancel',joyEnd);joystickBase.addEventListener('lostpointercapture',joyEnd);
+    joystickBase.addEventListener('pointerdown',joyStart);joystickBase.addEventListener('pointermove',joyMove);joystickBase.addEventListener('pointerup',joyEnd);joystickBase.addEventListener('pointercancel',joyEnd);joystickBase.addEventListener('lostpointercapture',joyEnd);joystickBase.addEventListener('dblclick',selectBranchFromJoystick);
     ui.querySelector('#sho1re1-speed-gears').addEventListener('click',e=>{const b=e.target.closest('[data-gear]');if(!b)return;SPEED_MPS=Math.max(1,SPEED_MPS+(b.dataset.gear==='up'?2:-2));flashSpeed();});
     let touchY=null;
     ui.addEventListener('touchstart',e=>{if(e.target.closest('#sho1re1-joy-base,#sho1re1-speed-gears'))return;if(e.touches.length===1&&e.touches[0].clientY<75)touchY=e.touches[0].clientY},{passive:true});
@@ -77,6 +77,22 @@
     joystick.x=dx/max;joystick.y=dy/max;joystickKnob.style.left='calc(50% + '+dx+'px)';joystickKnob.style.top='calc(50% + '+dy+'px)';
   }
   function joyEnd(){joystick.active=false;joystick.x=0;joystick.y=0;if(joystickKnob){joystickKnob.style.left='50%';joystickKnob.style.top='50%'}}
+  function selectBranchFromJoystick(e){
+    if(!active||!currentPoint||routeBusy)return;
+    e.preventDefault();
+    const panel=ui&&ui.querySelector('#sho1re1-turn-choices');
+    const choices=panel&&panel._branches||[];
+    if(!choices.length){setStatus('NO JUNCTION OPTIONS IN RANGE YET');return;}
+    const rect=joystickBase.getBoundingClientRect(),dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2);
+    if(Math.hypot(dx,dy)<rect.width*.13){setStatus('DOUBLE-TAP TOWARD LEFT, STRAIGHT OR RIGHT');return;}
+    const desired=(currentHeading+Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+    let best=null,bestDiff=Infinity;
+    choices.forEach(item=>{const diff=angleDifference(item.bearing,desired);if(diff<bestDiff){best=item;bestDiff=diff}});
+    if(!best||bestDiff>78){setStatus('NO ROAD MATCHES THAT JOYSTICK DIRECTION');return;}
+    selectedBranch=best;selectedBranchCommit=false;
+    branchLines.forEach(line=>{const chosen=line._shoBranch===best;line.setStyle({color:chosen?'#ef3434':'#078cff',weight:chosen?16:13,opacity:chosen?1:.58});if(chosen)selectedBranchLine=line;});
+    setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD');
+  }
   function bearing(a,b){
     const r=Math.PI/180,y=Math.sin((b.lng-a.lng)*r)*Math.cos(b.lat*r);
     const x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lng-a.lng)*r);
@@ -126,6 +142,7 @@
     }else{car.setLatLng(p);const el=car.getElement(),body=el&&el.querySelector('div');if(body)body.style.transform='rotate('+(angle||0)+'deg)'}
   }
   function clearTurnCard(){
+    selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
     junctionMarkers.forEach(item=>{if(mapRef.hasLayer(item.marker))mapRef.removeLayer(item.marker)});
     junctionMarkers=[];branchFetchVersion++;branchFetchBusy=false;branchFetchKey='';
     const choices=ui&&ui.querySelector('#sho1re1-turn-choices');if(choices){choices.classList.remove('show');choices.innerHTML='';choices._branches=[];}
@@ -194,7 +211,8 @@
         color:'#078cff',weight:13,opacity:.96,lineCap:'round',lineJoin:'round',
         interactive:true,bubblingMouseEvents:false,renderer:L.canvas()
       }).addTo(mapRef);
-      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();chooseTurn(item.bearing,item.point,item)});
+      line._shoBranch=item;
+      line.on('click',e=>{if(e.originalEvent)e.originalEvent.preventDefault();selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(other=>other.setStyle({color:other===line?'#ef3434':'#078cff',weight:other===line?16:13,opacity:other===line?1:.58}));selectedBranchLine=line;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
       line.bindTooltip('TAP TO SELECT THIS ROAD',{sticky:true,direction:'top'});
       branchLines.push(line);
     });
@@ -226,7 +244,7 @@
         const icon=L.divIcon({className:'',html:'<div class="sho1re1-junction-arrow" style="transform:rotate('+item.bearing+'deg)">↑</div>',iconSize:[31,31],iconAnchor:[15.5,15.5]});
         const marker=L.marker(displayPoint,{keyboard:false,zIndexOffset:7000,icon}).addTo(mapRef);
         marker.bindTooltip('Choose this road · '+Math.round(item.distance)+' m',{direction:'top'});
-        marker.on('click',()=>chooseTurn(item.bearing,item.point,item));
+        marker.on('click',()=>{selectedBranch=item;selectedBranchCommit=false;branchLines.forEach(line=>line.setStyle({color:line._shoBranch===item?'#ef3434':'#078cff',weight:line._shoBranch===item?16:13,opacity:line._shoBranch===item?1:.58}));selectedBranchLine=branchLines.find(line=>line._shoBranch===item)||null;setStatus('ROAD SELECTED IN RED · PUSH JOYSTICK FORWARD')});
         junctionMarkers.push({key:item.key,marker});
       });
     }else {
@@ -315,13 +333,14 @@
     if(!lastFrame)lastFrame=now;
     const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
     const throttle=Math.max(0,Math.min(1,-joystick.y));
-    if(throttle>.16&&routePoints.length>1&&!routeBusy){
+    if(selectedBranch&&throttle>.35&&!selectedBranchCommit&&!routeBusy){selectedBranchCommit=true;const chosen=selectedBranch;chooseTurn(chosen.bearing,chosen.point,chosen);}
+    if(!selectedBranch&&throttle>.16&&routePoints.length>1&&!routeBusy){
       routeDistance=Math.min(routeTotal,routeDistance+SPEED_MPS*throttle*dt);
       const at=pointAt(routeDistance);currentPoint=at.point;currentHeading=at.angle;
       if(now-lastJunctionRefresh>300){refreshJunctionChoices();lastJunctionRefresh=now;}
       if(routeDistance>=routeTotal-8){clearRoute();setStatus('LOADING ROAD AHEAD…');requestRoute(true)}
-    }else if(throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
-    if(throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
+    }else if(!selectedBranch&&throttle>.16&&routePoints.length===0&&!routeBusy){requestRoute(true)}
+    if(!selectedBranch&&throttle>.16&&Math.abs(joystick.x)>.34&&routePoints.length>1&&!routeBusy&&now-lastSteerRouteAt>950){lastSteerRouteAt=now;clearRoute();requestRoute(true)}
     // Follow the vehicle continuously: pan the map beneath it so the car
     // remains at the centre of the screen throughout simulated movement.
     if(currentPoint){
