@@ -22,7 +22,7 @@
   let junctionOptions=[], junctionRouteDistance=Infinity, waitingForJunctionChoice=false;
   let committedJunctionNodeId=null, committedJunctionPoint=null;
   let townRoadGeometry=[];
-  let driveRevision=0;
+  let driveRevision=0, driveFacingBack=false, uTurnButton=null;
 
   const style=document.createElement('style');
   style.textContent=`
@@ -34,6 +34,9 @@
     #sho1re1-joy-base:before{content:'DRIVE';position:absolute;inset:0;display:grid;place-items:center;color:#ffffff55;font-size:10px;font-weight:800;letter-spacing:.18em}
     #sho1re1-joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #fff;background:linear-gradient(145deg,#fff,#aeb6c3);box-shadow:0 5px 20px #0008;pointer-events:none}
     #sho1re1-speed-gears{position:absolute;right:20px;bottom:calc(184px + env(safe-area-inset-bottom));display:flex;gap:7px;pointer-events:auto}
+    #sho1re1-uturn{position:absolute;right:20px;bottom:calc(224px + env(safe-area-inset-bottom));min-width:87px;height:32px;padding:0 12px;border:1px solid #ffffff55;border-radius:10px;background:#111923ef;color:#fff;font:800 11px Inter,system-ui,sans-serif;letter-spacing:.04em;box-shadow:0 5px 18px #0007;pointer-events:auto;touch-action:manipulation}
+    #sho1re1-uturn[data-reversed="true"]{background:#145da8;border-color:#66baff;box-shadow:0 0 0 2px #168cff35,0 5px 18px #0007}
+    #sho1re1-uturn:active{transform:scale(.95)}
     .sho1re1-gear{width:40px;height:32px;border:1px solid #ffffff45;border-radius:10px;background:#111923ef;color:#fff;font:800 17px Inter,system-ui,sans-serif;box-shadow:0 5px 18px #0007;touch-action:manipulation}
     .sho1re1-gear:active{background:#247edb;transform:scale(.94)}
     #sho1re1-drive-ui[hidden]{display:none}
@@ -157,8 +160,8 @@
     if(ui)return;
     driveButton=document.createElement('button');driveButton.id='sho1re1-drive-button';driveButton.type='button';driveButton.textContent='START DRIVE';driveButton.hidden=true;document.body.appendChild(driveButton);
     ui=document.createElement('div');ui.id='sho1re1-drive-ui';ui.hidden=true;
-    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-turn-choices" aria-live="polite"></div><div id="sho1re1-speed-gears"><button class="sho1re1-gear" type="button" data-gear="up" aria-label="Increase speed">＋</button><button class="sho1re1-gear" type="button" data-gear="down" aria-label="Decrease speed">−</button></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
-    document.body.appendChild(ui);status=ui.querySelector('#sho1re1-drive-status');joystickBase=ui.querySelector('#sho1re1-joy-base');joystickKnob=ui.querySelector('#sho1re1-joy-knob');
+    ui.innerHTML='<div id="sho1re1-drive-status">READY</div><div id="sho1re1-turn-choices" aria-live="polite"></div><button id="sho1re1-uturn" type="button" data-reversed="false" aria-label="Turn the car around" aria-pressed="false">↶ U-TURN</button><div id="sho1re1-speed-gears"><button class="sho1re1-gear" type="button" data-gear="up" aria-label="Increase speed">＋</button><button class="sho1re1-gear" type="button" data-gear="down" aria-label="Decrease speed">−</button></div><div id="sho1re1-joy-base" aria-label="Driving joystick"><div id="sho1re1-joy-knob"></div></div>';
+    document.body.appendChild(ui);status=ui.querySelector('#sho1re1-drive-status');joystickBase=ui.querySelector('#sho1re1-joy-base');joystickKnob=ui.querySelector('#sho1re1-joy-knob');uTurnButton=ui.querySelector('#sho1re1-uturn');uTurnButton.addEventListener('click',toggleUTurn);
     const turnChoices=ui.querySelector('#sho1re1-turn-choices');
     turnChoices.addEventListener('click',e=>{const b=e.target.closest('[data-turn-index]');if(!b)return;const item=turnChoices._branches&&turnChoices._branches[Number(b.dataset.turnIndex)];if(item)chooseTurn(item.bearing,item.point,item)});
     driveButton.addEventListener('click',start);
@@ -173,6 +176,26 @@
     if(!driveButton)return;
     const show=document.body.classList.contains('sho-map-only')&&!active&&hasMaxAccess();
     driveButton.hidden=!show;driveButton.style.display=show?'block':'none';driveButton.setAttribute('aria-hidden',show?'false':'true');
+  }
+  function toggleUTurn(){
+    if(!active||!currentPoint)return;
+    driveFacingBack=!driveFacingBack;
+    driveRevision++;routeBusy=false;
+    clearRoute();
+    lastHeading=null;lastRouteAt=0;lastSteerRouteAt=0;
+    selectedBranch=null;selectedBranchLine=null;selectedBranchCommit=false;
+    waitingForJunctionChoice=false;
+    currentHeading=(currentHeading+180)%360;
+    joyEnd();
+    if(uTurnButton){
+      uTurnButton.dataset.reversed=driveFacingBack?'true':'false';
+      uTurnButton.setAttribute('aria-pressed',driveFacingBack?'true':'false');
+      uTurnButton.textContent=driveFacingBack?'↻ U-TURN':'↶ U-TURN';
+    }
+    setCar(currentPoint,currentHeading);
+    if(roadMapEnabled&&window.Sho1re1RoadMap)window.Sho1re1RoadMap.setCamera(currentHeading,42);
+    setStatus(driveFacingBack?'FACING BACK · DRIVE IN THIS DIRECTION':'FACING FORWARD · DRIVE IN THIS DIRECTION');
+    refreshJunctionChoices();
   }
   function joyStart(e){e.preventDefault();joystick.active=true;try{joystickBase.setPointerCapture(e.pointerId)}catch(_){}joyMove(e)}
   function joyMove(e){
@@ -603,7 +626,8 @@
       // Drive mode is map-based now: never request or imitate device GPS.
       // Start at the current map centre; the user chooses any blue road.
       currentPoint=mapRef.getCenter();
-      currentHeading=0;
+      currentHeading=0;driveFacingBack=false;
+      if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
       active=true;loading=false;ui.hidden=false;
       setCar(currentPoint,currentHeading);
       if(roadMap){roadMap.setCamera(0,42);lastCameraBearing=0;}
@@ -647,7 +671,8 @@
     if(err)console.warn('MAX Drive start:',err);
   }
   function stop(){
-    driveRevision++;routeBusy=false;
+    driveRevision++;routeBusy=false;driveFacingBack=false;
+    if(uTurnButton){uTurnButton.dataset.reversed='false';uTurnButton.setAttribute('aria-pressed','false');uTurnButton.textContent='↶ U-TURN';}
     active=false;loading=false;cancelAnimationFrame(raf);raf=0;lastFrame=0;joyEnd();
     if(car){if(car._speedFlash)mapRef.removeLayer(car._speedFlash);mapRef.removeLayer(car);car=null}clearRoute();clearTurnCard();if(townRoadLayer&&mapRef.hasLayer(townRoadLayer))mapRef.removeLayer(townRoadLayer);townRoadLayer=null;restoreGpsMarker();
     committedJunctionNodeId=null;committedJunctionPoint=null;
