@@ -57,7 +57,7 @@
       const mapWarm = window.Sho1re1RoadMap && window.Sho1re1RoadMap.preload
         ? window.Sho1re1RoadMap.preload().catch(error => console.warn('MAX map preload:', error))
         : Promise.resolve();
-      await addScript('./max-road-graph.js?v=20261128rollingtile1');
+      await addScript('./max-road-graph.js?v=20261128instant2');
       if (!isMax()) return;
       const graphWarm = window.Sho1re1RoadGraph && window.Sho1re1RoadGraph.preload
         ? window.Sho1re1RoadGraph.preload().catch(error => console.warn('MAX graph cache preload:', error))
