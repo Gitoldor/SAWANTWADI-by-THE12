@@ -201,6 +201,19 @@
     pointerId = event.pointerId;
   }
 
+  function restoreCardsAndExitDrive() {
+    const drive = window.Sho1re1Drive;
+    const wasDriving = !!(drive && drive.isActive && drive.isActive());
+    if (wasDriving && drive.stop) drive.stop();
+    document.body.classList.remove('sho-map-only');
+    if (wasDriving) {
+      // Let the carousel and map controls return before restoring the live GPS view.
+      window.setTimeout(() => {
+        if (typeof window.Sho1re1LocateMe === 'function') window.Sho1re1LocateMe();
+      }, 100);
+    }
+  }
+
   function onPointerUp(event) {
     if (!active || event.pointerId !== pointerId) return;
     active = false;
@@ -212,7 +225,7 @@
     if (!trackingRestore && dy > 0) {
       document.body.classList.add('sho-map-only');
     } else if (trackingRestore && dy < 0) {
-      document.body.classList.remove('sho-map-only');
+      restoreCardsAndExitDrive();
     }
   }
 
@@ -224,5 +237,5 @@
   document.addEventListener('pointerdown', onPointerDown, { passive: true, capture: true });
   document.addEventListener('pointerup', onPointerUp, { passive: true, capture: true });
   document.addEventListener('pointercancel', cancelPointer, { passive: true, capture: true });
-  restore.addEventListener('click', () => document.body.classList.remove('sho-map-only'));
+  restore.addEventListener('click', restoreCardsAndExitDrive);
 })();
